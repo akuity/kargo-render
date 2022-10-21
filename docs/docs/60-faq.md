@@ -1,0 +1,7 @@
+---
+description: FAQs
+---
+
+# FAQs
+
+Placeholder

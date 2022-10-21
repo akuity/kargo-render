@@ -1,0 +1,12 @@
+apiVersion: v2
+name: bookkeeper
+description: |
+  The Kubernetes Transit Authority
+type: application
+version: 0.1.0
+appVersion: v0.1.0
+sources:
+- https://github.com/akuityio/bookkeeper-prototype
+maintainers:
+- name: Kent Rancourt
+  email: kent@akuity.io

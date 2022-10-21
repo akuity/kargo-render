@@ -1,0 +1,4 @@
+.vscode/
+bin/
+charts/bookkeeper/*.tgz
+coverage.txt

@@ -1,0 +1,120 @@
+{{- $tlsCert := "" }}
+{{- $tlsKey := "" }}
+{{- if .Values.tls.enabled }} 
+  {{- if .Values.tls.generateSelfSignedCert }}
+    {{- $data := (lookup "v1" "Secret" .Release.Namespace (printf "%s-cert" (include "bookkeeper.fullname" . ))).data }}
+    {{- if $data }}
+      # Reuse the existing cert and key
+      {{- $tlsCert = index $data "tls.crt" }}
+      {{- $tlsKey = index $data "tls.key" }}
+    {{- else }}
+      # Generate a new cert and key
+      {{- $altName1 := include "bookkeeper.fullname" . }}
+      {{- $altName2 := printf "%s.%s" (include "bookkeeper.fullname" .) .Release.Namespace }}
+      {{- $altName3 := printf "%s.%s.svc" (include "bookkeeper.fullname" .) .Release.Namespace }}
+      {{- $altName4 := printf "%s.%s.svc.cluster" (include "bookkeeper.fullname" .) .Release.Namespace }}
+      {{- $altName5 := printf "%s.%s.svc.cluster.local" (include "bookkeeper.fullname" .) .Release.Namespace }}
+      {{- $cert := genSelfSignedCert .Values.host nil (list .Values.host $altName1 $altName2 $altName3 $altName4 $altName5) 3650 }}
+      {{- $tlsCert = b64enc $cert.Cert }}
+      {{- $tlsKey = b64enc $cert.Key }}
+    {{- end }}
+  {{- else if .Values.tls.cert }}
+    # Use operator supplied cert and key
+    {{- $tlsCert = .Values.tls.cert }}
+    {{- $tlsKey = .Values.tls.key }}
+  {{- end }}
+{{- end }}
+---
+{{- if and .Values.tls.enabled (or .Values.tls.generateSelfSignedCert .Values.tls.cert) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "bookkeeper.fullname" . }}-cert
+  labels:
+    {{- include "bookkeeper.labels" . | nindent 4 }}
+type: Opaque
+data:
+  tls.crt: {{ $tlsCert }}
+  tls.key: {{ $tlsKey }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bookkeeper.fullname" . }}
+  labels:
+    {{- include "bookkeeper.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "bookkeeper.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bookkeeper.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- if and .Values.tls.enabled (or .Values.tls.generateSelfSignedCert .Values.tls.cert) }}
+        checksum/tls-cert: {{ sha256sum $tlsCert }}
+        checksum/tls-key: {{ sha256sum $tlsKey }}
+        {{- end }}
+    spec:
+      serviceAccount: {{ include "bookkeeper.fullname" . }}
+      imagePullSecrets:
+      - name: {{ include "bookkeeper.fullname" . }}-image-pull-secret
+      containers:
+      - name: bookkeeper-server
+        image: {{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        command: ["/usr/local/bin/bookkeeper-server"]
+        env:
+        - name: BOOKKEEPER_LOG_LEVEL
+          value: {{ .Values.logLevel }}
+        - name: BOOKKEEPER_TLS_ENABLED
+          value: {{ quote .Values.tls.enabled }}
+        {{- if .Values.tls.enabled }}
+        - name: BOOKKEEPER_TLS_CERT_PATH
+          value: /var/bookkeeper/certs/tls.crt
+        - name: BOOKKEEPER_TLS_KEY_PATH
+          value: /var/bookkeeper/certs/tls.key
+        {{- end }}
+        {{- if .Values.tls.enabled }}
+        volumeMounts:
+        - name: cert
+          mountPath: /var/bookkeeper/certs
+          readOnly: true
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            port: 8080
+            path: /healthz
+            {{- if .Values.tls.enabled }}
+            scheme: HTTPS
+            {{- end }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            port: 8080
+            path: /healthz
+            {{- if .Values.tls.enabled }}
+            scheme: HTTPS
+            {{- end }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+      {{- if .Values.tls.enabled }}
+      volumes:
+      - name: cert
+        secret:
+          secretName: {{ include "bookkeeper.fullname" . }}-cert
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
