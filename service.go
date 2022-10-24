@@ -68,7 +68,15 @@ func (s *service) RenderConfig(
 
 	res := RenderResponse{}
 
-	repo, err := git.Clone(ctx, req.RepoURL, req.RepoCreds)
+	repo, err := git.Clone(
+		ctx,
+		req.RepoURL,
+		git.RepoCredentials{
+			SSHPrivateKey: req.RepoCreds.SSHPrivateKey,
+			Username:      req.RepoCreds.Username,
+			Password:      req.RepoCreds.Password,
+		},
+	)
 	if err != err {
 		return res, errors.Wrap(err, "error cloning remote repository")
 	}
