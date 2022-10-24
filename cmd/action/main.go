@@ -34,7 +34,11 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	res, err := bookkeeper.NewService().RenderConfig(context.Background(), req)
+	res, err := bookkeeper.NewService(
+		&bookkeeper.ServiceOptions{
+			LogLevel: bookkeeper.LogLevel(logger.Level),
+		},
+	).RenderConfig(context.Background(), req)
 	if err != nil {
 		logger.Fatal(err)
 	}

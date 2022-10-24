@@ -20,6 +20,10 @@ import (
 	"github.com/akuityio/bookkeeper/internal/ytt"
 )
 
+type ServiceOptions struct {
+	LogLevel LogLevel
+}
+
 // Service is an interface for components that can handle bookkeeping requests.
 // Implementations of this interface are transport-agnostic.
 type Service interface {
@@ -27,12 +31,24 @@ type Service interface {
 	RenderConfig(context.Context, RenderRequest) (RenderResponse, error)
 }
 
-type service struct{}
+type service struct {
+	logger *log.Logger
+}
 
 // NewService returns an implementation of the Service interface for
 // handling bookkeeping requests.
-func NewService() Service {
-	return &service{}
+func NewService(opts *ServiceOptions) Service {
+	if opts == nil {
+		opts = &ServiceOptions{}
+	}
+	if opts.LogLevel == 0 {
+		opts.LogLevel = LogLevelInfo
+	}
+	logger := log.New()
+	logger.SetLevel(log.Level(opts.LogLevel))
+	return &service{
+		logger: logger,
+	}
 }
 
 // nolint: gocyclo
@@ -42,7 +58,7 @@ func (s *service) RenderConfig(
 ) (RenderResponse, error) {
 	req.id = uuid.NewV4().String()
 
-	logger := logger.WithFields(
+	logger := s.logger.WithFields(
 		log.Fields{
 			"request":      req.id,
 			"repo":         req.RepoURL,
@@ -267,7 +283,7 @@ func (s *service) switchToCommitBranch(
 	repo git.Repo,
 	req RenderRequest,
 ) (string, error) {
-	logger := logger.WithFields(
+	logger := s.logger.WithFields(
 		log.Fields{
 			"request":      req.id,
 			"repo":         req.RepoURL,
