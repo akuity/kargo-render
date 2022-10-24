@@ -47,7 +47,13 @@ func main() {
 	router.StrictSlash(true)
 	router.HandleFunc(
 		"/v1alpha1/render",
-		getRenderRequestHandler(bookkeeper.NewService()),
+		getRenderRequestHandler(
+			bookkeeper.NewService(
+				&bookkeeper.ServiceOptions{
+					LogLevel: bookkeeper.LogLevel(logger.Level),
+				},
+			),
+		),
 	).Methods(http.MethodPost)
 	router.HandleFunc("/version", handleVersionRequest).Methods(http.MethodGet)
 	router.HandleFunc("/healthz", libHTTP.Healthz).Methods(http.MethodGet)
