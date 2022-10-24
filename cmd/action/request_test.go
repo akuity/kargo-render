@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/akuityio/bookkeeper"
-	"github.com/akuityio/bookkeeper/internal/git"
 )
 
 func TestRequest(t *testing.T) {
@@ -25,7 +24,7 @@ func TestRequest(t *testing.T) {
 	)
 	testReq := bookkeeper.RenderRequest{
 		RepoURL: fmt.Sprintf("https://github.com/%s", testRepo),
-		RepoCreds: git.RepoCredentials{
+		RepoCreds: bookkeeper.RepoCredentials{
 			Username: "git",
 			Password: "12345", // Like something an idiot would use for their luggage
 		},

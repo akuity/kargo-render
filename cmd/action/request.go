@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"github.com/akuityio/bookkeeper"
-	"github.com/akuityio/bookkeeper/internal/git"
 	libOS "github.com/akuityio/bookkeeper/internal/os"
 )
 
 func request() (bookkeeper.RenderRequest, error) {
 	req := bookkeeper.RenderRequest{
-		RepoCreds: git.RepoCredentials{
+		RepoCreds: bookkeeper.RepoCredentials{
 			Username: "git",
 		},
 		Images: libOS.GetStringSliceFromEnvVar("INPUT_IMAGES", nil),
