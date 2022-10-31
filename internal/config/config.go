@@ -1,4 +1,4 @@
-package bookkeeper
+package config
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ type BranchConfig struct {
 // ConfigManagementConfig is a wrapper around more specific configuration for
 // one of three supported configuration management tools: helm, kustomize, or
 // ytt. Only one of its fields may be non-nil.
-type ConfigManagementConfig struct {
+type ConfigManagementConfig struct { // nolint: revive
 	// Helm encapsulates optional Helm configuration options.
 	Helm *HelmConfig `json:"helm,omitempty"`
 	// Kustomize encapsulates optional Kustomize configuration options.

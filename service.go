@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/git"
 	"github.com/akuityio/bookkeeper/internal/helm"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
@@ -351,7 +352,7 @@ func (s *service) preRender(repo git.Repo, req RenderRequest) ([]byte, error) {
 	baseDir := filepath.Join(repo.WorkingDir(), "base")
 	envDir := filepath.Join(repo.WorkingDir(), req.TargetBranch)
 
-	repoConfig, err := LoadRepoConfig(repo.WorkingDir())
+	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
 	if err != nil {
 		return nil,
 			errors.Wrap(err, "error loading Bookkeeper configuration from repo")

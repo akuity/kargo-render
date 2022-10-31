@@ -1,4 +1,4 @@
-package bookkeeper
+package config
 
 import (
 	"os"
@@ -11,21 +11,21 @@ import (
 func TestLoadRepoConfig(t *testing.T) {
 	testCases := []struct {
 		name       string
-		setup      func() (string, error)
+		setup      func() string
 		assertions func(error)
 	}{
 		{
 			name: "invalid JSON",
-			setup: func() (string, error) {
+			setup: func() string {
 				dir, err := os.MkdirTemp("", "")
-				if err != nil {
-					return "", err
-				}
-				return dir, os.WriteFile(
+				require.NoError(t, err)
+				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.json"),
 					[]byte("bogus"),
 					0600,
 				)
+				require.NoError(t, err)
+				return dir
 			},
 			assertions: func(err error) {
 				require.Error(t, err)
@@ -34,16 +34,16 @@ func TestLoadRepoConfig(t *testing.T) {
 		},
 		{
 			name: "invalid YAML",
-			setup: func() (string, error) {
+			setup: func() string {
 				dir, err := os.MkdirTemp("", "")
-				if err != nil {
-					return "", err
-				}
-				return dir, os.WriteFile(
+				require.NoError(t, err)
+				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.yaml"),
 					[]byte("bogus"),
 					0600,
 				)
+				require.NoError(t, err)
+				return dir
 			},
 			assertions: func(err error) {
 				require.Error(t, err)
@@ -52,16 +52,16 @@ func TestLoadRepoConfig(t *testing.T) {
 		},
 		{
 			name: "valid JSON",
-			setup: func() (string, error) {
+			setup: func() string {
 				dir, err := os.MkdirTemp("", "")
-				if err != nil {
-					return "", err
-				}
-				return dir, os.WriteFile(
+				require.NoError(t, err)
+				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.json"),
 					[]byte("{}"),
 					0600,
 				)
+				require.NoError(t, err)
+				return dir
 			},
 			assertions: func(err error) {
 				require.NoError(t, err)
@@ -69,16 +69,16 @@ func TestLoadRepoConfig(t *testing.T) {
 		},
 		{
 			name: "valid YAML",
-			setup: func() (string, error) {
+			setup: func() string {
 				dir, err := os.MkdirTemp("", "")
-				if err != nil {
-					return "", err
-				}
-				return dir, os.WriteFile(
+				require.NoError(t, err)
+				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.yaml"),
 					[]byte(""), // An empty file should actually be valid
 					0600,
 				)
+				require.NoError(t, err)
+				return dir
 			},
 			assertions: func(err error) {
 				require.NoError(t, err)
@@ -87,12 +87,8 @@ func TestLoadRepoConfig(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			if testCase.setup != nil {
-				path, err := testCase.setup()
-				require.NoError(t, err)
-				_, err = LoadRepoConfig(path)
-				testCase.assertions(err)
-			}
+			_, err := LoadRepoConfig(testCase.setup())
+			testCase.assertions(err)
 		})
 	}
 }
