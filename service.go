@@ -113,15 +113,23 @@ func (s *service) RenderConfig(
 			errors.Wrap(err, "error getting last commit ID from the default branch")
 	}
 
+	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
+	if err != nil {
+		return res,
+			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
+	}
+	branchConfig := repoConfig.GetBranchConfig(req.TargetBranch)
+
 	// Pre-render
-	preRenderedBytes, err := s.preRender(repo, req)
+	preRenderedBytes, err := s.preRender(repo, branchConfig, req)
 	if err != nil {
 		return res, err
 	}
 
 	// Switch to the commit branch. The commit branch might be the target branch,
-	// but if req.OpenPR is true, it could be a new child of the target branch.
-	commitBranch, err := s.switchToCommitBranch(repo, req)
+	// but if branchConfig.OpenPR is true, it could be a new child of the target
+	// branch.
+	commitBranch, err := s.switchToCommitBranch(repo, branchConfig, req)
 	if err != nil {
 		return res, errors.Wrap(err, "error switching to target branch")
 	}
@@ -271,7 +279,7 @@ func (s *service) RenderConfig(
 	// TODO: Support git providers other than GitHub
 	//
 	// TODO: Move this into its own github package
-	if req.OpenPR {
+	if commitBranch != req.TargetBranch {
 		var owner, repo string
 		if owner, repo, err = parseGitHubURL(req.RepoURL); err != nil {
 			return res, err
@@ -320,6 +328,7 @@ func (s *service) RenderConfig(
 
 func (s *service) switchToCommitBranch(
 	repo git.Repo,
+	branchConfig config.BranchConfig,
 	req RenderRequest,
 ) (string, error) {
 	logger := s.logger.WithFields(
@@ -330,67 +339,58 @@ func (s *service) switchToCommitBranch(
 		},
 	)
 
-	var commitBranch = req.TargetBranch
-	if req.OpenPR {
-		commitBranch = fmt.Sprintf("bookkeeper/%s", uuid.NewV4().String())
+	// Check if the target branch exists on the remote
+	targetBranchExists, err := repo.RemoteBranchExists(req.TargetBranch)
+	if err != nil {
+		return "", errors.Wrap(err, "error checking for existence of target branch")
 	}
 
-	// Check if the target branch exists on the remote
-	if envBranchExists,
-		err := repo.RemoteBranchExists(req.TargetBranch); err != nil {
-		return commitBranch,
-			errors.Wrap(err, "error checking for existence of target branch")
-	} else if envBranchExists {
+	if targetBranchExists {
 		logger.Debug("target branch exists on remote")
 		if err = repo.Checkout(req.TargetBranch); err != nil {
-			return commitBranch,
-				errors.Wrap(err, "error checking out target branch")
+			return "", errors.Wrap(err, "error checking out target branch")
 		}
 		logger.Debug("checked out target branch")
-		// If we're supposed to be opening a PR instead of committing directly to
-		// the target branch, we should create and check out a new child of the
-		// target branch.
-		if req.OpenPR {
-			if err = repo.CreateChildBranch(commitBranch); err != nil {
-				return commitBranch,
-					errors.Wrap(err, "error creating child of target branch")
-			}
-			logger.Debug("created child of target branch")
+
+		if !branchConfig.OpenPR {
+			return req.TargetBranch, nil
 		}
-	} else {
-		logger.Debug("target branch does not exist on remote")
-		// If we're supposed to be opening a PR instead of committing directly to
-		// the target branch, then we really cannot accommodate that scenario here
-		// because you cannot open a PR against a branch that doesn't exist.
-		if req.OpenPR {
-			return commitBranch,
-				errors.New("can not open a PR against a non-existing branch")
+
+		// If we get to here, we're supposed to be opening a PR instead of
+		// committing directly to the target branch, so we should create and check
+		// out a new child of the target branch.
+		commitBranch := fmt.Sprintf("bookkeeper/%s", uuid.NewV4().String())
+		if err = repo.CreateChildBranch(commitBranch); err != nil {
+			return "", errors.Wrap(err, "error creating child of target branch")
 		}
-		if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
-			return commitBranch,
-				errors.Wrap(err, "error creating orphaned target branch")
-		}
-		logger.Debug("created orphaned target branch")
+		logger.Debug("created child of target branch")
+		return commitBranch, nil
 	}
+
+	// If we get to here, the target branch doesn't exist and we must create a
+	// brand new orphaned branch.
+	if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
+		return "", errors.Wrap(err, "error creating orphaned target branch")
+	}
+	logger.Debug("created orphaned target branch")
 	if err := repo.Reset(); err != nil {
-		return commitBranch, errors.Wrap(err, "error resetting repo")
+		return "", errors.Wrap(err, "error resetting repo")
 	}
-	return commitBranch, errors.Wrap(repo.Clean(), "error cleaning repo")
+
+	return req.TargetBranch, errors.Wrap(repo.Clean(), "error cleaning repo")
 }
 
-func (s *service) preRender(repo git.Repo, req RenderRequest) ([]byte, error) {
+func (s *service) preRender(
+	repo git.Repo,
+	branchConfig config.BranchConfig,
+	req RenderRequest,
+) ([]byte, error) {
 	baseDir := filepath.Join(repo.WorkingDir(), "base")
 	envDir := filepath.Join(repo.WorkingDir(), req.TargetBranch)
 
-	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
-	if err != nil {
-		return nil,
-			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
-	}
-	branchConfig := repoConfig.GetBranchConfig(req.TargetBranch)
-
 	// Use the caller's preferred config management tool for pre-rendering.
 	var preRenderedBytes []byte
+	var err error
 	if branchConfig.ConfigManagement.Helm != nil {
 		preRenderedBytes, err = helm.Render(
 			branchConfig.ConfigManagement.Helm.ReleaseName,
@@ -402,9 +402,7 @@ func (s *service) preRender(repo git.Repo, req RenderRequest) ([]byte, error) {
 	} else if branchConfig.ConfigManagement.Ytt != nil {
 		preRenderedBytes, err = ytt.Render(baseDir, envDir)
 	} else {
-		return nil, errors.New(
-			"no configuration management strategy was specified by the request",
-		)
+		preRenderedBytes, err = kustomize.Render(envDir)
 	}
 
 	return preRenderedBytes, err

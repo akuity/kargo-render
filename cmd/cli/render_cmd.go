@@ -31,12 +31,6 @@ func init() {
 		"specify a new image to apply to the final result (this flag may be "+
 			"used more than once)",
 	)
-	renderCmdFlagSet.Bool(
-		flagPR,
-		false,
-		"open a pull request against the target branch instead of committing "+
-			"rendered configuration directly",
-	)
 	renderCmdFlagSet.StringP(
 		flagRepo,
 		"r",
@@ -102,10 +96,6 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 	req := bookkeeper.RenderRequest{}
 	var err error
 	req.Images, err = cmd.Flags().GetStringArray(flagImage)
-	if err != nil {
-		return err
-	}
-	req.OpenPR, err = cmd.Flags().GetBool(flagPR)
 	if err != nil {
 		return err
 	}

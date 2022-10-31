@@ -41,9 +41,6 @@ type RenderRequest struct {
 	// Images specifies images to incorporate into environment-specific
 	// configuration.
 	Images []string `json:"images,omitempty"`
-	// OpenPR specifies whether to open a PR against TargetBranch (true) instead
-	// of directly committing directly to it (false).
-	OpenPR bool `json:"openPR,omitempty"`
 }
 
 // RepoCredentials represents the credentials for connecting to a private git

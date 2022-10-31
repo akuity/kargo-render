@@ -79,21 +79,9 @@ func TestRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "INPUT_OPENPR not parseable as bool",
-			setup: func() {
-				t.Setenv("INPUT_TARGETBRANCH", testReq.TargetBranch)
-				t.Setenv("INPUT_OPENPR", "foo")
-			},
-			assertions: func(_ bookkeeper.RenderRequest, err error) {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), " was not parsable as a bool")
-				require.Contains(t, err.Error(), "INPUT_OPENPR")
-			},
-		},
-		{
 			name: "success",
 			setup: func() {
-				t.Setenv("INPUT_OPENPR", fmt.Sprintf("%t", testReq.OpenPR))
+				t.Setenv("INPUT_TARGETBRANCH", testReq.TargetBranch)
 				t.Setenv(
 					"INPUT_IMAGES",
 					fmt.Sprintf("%s,%s", testImage1, testImage2))
