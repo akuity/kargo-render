@@ -14,9 +14,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
+	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/git"
 	"github.com/akuityio/bookkeeper/internal/helm"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
+	"github.com/akuityio/bookkeeper/internal/metadata"
 	"github.com/akuityio/bookkeeper/internal/ytt"
 )
 
@@ -86,7 +88,26 @@ func (s *service) RenderConfig(
 		if err = repo.Checkout(req.Commit); err != nil {
 			return res, errors.Wrapf(err, "error checking out %q", req.Commit)
 		}
-		sourceCommitID = req.Commit
+		// Try to load target branch metadata, so that IF this is a target branch,
+		// we can follow a back reference to the SOURCE of this branch.
+		var targetBranchMetadata *metadata.TargetBranchMetadata
+		targetBranchMetadata, err =
+			metadata.LoadTargetBranchMetadata(repo.WorkingDir())
+		if err != nil {
+			return res, errors.Wrap(err, "error loading target branch metadata")
+		}
+		if targetBranchMetadata != nil && targetBranchMetadata.SourceCommit != "" {
+			if err = repo.Checkout(targetBranchMetadata.SourceCommit); err != nil {
+				return res, errors.Wrapf(
+					err,
+					"error checking out %q",
+					targetBranchMetadata.SourceCommit,
+				)
+			}
+			sourceCommitID = targetBranchMetadata.SourceCommit
+		} else {
+			sourceCommitID = req.Commit
+		}
 	} else if sourceCommitID, err = repo.LastCommitID(); err != nil {
 		return res,
 			errors.Wrap(err, "error getting last commit ID from the default branch")
@@ -116,6 +137,16 @@ func (s *service) RenderConfig(
 			"error setting up .bookkeeper directory %q",
 			bkDir,
 		)
+	}
+
+	// Write branch metadata
+	if err = metadata.WriteTargetBranchMetadata(
+		metadata.TargetBranchMetadata{
+			SourceCommit: sourceCommitID,
+		},
+		repo.WorkingDir(),
+	); err != nil {
+		return res, errors.Wrap(err, "writing branch metadata")
 	}
 
 	// Write the pre-rendered config to a temporary location
@@ -351,7 +382,7 @@ func (s *service) preRender(repo git.Repo, req RenderRequest) ([]byte, error) {
 	baseDir := filepath.Join(repo.WorkingDir(), "base")
 	envDir := filepath.Join(repo.WorkingDir(), req.TargetBranch)
 
-	repoConfig, err := LoadRepoConfig(repo.WorkingDir())
+	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
 	if err != nil {
 		return nil,
 			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
