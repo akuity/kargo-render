@@ -31,6 +31,9 @@ type BranchConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch.
 	ConfigManagement ConfigManagementConfig `json:"configManagement,omitempty"`
+	// OpenPR specifies whether to open a PR against TargetBranch (true) instead
+	// of directly committing directly to it (false).
+	OpenPR bool `json:"openPR,omitempty"`
 }
 
 // ConfigManagementConfig is a wrapper around more specific configuration for

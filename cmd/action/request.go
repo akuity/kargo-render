@@ -26,10 +26,6 @@ func request() (bookkeeper.RenderRequest, error) {
 	if req.Commit, err = libOS.GetRequiredEnvVar("INPUT_COMMITSHA"); err != nil {
 		return req, err
 	}
-	if req.TargetBranch, err =
-		libOS.GetRequiredEnvVar("INPUT_TARGETBRANCH"); err != nil {
-		return req, err
-	}
-	req.OpenPR, err = libOS.GetBoolFromEnvVar("INPUT_OPENPR", false)
+	req.TargetBranch, err = libOS.GetRequiredEnvVar("INPUT_TARGETBRANCH")
 	return req, err
 }
