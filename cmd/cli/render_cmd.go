@@ -124,10 +124,17 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 	// based on whether this is the thin or thick CLI...
 	var svc bookkeeper.Service
 	if cmd.Flags().Lookup(flagServer) == nil { // Thick CLI
+		logLevel := bookkeeper.LogLevelError
+		var debug bool
+		if debug, err = cmd.Flags().GetBool(flagDebug); err != nil {
+			return err
+		}
+		if debug {
+			logLevel = bookkeeper.LogLevelDebug
+		}
 		svc = bookkeeper.NewService(
 			&bookkeeper.ServiceOptions{
-				// TODO: We should support a debug flag
-				LogLevel: bookkeeper.LogLevelInfo,
+				LogLevel: logLevel,
 			},
 		)
 	} else { // Thin CLI
