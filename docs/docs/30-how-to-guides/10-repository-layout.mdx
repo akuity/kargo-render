@@ -1,0 +1,229 @@
+---
+title: Repository layout
+description: Repository layout
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Repository layout
+
+Whether you use it with [Kustomize](https://kustomize.io/),
+[ytt](https://carvel.dev/ytt/), or [Helm](https://helm.sh/), Bookkeeper imposes
+one consistent convention: That common configuration resides in a `base/`
+directory at the root of your repository's default branch, while any
+environment-specific configuration resides in a directory whose path (relative
+to the root of the repository) matches the name of the environment-specific
+branch in which that configuration will be stored once rendered.
+
+:::note
+This means branch names will include slashes if the corresponding paths are
+multiple levels deep.
+:::
+
+## Bookfile.yaml
+
+`Bookfile.yaml` is a simple configuration file that may be present at the root
+of your repository's default branch. Its function is only to specify rules that
+Bookkeeper should apply either to all branches or to _specific_ branches.
+
+### Configuration management options
+
+For any branch, you can select a configuration management tool -- one of
+Kustomize, ytt, or Helm. In practice, however, because it would be impractical
+to use different configuration management tools for different branches, you will
+always select your preferred configuration management tool in the
+`defaultBranchConfig` section of `Bookfile.yaml`.
+
+In the following example, Kustomize is selected as the configuration management
+tool for all branches:
+
+```yaml
+defaultBranchConfig:
+  configManagement:
+    kustomize: {}
+```
+
+:::info
+The empty curly braces above represent an empty object. At this time, Bookkeeper
+doesn't expose any Kustomize-specific options, but using an object here
+future-proofs Bookkeeper from Kustomize-specific options that may be added in
+the future.
+:::
+
+:::info
+Kustomize is Bookkeeper's default configuration management tool, so if selecting
+Kustomize as your configuration management tool is the only configuration you
+wish to include in your `Bookfile.yaml`, you could just as easily omit
+that file entirely and achieve the same effect. Using ytt or Helm instead
+requires you to explicitly opt-in and configuration options are covered in the
+corresponding sections that follow.
+:::
+
+### Workflow options
+
+For any branch, you can specify that Bookkeeper should open pull requests
+containing changes to rendered configuration instead of committing those changes
+directly to that branch (which is the default behavior). This is an effective
+method of creating opportunities for configuration changes to be reviewed and
+approved (or rejected) before they are actually deployed to the environment
+corresponding to the target branch.
+
+In the following example, changes targeting the `env/prod`branch (but not any
+other branch) will result in pull requests:
+
+```yaml
+branchConfigs:
+- name: env/prod
+  openPR: true
+```
+
+:::info
+At this time, pull requests are only supported for remote GitOps repositories
+hosted on GitHub, but support for most major Git hosting providers is planned.
+:::
+
+## Layout examples
+
+<Tabs groupId="layouts">
+<TabItem value="kustomize" label="Kustomize">
+
+To use Bookkeeper with Kustomize, the default branch of your repository should
+be laid out as follows:
+
+```plain
+.
+├── base
+│  ├── <manifests>             # plain YAML
+│  └── kustomization.yaml      # references manifests
+└── env                        # "env" is suggested, but not required; this could also be many levels deep
+    ├── <env 1 name>
+    │   ├── <manifests>        # supplements base manifests
+    │   └── kustomization.yaml # references base and manifests; patches base manifests
+    ├── <env 2 name>
+    │   ├── <manifests>        # supplements base manifests
+    │   └── kustomization.yaml # references base and manifests; patches base manifests
+    │
+    ├── ...
+    │
+    └── <env n name>
+        ├── <manifests>        # supplements base manifests
+        └── kustomization.yaml # references base and manifests; patches base manifests
+```
+
+This layout is thought to be compatible with typical use of Kustomize.
+
+Kustomize is Bookkeeper's default configuration management tool, so no
+additional configuration is required.
+
+:::info
+To render configuration for an environment-specific branch, Bookkeeper will
+execute `kustomize build` from within the corresponding directory.
+:::
+
+Refer directly to
+[Kustomize's documentation](https://kubectl.docs.kubernetes.io/references/kustomize/)
+for more information.
+
+</TabItem>
+<TabItem value="ytt" label="ytt">
+
+To use Bookkeeper with ytt, the default branch of your repository should be
+laid out as follows:
+
+```plain
+.
+├── Bookfile.yaml
+├── base
+│   └── <manifest templates>
+└── env                        # "env" is suggested, but not required; this could also be many levels deep
+    ├── <env 1 name>
+    │   └── <files>            # fills in blanks in base and/or patches base
+    ├── <env 2 name>
+    │   └── <files>            # fills in blanks in base and/or patches base
+    │
+    ├── ...
+    │
+    └── <env n name>
+        └── <files>            # fills in blanks in base and/or patches base
+```
+
+This layout is thought to be compatible with typical use of ytt.
+
+ytt is not Bookkeeper's default configuration management tool, so a small bit
+of configuration in `Bookfile.yaml` is required to specify the use of ytt
+across all branches:
+
+```yaml
+defaultBranchConfig:
+  configManagement:
+    ytt: {}
+```
+
+:::info
+To render configuration for an environment-specific branch, Bookkeeper will
+execute a command resembling the following from the root of the repository:
+
+```shell
+ytt --file base/ --file env/<env name>/
+```
+:::
+
+Refer directly to [ytt's documentation](https://carvel.dev/ytt/) for more
+information.
+
+</TabItem>
+<TabItem value="helm" label="Helm">
+
+To use Bookkeeper with Helm, the default branch of your repository should be
+laid out as follows:
+
+```plain
+.
+├── Bookfile.yaml
+├── base                       # Your Helm chart
+│   ├── Chart.yaml
+│   ├── templates
+│   │   └── <manifest templates>
+│   └── values.yaml            # default values
+└── env                        # "env" is suggested, but not required; this could also be many levels deep
+    ├── <env 1>
+    │   └── values.yaml        # supplement or override base values
+    ├── <env 2>
+    │   └── values.yaml        # supplement or override base values
+    │
+    ├── ...
+    │
+    └── <env n>
+        └── values.yaml        # supplement or override base values
+```
+
+This layout is thought to be compatible with typical use of Helm in a GitOps
+context.
+
+Helm is not Bookkeeper's default configuration management tool, so a small bit
+of configuration in `Bookfile.yaml` is required to specify the use of Helm
+across all branches. When using Helm, it is also required to specify a release
+name:
+
+```yaml
+defaultBranchConfig:
+  configManagement:
+    helm:
+      releaseName: <release name>
+```
+
+:::info
+To render configuration for an environment-specific branch, Bookkeeper will
+execute a command resembling the following from the root of the repository:
+
+```shell
+helm template <release name> base/ --values env/<env name>/values.yaml
+```
+:::
+
+Refer directly to [Helm's documentation](https://helm.sh/docs/) for more
+information.
+
+</TabItem>
+</Tabs>

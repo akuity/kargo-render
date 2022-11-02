@@ -11,9 +11,7 @@ Placeholder
 ## Getting Started
 
 Read more about Bookkeeper in our
-[docs](https://docs-bookkeeper-akuity-io.netlify.app/) and then try it yourself
-by following our
-[Quickstart](https://docs-bookkeeper-akuity-io.netlify.app/quickstart).
+[docs](https://docs-bookkeeper-akuity-io.netlify.app/).
 
 This documentation is very new, so please open issues against this repository if
 you encounter any difficulties with it.
