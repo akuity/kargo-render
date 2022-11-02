@@ -15,7 +15,7 @@ func TestRequest(t *testing.T) {
 	// these tests run.
 	t.Setenv("GITHUB_REPOSITORY", "")
 	t.Setenv("INPUT_PERSONALACCESSTOKEN", "")
-	t.Setenv("INPUT_COMMITSHA", "")
+	t.Setenv("GITHUB_SHA", "")
 	t.Setenv("INPUT_TARGETBRANCH", "")
 	const (
 		testRepo   = "krancour/foo"
@@ -57,20 +57,20 @@ func TestRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "INPUT_COMMITSHA not specified",
+			name: "GITHUB_SHA not specified",
 			setup: func() {
 				t.Setenv("INPUT_PERSONALACCESSTOKEN", testReq.RepoCreds.Password)
 			},
 			assertions: func(_ bookkeeper.RenderRequest, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
-				require.Contains(t, err.Error(), "INPUT_COMMITSHA")
+				require.Contains(t, err.Error(), "GITHUB_SHA")
 			},
 		},
 		{
 			name: "INPUT_TARGETBRANCH not specified",
 			setup: func() {
-				t.Setenv("INPUT_COMMITSHA", testReq.Commit)
+				t.Setenv("GITHUB_SHA", testReq.Commit)
 			},
 			assertions: func(_ bookkeeper.RenderRequest, err error) {
 				require.Error(t, err)
