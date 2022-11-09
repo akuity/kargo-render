@@ -83,34 +83,10 @@ func (s *service) RenderConfig(
 		return res, errors.Wrap(err, "error cloning remote repository")
 	}
 	defer repo.Close()
-	var sourceCommitID string
-	if req.Commit != "" {
-		if err = repo.Checkout(req.Commit); err != nil {
-			return res, errors.Wrapf(err, "error checking out %q", req.Commit)
-		}
-		// Try to load target branch metadata, so that IF this is a target branch,
-		// we can follow a back reference to the SOURCE of this branch.
-		var targetBranchMetadata *metadata.TargetBranchMetadata
-		targetBranchMetadata, err =
-			metadata.LoadTargetBranchMetadata(repo.WorkingDir())
-		if err != nil {
-			return res, errors.Wrap(err, "error loading target branch metadata")
-		}
-		if targetBranchMetadata != nil && targetBranchMetadata.SourceCommit != "" {
-			if err = repo.Checkout(targetBranchMetadata.SourceCommit); err != nil {
-				return res, errors.Wrapf(
-					err,
-					"error checking out %q",
-					targetBranchMetadata.SourceCommit,
-				)
-			}
-			sourceCommitID = targetBranchMetadata.SourceCommit
-		} else {
-			sourceCommitID = req.Commit
-		}
-	} else if sourceCommitID, err = repo.LastCommitID(); err != nil {
-		return res,
-			errors.Wrap(err, "error getting last commit ID from the default branch")
+
+	sourceCommitID, err := checkoutSourceCommit(repo, req)
+	if err != nil {
+		return res, err
 	}
 
 	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
@@ -170,40 +146,13 @@ func (s *service) RenderConfig(
 	logger.Debug("wrote pre-rendered configuration")
 
 	// Deal with new images if any were specified
-	var commitMsg string
-	if len(req.Images) == 0 {
-		commitMsg = fmt.Sprintf(
-			"bookkeeper: rendering configuration from %s",
-			sourceCommitID,
-		)
-	} else {
-		for _, image := range req.Images {
-			if err = kustomize.SetImage(bkDir, image); err != nil {
-				return res, errors.Wrapf(
-					err,
-					"error setting image in pre-render directory %q",
-					bkDir,
-				)
-			}
-		}
-		if len(req.Images) == 1 {
-			commitMsg = fmt.Sprintf(
-				"bookkeeper: rendering configuration from %s with new image %s",
-				sourceCommitID,
-				req.Images[0],
+	for _, image := range req.Images {
+		if err = kustomize.SetImage(bkDir, image); err != nil {
+			return res, errors.Wrapf(
+				err,
+				"error setting image in pre-render directory %q",
+				bkDir,
 			)
-		} else {
-			commitMsg = fmt.Sprintf(
-				"bookkeeper: rendering configuration from %s with new images",
-				sourceCommitID,
-			)
-			for _, image := range req.Images {
-				commitMsg = fmt.Sprintf(
-					"%s\n * %s",
-					commitMsg,
-					image,
-				)
-			}
 		}
 	}
 
@@ -254,6 +203,11 @@ func (s *service) RenderConfig(
 		)
 		res.ActionTaken = ActionTakenNone
 		return res, nil
+	}
+
+	commitMsg, err := buildCommitMessage(repo, req, sourceCommitID)
+	if err != nil {
+		return res, err
 	}
 
 	// Commit the fully-rendered configuration
@@ -415,4 +369,98 @@ func parseGitHubURL(url string) (string, string, error) {
 		return "", "", errors.Errorf("error parsing github repository URL %q", url)
 	}
 	return parts[1], parts[2], nil
+}
+
+// checkoutSourceCommit examines a RenderRequest and determines if it is
+// requesting to render configuration from a specific commit. If not, it returns
+// the ID of the most recent commit.
+//
+// THIS ASSUMES THAT THIS FUNCTION IS ONLY CALLED IMMEDIATELY AFTER CLONING THE
+// REPOSITORY, MEANING THE HEAD OF THE CURRENT BRANCH IS THE HEAD OF THE
+// REPOSITORY'S DEFAULT BRANCH.
+//
+// If the RenderRequest specifies a commit, it is checked out. If metadata in
+// that commit indicates it was, itself, rendered from source configuration
+// in another commit, this function "follows" that reference back to the
+// original commit.
+func checkoutSourceCommit(repo git.Repo, req RenderRequest) (string, error) {
+	// If no commit ID was specified return the commit ID at the head of this
+	// branch and we're done.
+	if req.Commit == "" {
+		sourceCommitID, err := repo.LastCommitID()
+		return sourceCommitID,
+			errors.Wrap(err, "error getting last commit ID from the default branch")
+	}
+
+	// Check out the specified commit
+	if err := repo.Checkout(req.Commit); err != nil {
+		return "", errors.Wrapf(err, "error checking out %q", req.Commit)
+	}
+
+	// Try to load target branch metadata
+	targetBranchMetadata, err :=
+		metadata.LoadTargetBranchMetadata(repo.WorkingDir())
+	if err != nil {
+		return "",
+			errors.Wrapf(err, "error loading branch metadata from %q", req.Commit)
+	}
+
+	// If we got no branch metadata, then we assume we're already sitting on the
+	// source commit.
+	if targetBranchMetadata == nil {
+		return req.Commit, nil
+	}
+
+	// Follow the branch metadata back to the real source commit
+	err = repo.Checkout(targetBranchMetadata.SourceCommit)
+	return targetBranchMetadata.SourceCommit, errors.Wrapf(
+		err,
+		"error checking out %q",
+		targetBranchMetadata.SourceCommit,
+	)
+}
+
+// buildCommitMessage builds a commit message for rendered configuration being
+// written to a target branch by using the source commit's own commit message
+// as a starting point. The message is then augmented with details about where
+// Bookkeeper rendered it from (the source commit) and any image substitutions
+// Bookkeeper made per the RenderRequest.
+func buildCommitMessage(
+	repo git.Repo,
+	req RenderRequest,
+	sourceCommitID string,
+) (string, error) {
+	// Use the source commit's message as a starting point
+	commitMsg, err := repo.CommitMessage(sourceCommitID)
+	if err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error getting commit message for commit %q",
+			sourceCommitID,
+		)
+	}
+
+	// Add the source commit's ID
+	commitMsg = fmt.Sprintf(
+		"%s\n\nBookkeeper created this commit by rendering configuration from %s",
+		commitMsg,
+		sourceCommitID,
+	)
+
+	if len(req.Images) != 0 {
+		commitMsg = fmt.Sprintf(
+			"%s\n\nBookkeeper incorporated the following new images into this "+
+				"commit:\n",
+			commitMsg,
+		)
+		for _, image := range req.Images {
+			commitMsg = fmt.Sprintf(
+				"%s\n  * %s",
+				commitMsg,
+				image,
+			)
+		}
+	}
+
+	return commitMsg, nil
 }
