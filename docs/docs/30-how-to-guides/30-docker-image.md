@@ -22,7 +22,7 @@ CLI](./cli) except that all server-related flags are absent.
 Example usage:
 
 ```shell
-docker run -it ghcr.io/akuityio/bookkeeper-prototype:v0.1.0-alpha.1-rc.3 \
+docker run -it ghcr.io/akuityio/bookkeeper-prototype:v0.1.0-alpha.1 \
   bookkeeper render \
   --repo https://github.com/<your GitHub handle>/bookkeeper-demo-deploy \
   --repo-username <your GitHub handle> \
