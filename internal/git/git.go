@@ -58,6 +58,9 @@ type Repo interface {
 	// LastCommitID returns the ID (sha) of the most recent commit to the current
 	// branch.
 	LastCommitID() (string, error)
+	// CommitMessage returns the text of the most commit message associated with
+	// the specified commit ID.
+	CommitMessage(id string) (string, error)
 	// Push pushes from the current branch to a remote branch by the same name.
 	Push() error
 	// RemoteBranchExists returns a bool indicating if the specified branch exists
@@ -250,6 +253,14 @@ func (r *repo) LastCommitID() (string, error) {
 	shaBytes, err := cmd.Output()
 	return strings.TrimSpace(string(shaBytes)),
 		errors.Wrap(err, "error obtaining ID of last commit")
+}
+
+func (r *repo) CommitMessage(id string) (string, error) {
+	cmd := exec.Command("git", "log", "-n", "1", "--pretty=format:%s", id)
+	cmd.Dir = r.dir // We need to be anywhere in the root of the repo for this
+	msgBytes, err := cmd.Output()
+	return string(msgBytes),
+		errors.Wrapf(err, "error obtaining commit message for commit %q", id)
 }
 
 func (r *repo) execCommand(cmd *exec.Cmd) ([]byte, error) {
