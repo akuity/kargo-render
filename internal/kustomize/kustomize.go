@@ -2,57 +2,12 @@ package kustomize
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 
-	"github.com/akuityio/bookkeeper/internal/file"
 	"github.com/akuityio/bookkeeper/internal/strings"
 )
-
-var kustomizationBytes = []byte(
-	`apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-resources:
-- ephemeral.yaml
-`,
-)
-
-// EnsureBookkeeperDir ensures the existence of a .bookkeeper directory and the
-// kustomize configuration required to perform last-mile rendering.
-func EnsureBookkeeperDir(dir string) error {
-	// Ensure the existence of the directory
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return errors.Wrapf(err, "error ensuring existence of directory %q", dir)
-	}
-
-	// Ensure the existence of kustomization.yaml
-	kustomizationFile := filepath.Join(dir, "kustomization.yaml")
-	if exists, err := file.Exists(kustomizationFile); err != nil {
-		return errors.Wrapf(
-			err,
-			"error checking for existence of %q",
-			kustomizationFile,
-		)
-	} else if !exists {
-		if err = os.WriteFile( // nolint: gosec
-			kustomizationFile,
-			kustomizationBytes,
-			0644,
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error writing to %q",
-				kustomizationFile,
-			)
-		}
-	}
-
-	return nil
-}
 
 // SetImage runs `kustomize edit set image ...` in the specified directory.
 // The specified directory must already exist and contain a kustomization.yaml
