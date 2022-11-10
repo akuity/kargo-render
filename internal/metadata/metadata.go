@@ -17,6 +17,9 @@ type TargetBranchMetadata struct {
 	// default branch (i.e. main or master) from which the configuration stored in
 	// this branch was rendered.
 	SourceCommit string `json:"sourceCommit,omitempty"`
+	// ImageSubstitutions is a list of new images that were used in rendering this
+	// branch.
+	ImageSubstitutions []string `json:"imageSubstitutions,omitempty"`
 }
 
 // LoadTargetBranchMetadata attempts to load TargetBranchMetadata from a
