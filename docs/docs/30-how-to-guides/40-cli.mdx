@@ -48,7 +48,7 @@ options:
 ```shell
 helm install bookkeeper \
   oci://ghcr.io/akuityio/bookkeeper-chart/bookkeeper \
-  --version v0.1.0-alpha.1-rc.3 \
+  --version v0.1.0-alpha.1 \
   --create-namespace \
   --namespace bookkeeper \
   --wait
@@ -69,7 +69,7 @@ explore them, extract the options from the chart and save them to a file:
 ```shell
 helm inspect values \
   oci://ghcr.io/akuityio/bookkeeper-chart/bookkeeper \
-  --version v0.1.0-alpha.1-rc.3 > ~/bookkeeper-values.yaml
+  --version v0.1.0-alpha.1 > ~/bookkeeper-values.yaml
 ```
 
 The file is liberally commented. Edit it as desired, save your changes, and
@@ -78,7 +78,7 @@ install like so:
 ```shell
 helm install bookkeeper \
   oci://ghcr.io/akuityio/bookkeeper-chart/bookkeeper \
-  --version v0.1.0-alpha.1-rc.3 \
+  --version v0.1.0-alpha.1 \
   --create-namespace \
   --namespace bookkeeper \
   --values ~/bookkeeper-values.yaml \

@@ -37,16 +37,16 @@ inputs:
     required: true
 runs:
   using: 'docker'
-  image: 'krancour/mystery-image:v0.1.0-alpha.1-rc.3'
+  image: 'krancour/mystery-image:v0.1.0-alpha.1'
   entrypoint: 'bookkeeper-action'
 ```
 
 :::note
 The odd-looking reference to a Docker image named
-`krancour/mystery-image:v0.1.0-alpha.1-rc.3` is not a mistake. As previously
+`krancour/mystery-image:v0.1.0-alpha.1` is not a mistake. As previously
 noted, GitHub support for private actions is very poor. Among other things, this
 means there is no method of authenticating to a Docker registry to pull private
-images. `krancour/mystery-image:v0.1.0-alpha.1-rc.3` is a public copy of the
+images. `krancour/mystery-image:v0.1.0-alpha.1` is a public copy of the
 official Bookkeeper image. We hope that its obscure name prevents it from
 attracting much notice.
 :::
