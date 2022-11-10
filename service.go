@@ -340,7 +340,18 @@ func (s *service) preRender(
 	req RenderRequest,
 ) ([]byte, error) {
 	baseDir := filepath.Join(repo.WorkingDir(), "base")
-	envDir := filepath.Join(repo.WorkingDir(), req.TargetBranch)
+
+	// Use branchConfig.OverlayPath as the source for environment-specific
+	// configuration (for instance, a Kustomize overlay) unless it isn't specified
+	// -- then default to the convention -- assuming the path to the
+	// environment-specific configuration is identical to the name of the target
+	// branch.
+	var envDir string
+	if branchConfig.OverlayPath != "" {
+		envDir = filepath.Join(repo.WorkingDir(), branchConfig.OverlayPath)
+	} else {
+		envDir = filepath.Join(repo.WorkingDir(), req.TargetBranch)
+	}
 
 	// Use the caller's preferred config management tool for pre-rendering.
 	var preRenderedBytes []byte
