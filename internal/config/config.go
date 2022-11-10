@@ -31,6 +31,15 @@ type BranchConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch.
 	ConfigManagement ConfigManagementConfig `json:"configManagement,omitempty"`
+	// OverlayPath is a path, relative to the root of the repository where
+	// environment-specific configuration for this branch can be located. By
+	// convention, if left unspecified, the path is assumed to be identical to the
+	// name of the branch.
+	//
+	// TODO: Consider renaming this field. "Overlay" makes sense in the context
+	// of Kustomize, but it isn't nomenclature that is used by either ytt or Helm.
+	// A more generic term would be nice.
+	OverlayPath string `json:"overlayPath,omitempty"`
 	// OpenPR specifies whether to open a PR against TargetBranch (true) instead
 	// of directly committing directly to it (false).
 	OpenPR bool `json:"openPR,omitempty"`
