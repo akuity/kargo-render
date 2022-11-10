@@ -16,10 +16,7 @@ import (
 
 	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/git"
-	"github.com/akuityio/bookkeeper/internal/helm"
-	"github.com/akuityio/bookkeeper/internal/kustomize"
 	"github.com/akuityio/bookkeeper/internal/metadata"
-	"github.com/akuityio/bookkeeper/internal/ytt"
 )
 
 type ServiceOptions struct {
@@ -96,9 +93,14 @@ func (s *service) RenderConfig(
 	}
 	branchConfig := repoConfig.GetBranchConfig(req.TargetBranch)
 
-	// Pre-render
+	// Render
 	preRenderedBytes, err := s.preRender(repo, branchConfig, req)
 	if err != nil {
+		return res, err
+	}
+	fullyRenderedBytes, err := s.renderLastMile(repo, req, preRenderedBytes)
+	if err != nil {
+		// TODO: Wrap this error
 		return res, err
 	}
 
@@ -113,60 +115,22 @@ func (s *service) RenderConfig(
 		"commitBranch": commitBranch,
 	})
 
-	// Ensure the .bookkeeper directory exists and is set up correctly
+	// Ensure the .bookkeeper directory exists
 	bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
-	if err = kustomize.EnsureBookkeeperDir(bkDir); err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error setting up .bookkeeper directory %q",
-			bkDir,
-		)
+	if err = os.MkdirAll(bkDir, 0755); err != nil {
+		return res,
+			errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
 	}
 
 	// Write branch metadata
 	if err = metadata.WriteTargetBranchMetadata(
 		metadata.TargetBranchMetadata{
-			SourceCommit: sourceCommitID,
+			SourceCommit:       sourceCommitID,
+			ImageSubstitutions: req.Images,
 		},
 		repo.WorkingDir(),
 	); err != nil {
 		return res, errors.Wrap(err, "writing branch metadata")
-	}
-
-	// Write the pre-rendered config to a temporary location
-	preRenderedPath := filepath.Join(bkDir, "ephemeral.yaml")
-	// nolint: gosec
-	if err = os.WriteFile(preRenderedPath, preRenderedBytes, 0644); err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error writing ephemeral, pre-rendered configuration to %q",
-			preRenderedPath,
-		)
-	}
-	logger.Debug("wrote pre-rendered configuration")
-
-	// Deal with new images if any were specified
-	for _, image := range req.Images {
-		if err = kustomize.SetImage(bkDir, image); err != nil {
-			return res, errors.Wrapf(
-				err,
-				"error setting image in pre-render directory %q",
-				bkDir,
-			)
-		}
-	}
-
-	// Now take everything the last mile with kustomize and write the
-	// fully-rendered config to the commit branch...
-
-	// Last mile rendering
-	fullyRenderedBytes, err := kustomize.Render(bkDir)
-	if err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error rendering configuration from %q",
-			bkDir,
-		)
 	}
 
 	// Write the new fully-rendered config to the root of the repo
@@ -180,15 +144,6 @@ func (s *service) RenderConfig(
 		)
 	}
 	logger.Debug("wrote fully-rendered configuration")
-
-	// Delete the ephemeral, pre-rendered configuration
-	if err = os.Remove(preRenderedPath); err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error deleting ephemeral, pre-rendered configuration from %q",
-			preRenderedPath,
-		)
-	}
 
 	// Before committing, check if we actually have any diffs from the head of
 	// this branch. We'd have an error if we tried to commit with no diffs!
@@ -332,45 +287,6 @@ func (s *service) switchToCommitBranch(
 	}
 
 	return req.TargetBranch, errors.Wrap(repo.Clean(), "error cleaning repo")
-}
-
-func (s *service) preRender(
-	repo git.Repo,
-	branchConfig config.BranchConfig,
-	req RenderRequest,
-) ([]byte, error) {
-	baseDir := filepath.Join(repo.WorkingDir(), "base")
-
-	// Use branchConfig.OverlayPath as the source for environment-specific
-	// configuration (for instance, a Kustomize overlay) unless it isn't specified
-	// -- then default to the convention -- assuming the path to the
-	// environment-specific configuration is identical to the name of the target
-	// branch.
-	var envDir string
-	if branchConfig.OverlayPath != "" {
-		envDir = filepath.Join(repo.WorkingDir(), branchConfig.OverlayPath)
-	} else {
-		envDir = filepath.Join(repo.WorkingDir(), req.TargetBranch)
-	}
-
-	// Use the caller's preferred config management tool for pre-rendering.
-	var preRenderedBytes []byte
-	var err error
-	if branchConfig.ConfigManagement.Helm != nil {
-		preRenderedBytes, err = helm.Render(
-			branchConfig.ConfigManagement.Helm.ReleaseName,
-			baseDir,
-			envDir,
-		)
-	} else if branchConfig.ConfigManagement.Kustomize != nil {
-		preRenderedBytes, err = kustomize.Render(envDir)
-	} else if branchConfig.ConfigManagement.Ytt != nil {
-		preRenderedBytes, err = ytt.Render(baseDir, envDir)
-	} else {
-		preRenderedBytes, err = kustomize.Render(envDir)
-	}
-
-	return preRenderedBytes, err
 }
 
 func parseGitHubURL(url string) (string, string, error) {
