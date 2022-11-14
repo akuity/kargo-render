@@ -26,38 +26,26 @@ func (s *service) preRender(
 	branchConfig config.BranchConfig,
 	req RenderRequest,
 ) ([]byte, error) {
-	baseDir := filepath.Join(repo.WorkingDir(), "base")
-
-	// Use branchConfig.OverlayPath as the source for environment-specific
-	// configuration (for instance, a Kustomize overlay) unless it isn't specified
-	// -- then default to the convention -- assuming the path to the
-	// environment-specific configuration is identical to the name of the target
-	// branch.
-	var envDir string
-	if branchConfig.OverlayPath != "" {
-		envDir = filepath.Join(repo.WorkingDir(), branchConfig.OverlayPath)
-	} else {
-		envDir = filepath.Join(repo.WorkingDir(), req.TargetBranch)
-	}
-
 	// Use the caller's preferred config management tool for pre-rendering.
-	var preRenderedBytes []byte
-	var err error
 	if branchConfig.ConfigManagement.Helm != nil {
-		preRenderedBytes, err = helm.Render(
-			branchConfig.ConfigManagement.Helm.ReleaseName,
-			baseDir,
-			envDir,
+		return helm.PreRender(
+			repo.WorkingDir(),
+			req.TargetBranch,
+			branchConfig.ConfigManagement.Helm,
 		)
-	} else if branchConfig.ConfigManagement.Kustomize != nil {
-		preRenderedBytes, err = kustomize.Render(envDir)
-	} else if branchConfig.ConfigManagement.Ytt != nil {
-		preRenderedBytes, err = ytt.Render(baseDir, envDir)
-	} else {
-		preRenderedBytes, err = kustomize.Render(envDir)
 	}
-
-	return preRenderedBytes, err
+	if branchConfig.ConfigManagement.Ytt != nil {
+		return ytt.PreRender(
+			repo.WorkingDir(),
+			req.TargetBranch,
+			branchConfig.ConfigManagement.Ytt,
+		)
+	}
+	return kustomize.PreRender(
+		repo.WorkingDir(),
+		req.TargetBranch,
+		branchConfig.ConfigManagement.Kustomize,
+	)
 }
 
 func (s *service) renderLastMile(
@@ -111,7 +99,7 @@ func (s *service) renderLastMile(
 		}
 	}
 
-	fullyRenderedBytes, err := kustomize.Render(tempDir)
+	fullyRenderedBytes, err := kustomize.LastMileRender(tempDir)
 	return fullyRenderedBytes, errors.Wrapf(
 		err,
 		"error rendering configuration from %q",
