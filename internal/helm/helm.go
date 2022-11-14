@@ -4,23 +4,49 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/pkg/errors"
 )
 
 // TODO: Document this
-func Render(releaseName, baseDir, envDir string) ([]byte, error) {
-	cmd := exec.Command( // nolint: gosec
-		"helm",
-		"template",
-		releaseName,
-		baseDir,
-		"--values",
-		filepath.Join(envDir, "values.yaml"),
-	)
+func PreRender(
+	repoRoot string,
+	targetBranch string,
+	cfg *config.HelmConfig,
+) ([]byte, error) {
+	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
 	yamlBytes, err := cmd.Output()
 	return yamlBytes, errors.Wrapf(
 		err,
 		"error running `%s`",
 		cmd.String(),
 	)
+}
+
+func buildPreRenderCmd(
+	repoRoot string,
+	targetBranch string,
+	cfg *config.HelmConfig,
+) *exec.Cmd {
+	var chartPath string
+	if cfg.ChartPath != "" {
+		chartPath = cfg.ChartPath
+	} else {
+		chartPath = "base"
+	}
+	cmdArgs := []string{"template", cfg.ReleaseName, chartPath}
+	if len(cfg.ValuesPaths) > 0 {
+		for _, valuePath := range cfg.ValuesPaths {
+			cmdArgs = append(cmdArgs, "--values", valuePath)
+		}
+	} else {
+		cmdArgs = append(
+			cmdArgs,
+			"--values",
+			filepath.Join(targetBranch, "values.yaml"),
+		)
+	}
+	cmd := exec.Command("helm", cmdArgs...)
+	cmd.Dir = repoRoot
+	return cmd
 }
