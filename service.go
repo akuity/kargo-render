@@ -1,6 +1,7 @@
 package bookkeeper
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -115,6 +117,10 @@ func (s *service) RenderConfig(
 		"commitBranch": commitBranch,
 	})
 
+	if err = rmYAML(repo.WorkingDir()); err != nil {
+		return res, errors.Wrap(err, "error cleaning commit branch")
+	}
+
 	// Ensure the .bookkeeper directory exists
 	bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
 	if err = os.MkdirAll(bkDir, 0755); err != nil {
@@ -134,14 +140,8 @@ func (s *service) RenderConfig(
 	}
 
 	// Write the new fully-rendered config to the root of the repo
-	allPath := filepath.Join(repo.WorkingDir(), "all.yaml")
-	// nolint: gosec
-	if err = os.WriteFile(allPath, fullyRenderedBytes, 0644); err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error writing fully-rendered configuration to %q",
-			allPath,
-		)
+	if err = writeFiles(repo.WorkingDir(), fullyRenderedBytes); err != nil {
+		return res, err
 	}
 	logger.Debug("wrote fully-rendered configuration")
 
@@ -390,4 +390,49 @@ func buildCommitMessage(
 	}
 
 	return commitMsg, nil
+}
+
+func writeFiles(dir string, yamlBytes []byte) error {
+	resourcesBytes := bytes.Split(yamlBytes, []byte("---\n"))
+	for _, resourceBytes := range resourcesBytes {
+		resource := struct {
+			Kind     string `json:"kind"`
+			Metadata struct {
+				Name string `json:"name"`
+			} `json:"metadata"`
+		}{}
+		if err := yaml.Unmarshal(resourceBytes, &resource); err != nil {
+			return errors.Wrap(err, "error unmarshaling resource")
+		}
+		fileName := filepath.Join(
+			dir,
+			fmt.Sprintf(
+				"%s-%s.yaml",
+				strings.ToLower(resource.Metadata.Name),
+				strings.ToLower(resource.Kind),
+			),
+		)
+		// nolint: gosec
+		if err := os.WriteFile(fileName, resourceBytes, 0644); err != nil {
+			return errors.Wrapf(
+				err,
+				"error writing fully-rendered configuration to %q",
+				fileName,
+			)
+		}
+	}
+	return nil
+}
+
+func rmYAML(dir string) error {
+	files, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if err = os.Remove(file); err != nil {
+			return err
+		}
+	}
+	return nil
 }
