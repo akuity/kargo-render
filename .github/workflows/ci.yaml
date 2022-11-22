@@ -52,23 +52,8 @@ jobs:
         SKIP_DOCKER: 'true'
       run: make lint
 
-  lint-chart:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/akuityio/k8sta-tools:v0.3.0
-      credentials:
-        username: ${{ secrets.GH_USERNAME }}
-        password: ${{ secrets.GH_TOKEN }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - name: Run linter
-      env:
-        SKIP_DOCKER: 'true'
-      run: make lint-chart
-
   build-image:
-    needs: [test-unit, lint, lint-chart]
+    needs: [test-unit, lint]
     runs-on: ubuntu-latest
     steps:
     - name: Set up QEMU
@@ -88,25 +73,3 @@ jobs:
         push: false
         cache-from: type=gha
         cache-to: type=gha,mode=max
-
-  build-cli:
-    needs: [test-unit, lint, lint-chart]
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/akuityio/k8sta-tools:v0.3.0
-      credentials:
-        username: ${{ secrets.GH_USERNAME }}
-        password: ${{ secrets.GH_TOKEN }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    - uses: actions/cache@v3
-      with:
-        path: /go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-    - name: Build CLI
-      env:
-        SKIP_DOCKER: 'true'
-      run: make build-cli

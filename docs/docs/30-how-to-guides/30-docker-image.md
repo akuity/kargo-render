@@ -8,16 +8,11 @@ description: Using Bookkeeper's Docker image
 If you are integrating Bookkeeper into automated processes that are implemented
 with something other than GitHub Actions and those processes permit execution of
 commands within a Docker container (much as a GitHub action does), then
-utilizing the official Bookkeeper Docker image and a specialized variant of the
-CLI found therein is a convenient option.
+utilizing the official Bookkeeper Docker image and the CLI found therein is a
+convenient option.
 
 As long as Docker is installed on your system, using this image is also the
 easiest option for experimenting locally with Bookkeeper!
-
-:::info
-The "thick" CLI's interface is identical to that of the usual [Bookkeeper
-CLI](./cli) except that all server-related flags are absent.
-:::
 
 Example usage:
 

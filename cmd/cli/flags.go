@@ -10,14 +10,12 @@ const (
 	flagCommit       = "commit"
 	flagDebug        = "debug"
 	flagImage        = "image"
-	flagInsecure     = "insecure"
 	flagOutput       = "output"
 	flagOutputJSON   = "json"
 	flagOutputYAML   = "yaml"
 	flagRepo         = "repo"
 	flagRepoPassword = "repo-password"
 	flagRepoUsername = "repo-username"
-	flagServer       = "server"
 	flagTargetBranch = "target-branch"
 )
 
