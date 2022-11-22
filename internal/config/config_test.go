@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,7 +30,11 @@ func TestLoadRepoConfig(t *testing.T) {
 			},
 			assertions: func(err error) {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), "error unmarshaling JSON config file")
+				require.Contains(
+					t,
+					err.Error(),
+					"error normalizing and validating Bookkeeper configuration",
+				)
 			},
 		},
 		{
@@ -47,7 +52,11 @@ func TestLoadRepoConfig(t *testing.T) {
 			},
 			assertions: func(err error) {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), "error unmarshaling YAML config file")
+				require.Contains(
+					t,
+					err.Error(),
+					"error normalizing and validating Bookkeeper configuration",
+				)
 			},
 		},
 		{
@@ -57,7 +66,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.json"),
-					[]byte("{}"),
+					[]byte(`{"configVersion": "v1alpha1"}`),
 					0600,
 				)
 				require.NoError(t, err)
@@ -74,7 +83,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(dir, "Bookfile.yaml"),
-					[]byte(""), // An empty file should actually be valid
+					[]byte("configVersion: v1alpha1"),
 					0600,
 				)
 				require.NoError(t, err)
@@ -151,6 +160,56 @@ func TestGetBranchConfig(t *testing.T) {
 			testCase.assertions(
 				testCase.repoConfig.GetBranchConfig(testBranchName),
 			)
+		})
+	}
+}
+
+func TestNormalizeAndValidate(t *testing.T) {
+	testCases := []struct {
+		name       string
+		config     []byte
+		assertions func(error)
+	}{
+		{
+			name:   "invalid JSON",
+			config: []byte("{}"),
+			assertions: func(err error) {
+				require.Error(t, err)
+			},
+		},
+		{
+			name:   "invalid YAML",
+			config: []byte(""),
+			assertions: func(err error) {
+				require.Error(t, err)
+			},
+		},
+		{
+			name:   "valid JSON",
+			config: []byte(`{"configVersion": "v1alpha1"}`),
+			assertions: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name:   "valid YAML",
+			config: []byte("configVersion: v1alpha1"),
+			assertions: func(err error) {
+				require.NoError(t, err)
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			configBytes, err := normalizeAndValidate(testCase.config)
+			testCase.assertions(err)
+			// For any validation that doesn't fail, the bytes returned should be
+			// JSON we can unmarshal...
+			if err == nil {
+				cfg := repoConfig{}
+				err = json.Unmarshal(configBytes, &cfg)
+				require.NoError(t, err)
+			}
 		})
 	}
 }
