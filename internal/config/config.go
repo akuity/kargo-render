@@ -1,16 +1,27 @@
 package config
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/akuityio/bookkeeper/internal/file"
 )
+
+//go:embed schema.json
+var configSchemaBytes []byte
+var configSchemaJSONLoader gojsonschema.JSONLoader
+
+func init() {
+	configSchemaJSONLoader = gojsonschema.NewBytesLoader(configSchemaBytes)
+}
 
 // RepoConfig is an interface for locating branch-specific Bookkeeper
 // configuration.
@@ -99,30 +110,33 @@ func LoadRepoConfig(repoPath string) (RepoConfig, error) {
 		repoPath,
 		fmt.Sprintf("%s.yaml", baseConfigFilename),
 	)
+	var configPath string
 	if exists, err := file.Exists(jsonConfigPath); err != nil {
 		return cfg,
 			errors.Wrap(err, "error checking for existence of JSON config file")
 	} else if exists {
-		var bytes []byte
-		if bytes, err = os.ReadFile(jsonConfigPath); err != nil {
-			return cfg, errors.Wrap(err, "error reading JSON config file")
-		}
-		if err = json.Unmarshal(bytes, cfg); err != nil {
-			return cfg, errors.Wrap(err, "error unmarshaling JSON config file")
-		}
+		configPath = jsonConfigPath
 	} else if exists, err = file.Exists(yamlConfigPath); err != nil {
 		return cfg,
 			errors.Wrap(err, "error checking for existence of YAML config file")
 	} else if exists {
-		bytes, err := os.ReadFile(yamlConfigPath)
-		if err != nil {
-			return cfg, errors.Wrap(err, "error reading YAML config file")
-		}
-		if err = yaml.Unmarshal(bytes, cfg); err != nil {
-			return cfg, errors.Wrap(err, "error unmarshaling YAML config file")
-		}
+		configPath = yamlConfigPath
 	}
-	return cfg, nil
+	if configPath == "" {
+		return cfg, nil
+	}
+	configBytes, err := os.ReadFile(configPath)
+	if err != nil {
+		return cfg, errors.Wrap(err, "error reading Bookkeeper configuration")
+	}
+	if configBytes, err = normalizeAndValidate(configBytes); err != nil {
+		return cfg, errors.Wrap(
+			err,
+			"error normalizing and validating Bookkeeper configuration",
+		)
+	}
+	err = json.Unmarshal(configBytes, cfg)
+	return cfg, errors.Wrap(err, "error unmarshaling Bookkeeper configuration")
 }
 
 func (r *repoConfig) GetBranchConfig(branch string) BranchConfig {
@@ -142,4 +156,32 @@ func (r *repoConfig) GetBranchConfig(branch string) BranchConfig {
 			Kustomize: &KustomizeConfig{},
 		},
 	}
+}
+
+func normalizeAndValidate(configBytes []byte) ([]byte, error) {
+	// JSON is a subset of YAML, so it's safe to unconditionally pass JSON through
+	// this function
+	var err error
+	if configBytes, err = yaml.YAMLToJSON(configBytes); err != nil {
+		return nil,
+			errors.Wrap(err, "error normalizing Bookkeeper configuration")
+	}
+	validationResult, err := gojsonschema.Validate(
+		configSchemaJSONLoader,
+		gojsonschema.NewBytesLoader(configBytes),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error validating Bookkeeper configuration")
+	}
+	if !validationResult.Valid() {
+		verrStrs := make([]string, len(validationResult.Errors()))
+		for i, verr := range validationResult.Errors() {
+			verrStrs[i] = verr.String()
+		}
+		return nil, errors.Errorf(
+			"error validating Bookkeeper configuration: %s",
+			strings.Join(verrStrs, "; "),
+		)
+	}
+	return configBytes, nil
 }
