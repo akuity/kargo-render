@@ -37,7 +37,7 @@ func persistentPreRun(cmd *cobra.Command, _ []string) {
 	cmd.Flags().VisitAll(
 		func(flag *pflag.Flag) {
 			switch flag.Name {
-			case flagRepoPassword, flagRepoUsername, flagServer:
+			case flagRepoPassword, flagRepoUsername:
 				if !flag.Changed {
 					envVarName := fmt.Sprintf(
 						"BOOKKEEPER_%s",

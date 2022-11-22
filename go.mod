@@ -29,7 +29,6 @@ require (
 
 require (
 	github.com/google/go-github/v47 v47.1.0
-	github.com/gorilla/mux v1.8.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 )

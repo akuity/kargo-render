@@ -56,10 +56,6 @@ may not be useful to you, depending on your workflows:
       automation platform. This is also the easiest option for experimenting
       locally with Bookkeeper!
 
-    * [CLI](./how-to-guides/cli): Start here if you want to incorporate
-      Bookkeeper into workflows in an automation platform that does _not_
-      support Docker containers.
-
     * [Go module](./how-to-guides/go-module): Start here if you want to
       integrate with Bookkeeper programmatically using [Go](https://go.dev/)
       code. This is especially relevant for developers looking to build more

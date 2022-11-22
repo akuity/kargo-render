@@ -1,66 +1,12 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/akuityio/bookkeeper"
 )
-
-var renderCmdFlagSet = pflag.NewFlagSet(
-	"render",
-	pflag.ErrorHandling(flag.ExitOnError),
-)
-
-func init() {
-	renderCmdFlagSet.AddFlagSet(flagSetOutput)
-	renderCmdFlagSet.StringP(
-		flagCommit,
-		"c",
-		"",
-		"specify a precise commit to render from; if this is not provided, "+
-			"Bookkeeper renders from the head of the default branch",
-	)
-	renderCmdFlagSet.StringArrayP(
-		flagImage,
-		"i",
-		nil,
-		"specify a new image to apply to the final result (this flag may be "+
-			"used more than once)",
-	)
-	renderCmdFlagSet.StringP(
-		flagRepo,
-		"r",
-		"",
-		"the URL of a remote gitops repo (required)",
-	)
-	renderCmdFlagSet.StringP(
-		flagRepoPassword,
-		"p",
-		"",
-		"password or token for reading from and writing to the remote gitops "+
-			"repo (required; can also be set using the BOOKKEEPER_REPO_PASSWORD "+
-			"environment variable)",
-	)
-	renderCmdFlagSet.StringP(
-		flagRepoUsername,
-		"u",
-		"",
-		"username for reading from and writing to the remote gitops repo "+
-			"(required can also be set using the BOOKKEEPER_REPO_USERNAME "+
-			"environment variable)",
-	)
-	renderCmdFlagSet.StringP(
-		flagTargetBranch,
-		"t",
-		"",
-		"the environment-specific branch to write fully-rendered configuration "+
-			"to (required)",
-	)
-}
 
 func newRenderCommand() (*cobra.Command, error) {
 	const desc = "Render environment-specific configuration from a remote " +
@@ -71,21 +17,65 @@ func newRenderCommand() (*cobra.Command, error) {
 		Long:  desc,
 		RunE:  runRenderCmd,
 	}
-	cmd.Flags().AddFlagSet(renderCmdFlagSet)
+	cmd.Flags().AddFlagSet(flagSetOutput)
+	cmd.Flags().StringP(
+		flagCommit,
+		"c",
+		"",
+		"specify a precise commit to render from; if this is not provided, "+
+			"Bookkeeper renders from the head of the default branch",
+	)
+	cmd.Flags().BoolP(
+		flagDebug,
+		"d",
+		false,
+		"display debug output",
+	)
+	cmd.Flags().StringArrayP(
+		flagImage,
+		"i",
+		nil,
+		"specify a new image to apply to the final result (this flag may be "+
+			"used more than once)",
+	)
+	cmd.Flags().StringP(
+		flagRepo,
+		"r",
+		"",
+		"the URL of a remote gitops repo (required)",
+	)
 	if err := cmd.MarkFlagRequired(flagRepo); err != nil {
 		return nil, err
 	}
-	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
-		return nil, err
-	}
+	cmd.Flags().StringP(
+		flagRepoPassword,
+		"p",
+		"",
+		"password or token for reading from and writing to the remote gitops "+
+			"repo (required; can also be set using the BOOKKEEPER_REPO_PASSWORD "+
+			"environment variable)",
+	)
 	if err := cmd.MarkFlagRequired(flagRepoPassword); err != nil {
 		return nil, err
 	}
-	if cmd.Flags().Lookup(flagServer) != nil { // Thin CLI only
-		if err := cmd.MarkFlagRequired(flagServer); err != nil {
-			return nil, err
-		}
+	cmd.Flags().StringP(
+		flagRepoUsername,
+		"u",
+		"",
+		"username for reading from and writing to the remote gitops repo "+
+			"(required can also be set using the BOOKKEEPER_REPO_USERNAME "+
+			"environment variable)",
+	)
+	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
+		return nil, err
 	}
+	cmd.Flags().StringP(
+		flagTargetBranch,
+		"t",
+		"",
+		"the environment-specific branch to write fully-rendered configuration "+
+			"to (required)",
+	)
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		return nil, err
 	}
@@ -120,28 +110,19 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Choose an appropriate implementation of the bookkeeper.Service interface
-	// based on whether this is the thin or thick CLI...
-	var svc bookkeeper.Service
-	if cmd.Flags().Lookup(flagServer) == nil { // Thick CLI
-		logLevel := bookkeeper.LogLevelError
-		var debug bool
-		if debug, err = cmd.Flags().GetBool(flagDebug); err != nil {
-			return err
-		}
-		if debug {
-			logLevel = bookkeeper.LogLevelDebug
-		}
-		svc = bookkeeper.NewService(
-			&bookkeeper.ServiceOptions{
-				LogLevel: logLevel,
-			},
-		)
-	} else { // Thin CLI
-		if svc, err = getClient(cmd); err != nil {
-			return err
-		}
+	logLevel := bookkeeper.LogLevelError
+	var debug bool
+	if debug, err = cmd.Flags().GetBool(flagDebug); err != nil {
+		return err
 	}
+	if debug {
+		logLevel = bookkeeper.LogLevelDebug
+	}
+	svc := bookkeeper.NewService(
+		&bookkeeper.ServiceOptions{
+			LogLevel: logLevel,
+		},
+	)
 
 	res, err := svc.RenderConfig(cmd.Context(), req)
 	if err != nil {
