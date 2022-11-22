@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -173,13 +174,13 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 		return nil, errors.Wrap(err, "error validating Bookkeeper configuration")
 	}
 	if !validationResult.Valid() {
-		var verrStr string
-		for _, verr := range validationResult.Errors() {
-			verrStr = fmt.Sprintf("%s; %s", verrStr, verr.String())
+		verrStrs := make([]string, len(validationResult.Errors()))
+		for i, verr := range validationResult.Errors() {
+			verrStrs[i] = verr.String()
 		}
 		return nil, errors.Errorf(
 			"error validating Bookkeeper configuration: %s",
-			verrStr,
+			strings.Join(verrStrs, "; "),
 		)
 	}
 	return configBytes, nil

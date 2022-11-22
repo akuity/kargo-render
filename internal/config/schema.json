@@ -6,8 +6,106 @@
 
 		"configVersion": {
 			"type": "string",
-			"description": "The major version of the Brigade API with which this object conforms",
 			"enum": ["v1alpha1"]
+		},
+
+		"relativePath": {
+			"type": "string",
+			"pattern": "^(?:[\\w\\.-]+\/?)*\\w$"
+		},
+
+		"branchConfig": {
+			"type": "object",
+			"required": ["name"],
+			"additionalProperties": false,
+			"properties": {
+				"name": {
+					"$ref": "#/definitions/relativePath"
+				},
+				"configManagement": {
+					"$ref": "#/definitions/configManagementConfig"
+				},
+				"openPR": {
+					"type": "boolean"
+				}
+			}
+		},
+
+		"configManagementConfig": {
+			"type": "object",
+			"oneOf": [
+				{
+					"required": ["helm"],
+					"additionalProperties": false,
+					"properties": {
+						"helm": {
+							"$ref": "#/definitions/helmConfig"
+						}
+					}
+				},
+				{
+					"required": ["kustomize"],
+					"additionalProperties": false,
+					"properties": {
+						"kustomize": {
+							"$ref": "#/definitions/kustomizeConfig"
+						}
+					}
+				},
+				{
+					"required": ["ytt"],
+					"additionalProperties": false,
+					"properties": {
+						"ytt": {
+							"$ref": "#/definitions/yttConfig"
+						}
+					}
+				}
+			]
+		},
+
+		"helmConfig": {
+			"type": "object",
+			"required": ["releaseName"],
+			"additionalProperties": false,
+			"properties": {
+				"releaseName": {
+					"type": "string",
+					"pattern": "^\\w[\\w-]*\\w$"
+				},
+				"chartPath": {
+					"$ref": "#/definitions/relativePath"
+				},
+				"valuesPaths": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/relativePath"
+					}
+				}
+			}
+		},
+
+		"kustomizeConfig": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"path": {
+					"$ref": "#/definitions/relativePath"
+				}
+			}
+		},
+
+		"yttConfig": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"paths": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/relativePath"
+					}
+				}
+			}
 		}
 
 	},
@@ -19,6 +117,15 @@
 	"properties": {
 		"configVersion": {
 			"$ref": "#/definitions/configVersion"
+		},
+		"branchConfigs": {
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/branchConfig"
+			}
+		},
+		"defaultBranchConfig": {
+			"$ref": "#/definitions/branchConfig"
 		}
 	}
 }
