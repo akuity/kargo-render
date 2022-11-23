@@ -7,16 +7,17 @@ import (
 )
 
 const (
-	flagCommit       = "commit"
-	flagDebug        = "debug"
-	flagImage        = "image"
-	flagOutput       = "output"
-	flagOutputJSON   = "json"
-	flagOutputYAML   = "yaml"
-	flagRepo         = "repo"
-	flagRepoPassword = "repo-password"
-	flagRepoUsername = "repo-username"
-	flagTargetBranch = "target-branch"
+	flagCommit        = "commit"
+	flagCommitMessage = "commit-message"
+	flagDebug         = "debug"
+	flagImage         = "image"
+	flagOutput        = "output"
+	flagOutputJSON    = "json"
+	flagOutputYAML    = "yaml"
+	flagRepo          = "repo"
+	flagRepoPassword  = "repo-password"
+	flagRepoUsername  = "repo-username"
+	flagTargetBranch  = "target-branch"
 )
 
 var flagSetOutput *pflag.FlagSet

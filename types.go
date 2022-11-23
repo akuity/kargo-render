@@ -41,6 +41,9 @@ type RenderRequest struct {
 	// Images specifies images to incorporate into environment-specific
 	// configuration.
 	Images []string `json:"images,omitempty"`
+	// CommitMessage offers the opportunity to, optionally, override the first
+	// line of the commit message that Bookkeeper would normally generate.
+	CommitMessage string `json:"commitMessage,omitempty"`
 }
 
 // RepoCredentials represents the credentials for connecting to a private git
