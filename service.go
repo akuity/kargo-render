@@ -368,14 +368,19 @@ func buildCommitMessage(
 	req RenderRequest,
 	sourceCommitID string,
 ) (string, error) {
-	// Use the source commit's message as a starting point
-	commitMsg, err := repo.CommitMessage(sourceCommitID)
-	if err != nil {
-		return "", errors.Wrapf(
-			err,
-			"error getting commit message for commit %q",
-			sourceCommitID,
-		)
+	var commitMsg string
+	if req.CommitMessage != "" {
+		commitMsg = req.CommitMessage
+	} else {
+		// Use the source commit's message as a starting point
+		var err error
+		if commitMsg, err = repo.CommitMessage(sourceCommitID); err != nil {
+			return "", errors.Wrapf(
+				err,
+				"error getting commit message for commit %q",
+				sourceCommitID,
+			)
+		}
 	}
 
 	// Add the source commit's ID

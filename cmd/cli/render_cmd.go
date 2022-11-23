@@ -25,6 +25,12 @@ func newRenderCommand() (*cobra.Command, error) {
 		"specify a precise commit to render from; if this is not provided, "+
 			"Bookkeeper renders from the head of the default branch",
 	)
+	cmd.Flags().StringP(
+		flagCommitMessage,
+		"m",
+		"",
+		"specify a custom message to be used for the commit to the target branch",
+	)
 	cmd.Flags().BoolP(
 		flagDebug,
 		"d",
@@ -63,7 +69,7 @@ func newRenderCommand() (*cobra.Command, error) {
 		"u",
 		"",
 		"username for reading from and writing to the remote gitops repo "+
-			"(required can also be set using the BOOKKEEPER_REPO_USERNAME "+
+			"(required; can also be set using the BOOKKEEPER_REPO_USERNAME "+
 			"environment variable)",
 	)
 	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
@@ -106,6 +112,10 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	req.TargetBranch, err = cmd.Flags().GetString(flagTargetBranch)
+	if err != nil {
+		return err
+	}
+	req.CommitMessage, err = cmd.Flags().GetString(flagCommitMessage)
 	if err != nil {
 		return err
 	}
