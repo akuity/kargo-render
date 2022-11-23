@@ -9,38 +9,65 @@ IDE, it is recommended that you have installed the latest stable releases of Go
 and applicable editor/IDE extensions, however, this is not strictly required to
 be successful.
 
-## Containerized tests
+## Running tests
 
 In order to minimize the setup required to successfully apply small changes and
 in order to reduce the incidence of “it worked on my machine,” wherein changes
 that pass tests locally do not pass the same tests in CI due to environmental
-differences, Bookkeeper has adopted a “container-first” approach to testing.
-This is to say we have made it the default that unit tests, linters, and a
-variety of other validations, when executed locally, automatically execute in a
-Docker container that is maximally similar to the container in which those same
-tasks will run during the continuous integration process.
+differences, Bookkeeper has made it trivial to execute tests within a container
+that is maximally similar to the containers that tests execute in during the
+continuous integration process.
 
 To take advantage of this, you only need to have
 [Docker](https://docs.docker.com/engine/install/) and `make` installed.
 
-If you wish to opt-out of tasks automatically running inside a container, you
-can set the environment variable `SKIP_DOCKER` to the value `true`. Doing so
-will require that any tools involved in tasks you execute have been installed
-locally. 
-
-## Testing Bookkeeper code
-
-If you make modifications to the code base, it is recommended that you run
-unit tests and linters before opening a PR.
-
 To run all unit tests:
+
+```shell
+make hack-test-unit
+```
+
+:::info
+If you wish to opt-out of executing the tests within a container, use the
+following instead:
 
 ```shell
 make test-unit
 ```
 
+This will require Go to be installed locally.
+:::
+
 To run lint checks:
+
+```shell
+make hack-lint
+```
+
+:::info
+If you wish to opt-out of executing the linter within a container, use the
+following instead:
 
 ```shell
 make lint
 ```
+
+This will require Go and [golangci-lint](https://golangci-lint.run/) to be
+installed locally.
+:::
+
+## Building the image
+
+To build source into a Docker image that will be tagged as `bookkeeper:dev`,
+execute the following:
+
+```shell
+make hack-build
+```
+
+:::note
+Because Bookkeeper is dependent on compatible versions of Git, Kustomize, ytt,
+and Helm binaries, there is seldom, if ever, a reason to build or execute the
+Bookkeeper binaries outside the context of a container that provides those
+dependencies.
+:::
