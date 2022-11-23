@@ -260,33 +260,44 @@ func (s *service) switchToCommitBranch(
 			return "", errors.Wrap(err, "error checking out target branch")
 		}
 		logger.Debug("checked out target branch")
-
-		if !branchConfig.OpenPR {
-			return req.TargetBranch, nil
+	} else {
+		logger.Debug("target branch does not exist on remote")
+		if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
+			return "", errors.Wrap(err, "error creating new target branch")
 		}
-
-		// If we get to here, we're supposed to be opening a PR instead of
-		// committing directly to the target branch, so we should create and check
-		// out a new child of the target branch.
-		commitBranch := fmt.Sprintf("bookkeeper/%s", uuid.NewV4().String())
-		if err = repo.CreateChildBranch(commitBranch); err != nil {
-			return "", errors.Wrap(err, "error creating child of target branch")
+		logger.Debug("created target branch")
+		if _, err = os.Create(
+			filepath.Join(repo.WorkingDir(), ".keep"),
+		); err != nil {
+			return "",
+				errors.Wrap(err, "error writing .keep file to new target branch")
 		}
-		logger.Debug("created child of target branch")
-		return commitBranch, nil
+		logger.Debug("wrote .keep file")
+		if err = repo.AddAllAndCommit("Initial commit"); err != nil {
+			return "",
+				errors.Wrap(err, "error making initial commit to new target branch")
+		}
+		logger.Debug("made initial commit to new target branch")
+		if err = repo.Push(); err != nil {
+			return "",
+				errors.Wrap(err, "error pushing new target branch to remote")
+		}
+		logger.Debug("pushed new target branch to remote")
 	}
 
-	// If we get to here, the target branch doesn't exist and we must create a
-	// brand new orphaned branch.
-	if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
-		return "", errors.Wrap(err, "error creating orphaned target branch")
-	}
-	logger.Debug("created orphaned target branch")
-	if err := repo.Reset(); err != nil {
-		return "", errors.Wrap(err, "error resetting repo")
+	if !branchConfig.OpenPR {
+		return req.TargetBranch, nil
 	}
 
-	return req.TargetBranch, errors.Wrap(repo.Clean(), "error cleaning repo")
+	// If we get to here, we're supposed to be opening a PR instead of
+	// committing directly to the target branch, so we should create and check
+	// out a new child of the target branch.
+	commitBranch := fmt.Sprintf("bookkeeper/%s", req.id)
+	if err = repo.CreateChildBranch(commitBranch); err != nil {
+		return "", errors.Wrap(err, "error creating child of target branch")
+	}
+	logger.Debug("created child of target branch")
+	return commitBranch, nil
 }
 
 func parseGitHubURL(url string) (string, string, error) {

@@ -66,8 +66,6 @@ type Repo interface {
 	// RemoteBranchExists returns a bool indicating if the specified branch exists
 	// in the remote repository.
 	RemoteBranchExists(branch string) (bool, error)
-	// Reset unstages all changes in the working directory.
-	Reset() error
 	// URL returns the remote URL of the repository.
 	URL() string
 	// WorkingDir returns an absolute path to the repository's working tree.
@@ -218,13 +216,10 @@ func (r *repo) CreateChildBranch(branch string) error {
 func (r *repo) CreateOrphanedBranch(branch string) error {
 	cmd := exec.Command( // nolint: gosec
 		"git",
-		"checkout",
+		"switch",
 		"--orphan",
 		branch,
-		// The next line makes it crystal clear to git that we're checking out
-		// a branch. We need to do this because branch names can often resemble
-		// paths within the repo.
-		"--",
+		"--discard-changes",
 	)
 	cmd.Dir = r.dir
 	if _, err := r.execCommand(cmd); err != nil {
@@ -236,7 +231,7 @@ func (r *repo) CreateOrphanedBranch(branch string) error {
 		)
 	}
 	r.currentBranch = branch
-	return nil
+	return r.Clean()
 }
 
 func (r *repo) HasDiffs() (bool, error) {
@@ -304,13 +299,6 @@ func (r *repo) RemoteBranchExists(branch string) (bool, error) {
 		return false, nil
 	}
 	return true, nil
-}
-
-func (r *repo) Reset() error {
-	cmd := exec.Command("git", "reset", ".")
-	cmd.Dir = r.dir
-	_, err := r.execCommand(cmd)
-	return errors.Wrapf(err, "error resetting branch %q", r.currentBranch)
 }
 
 func (r *repo) URL() string {
