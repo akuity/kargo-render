@@ -13,10 +13,7 @@ jobs:
   test-unit:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/akuityio/k8sta-tools:v0.3.0
-      credentials:
-        username: ${{ secrets.GH_USERNAME }}
-        password: ${{ secrets.GH_TOKEN }}
+      image: golang:1.19.3-bullseye
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -27,17 +24,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Run unit tests
-      env:
-        SKIP_DOCKER: 'true'
       run: make test-unit
 
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/akuityio/k8sta-tools:v0.3.0
-      credentials:
-        username: ${{ secrets.GH_USERNAME }}
-        password: ${{ secrets.GH_TOKEN }}
+      image: golang:1.19.3-bullseye
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -47,9 +39,12 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: Install linter
+      run: |
+        cd /usr/local/bin
+        curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v1.49.0/golangci-lint-1.49.0-linux-amd64.tar.gz \
+          | tar xvz golangci-lint-1.49.0-linux-amd64/golangci-lint --strip-components=1
     - name: Run linter
-      env:
-        SKIP_DOCKER: 'true'
       run: make lint
 
   build-image:
@@ -60,12 +55,6 @@ jobs:
       uses: docker/setup-qemu-action@v2
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    - name: Login to GHCR
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ secrets.GH_USERNAME }}
-        password: ${{ secrets.GH_TOKEN }}
     - name: Build image
       uses: docker/build-push-action@v3
       with:
