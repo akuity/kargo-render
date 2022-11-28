@@ -6,11 +6,11 @@ description: What is Bookkeeper?
 
 # What is Bookkeeper?
 
-Bookkeeper helps Kubernetes users incorporate the rendered YAML branches pattern
+Bookkeeper helps Kubernetes users incorporate the rendered branches pattern
 into their CD workflows and [GitOps](https://opengitops.dev/) practice. There
 are numerous benefits to this pattern, which you can read about in detail
-[here](./rendered-yaml-branches). If you're already familiar with this pattern
-and convinced of its benefits, dive right into the next section to get started!
+[here](./rendered-branches). If you're already familiar with this pattern and
+convinced of its benefits, dive right into the next section to get started!
 
 :::caution
 Bookkeeper is highly experimental at this time and breaking changes should be
