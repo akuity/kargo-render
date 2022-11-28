@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/url"
@@ -58,9 +59,12 @@ type Repo interface {
 	// LastCommitID returns the ID (sha) of the most recent commit to the current
 	// branch.
 	LastCommitID() (string, error)
-	// CommitMessage returns the text of the most commit message associated with
-	// the specified commit ID.
+	// CommitMessage returns the text of the most recent commit message associated
+	// with the specified commit ID.
 	CommitMessage(id string) (string, error)
+	// CommitMessages returns a slice of commit messages starting with id1 and
+	// ending with id2. The results exclude id1, but include id2.
+	CommitMessages(id1, id2 string) ([]string, error)
 	// Push pushes from the current branch to a remote branch by the same name.
 	Push() error
 	// RemoteBranchExists returns a bool indicating if the specified branch exists
@@ -244,7 +248,7 @@ func (r *repo) HasDiffs() (bool, error) {
 
 func (r *repo) LastCommitID() (string, error) {
 	cmd := exec.Command("git", "rev-parse", "HEAD")
-	cmd.Dir = r.dir // We need to be anywhere in the root of the repo for this
+	cmd.Dir = r.dir // We need to be in the repo for this
 	shaBytes, err := cmd.Output()
 	return strings.TrimSpace(string(shaBytes)),
 		errors.Wrap(err, "error obtaining ID of last commit")
@@ -252,10 +256,43 @@ func (r *repo) LastCommitID() (string, error) {
 
 func (r *repo) CommitMessage(id string) (string, error) {
 	cmd := exec.Command("git", "log", "-n", "1", "--pretty=format:%s", id)
-	cmd.Dir = r.dir // We need to be anywhere in the root of the repo for this
+	cmd.Dir = r.dir // We need to be in the repo for this
 	msgBytes, err := cmd.Output()
 	return string(msgBytes),
 		errors.Wrapf(err, "error obtaining commit message for commit %q", id)
+}
+
+func (r *repo) CommitMessages(id1, id2 string) ([]string, error) {
+	cmd := exec.Command( // nolint: gosec
+		"git",
+		"log",
+		"--pretty=oneline",
+		"--decorate-refs=",
+		"--decorate-refs-exclude=",
+		fmt.Sprintf("%s..%s", id1, id2),
+	)
+	cmd.Dir = r.dir // We need to be in the repo for this
+	allMsgBytes, err := cmd.Output()
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error obtaining commit messages between commits %q and %q",
+			id1,
+			id2,
+		)
+	}
+	msgsBytes := bytes.Split(allMsgBytes, []byte("\n"))
+	msgs := []string{}
+	for _, msgBytes := range msgsBytes {
+		msgStr := string(msgBytes)
+		// There's usually a trailing newline in the result. We could just discard
+		// the last line, but this feels more resilient against the admittedly
+		// remote possibility that that could change one day.
+		if strings.TrimSpace(msgStr) != "" {
+			msgs = append(msgs, string(msgBytes))
+		}
+	}
+	return msgs, nil
 }
 
 func (r *repo) execCommand(cmd *exec.Cmd) ([]byte, error) {

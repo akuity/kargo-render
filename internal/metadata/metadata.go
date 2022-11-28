@@ -23,7 +23,7 @@ type TargetBranchMetadata struct {
 }
 
 // LoadTargetBranchMetadata attempts to load TargetBranchMetadata from a
-// .bookkeeper/metadata.yaml file relative to the specified directory. Iff no
+// .bookkeeper/metadata.yaml file relative to the specified directory. If no
 // such file is found a nil result is returned.
 func LoadTargetBranchMetadata(repoPath string) (*TargetBranchMetadata, error) {
 	path := filepath.Join(
