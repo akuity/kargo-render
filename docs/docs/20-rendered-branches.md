@@ -1,12 +1,12 @@
 ---
-title: Rendered YAML branches
-description: What are rendered YAML branches?
+title: Rendered branches
+description: What are rendered branches?
 ---
 
-# What are rendered YAML branches?
+# What are rendered branches?
 
-Understanding the _rendered YAML branches_ pattern at the heart of Bookkeeper
-begins with understanding some common difficulties encountered by
+Understanding the _rendered branches_ pattern at the heart of Bookkeeper begins
+with understanding some common difficulties encountered by
 [GitOps](https://opengitops.dev/) practitioners.
 
 ## Configuration management
@@ -42,13 +42,13 @@ drawbacks. Notably:
   from the same input today. _If your source of truth is subject to
   interpretation, that truth is not objective._
 
-## Rendered YAML branches
+## Rendered branches
 
-The _rendered YAML branches_ pattern can alleviate the problems highlighted in
-the previous section. Implementing this pattern simply means the main branch of
-your application's GitOps repository ceases to be the source of truth and
-becomes, instead, an _input_ to tools that will _render the truth as plain YAML
-and persist it to dedicated, environment-specific branches of your GitOps
+The _rendered branches_ pattern can alleviate the problems highlighted in the
+previous section. Implementing this pattern simply means the main branch of your
+application's GitOps repository ceases to be the source of truth and becomes,
+instead, an _input_ to tools that will _render the truth as plain YAML and
+persist it to dedicated, environment-specific branches of your GitOps
 repository._
 
 For any application, this pattern:
@@ -64,10 +64,10 @@ For any application, this pattern:
   and [GitHub Actions](https://github.com/features/actions), to implement
   suitable policies and workflows _on a per-environment basis_.
 
-Despite its many advantages, the rendered YAML branches pattern can be onerous
+Despite its many advantages, the rendered branches pattern can be onerous
 to implement because it requires additional automation to effectively "promote"
 changes made to your main branch into a given environment by rendering
 configuration into the corresponding branch. Bookkeeper's singular goal is to
 answer those difficulties with an intuitive and opinionated (yet sensible) tool
-that puts the benefits of the rendered YAML branches pattern easily within reach
+that puts the benefits of the rendered branches pattern easily within reach
 for all GitOps practitioners.
