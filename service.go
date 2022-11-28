@@ -83,7 +83,7 @@ func (s *service) RenderConfig(
 	}
 	defer repo.Close()
 
-	sourceCommitID, err := checkoutSourceCommit(repo, req)
+	srcCommitID, err := checkoutSourceCommit(repo, req)
 	if err != nil {
 		return res, err
 	}
@@ -121,6 +121,13 @@ func (s *service) RenderConfig(
 		return res, errors.Wrap(err, "error cleaning commit branch")
 	}
 
+	// Load any existing metadata now because we'll want to use it and it won't
+	// be long before we potentially overwrite it. Get it while the gettin's good.
+	oldMetadata, err := metadata.LoadTargetBranchMetadata(repo.WorkingDir())
+	if err != nil {
+		return res, errors.Wrap(err, "error loading branch metadata")
+	}
+
 	// Ensure the .bookkeeper directory exists
 	bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
 	if err = os.MkdirAll(bkDir, 0755); err != nil {
@@ -131,12 +138,12 @@ func (s *service) RenderConfig(
 	// Write branch metadata
 	if err = metadata.WriteTargetBranchMetadata(
 		metadata.TargetBranchMetadata{
-			SourceCommit:       sourceCommitID,
+			SourceCommit:       srcCommitID,
 			ImageSubstitutions: req.Images,
 		},
 		repo.WorkingDir(),
 	); err != nil {
-		return res, errors.Wrap(err, "writing branch metadata")
+		return res, errors.Wrap(err, "error writing branch metadata")
 	}
 
 	// Write the new fully-rendered config to the root of the repo
@@ -160,7 +167,11 @@ func (s *service) RenderConfig(
 		return res, nil
 	}
 
-	commitMsg, err := buildCommitMessage(repo, req, sourceCommitID)
+	var prevSrcCommitID string
+	if oldMetadata != nil {
+		prevSrcCommitID = oldMetadata.SourceCommit
+	}
+	commitMsg, err := buildCommitMessage(repo, req, prevSrcCommitID, srcCommitID)
 	if err != nil {
 		return res, err
 	}
@@ -201,16 +212,24 @@ func (s *service) RenderConfig(
 				),
 			),
 		)
+		commitMsgParts := strings.SplitN(commitMsg, "\n", 2)
+		// PR title is just the first line of the commit message
+		prTitle := fmt.Sprintf("%s --> %s", commitMsgParts[0], req.TargetBranch)
+		// PR body is just the first line of the commit message
+		var prBody string
+		if len(commitMsgParts) == 2 {
+			prBody = strings.TrimSpace(commitMsgParts[1])
+		}
 		var pr *github.PullRequest
 		if pr, _, err = githubClient.PullRequests.Create(
 			ctx,
 			owner,
 			repo,
 			&github.NewPullRequest{
-				// PR title is just the first line of the commit message
-				Title:               github.String(strings.Split(commitMsg, "\n")[0]),
+				Title:               github.String(prTitle),
 				Base:                github.String(req.TargetBranch),
 				Head:                github.String(commitBranch),
+				Body:                github.String(prBody),
 				MaintainerCanModify: github.Bool(false),
 			},
 		); err != nil {
@@ -366,7 +385,8 @@ func checkoutSourceCommit(repo git.Repo, req RenderRequest) (string, error) {
 func buildCommitMessage(
 	repo git.Repo,
 	req RenderRequest,
-	sourceCommitID string,
+	prevSrcCommitID string,
+	srcCommitID string,
 ) (string, error) {
 	var commitMsg string
 	if req.CommitMessage != "" {
@@ -374,38 +394,65 @@ func buildCommitMessage(
 	} else {
 		// Use the source commit's message as a starting point
 		var err error
-		if commitMsg, err = repo.CommitMessage(sourceCommitID); err != nil {
+		if commitMsg, err = repo.CommitMessage(srcCommitID); err != nil {
 			return "", errors.Wrapf(
 				err,
 				"error getting commit message for commit %q",
-				sourceCommitID,
+				srcCommitID,
 			)
 		}
 	}
 
 	// Add the source commit's ID
-	commitMsg = fmt.Sprintf(
+	formattedCommitMsg := fmt.Sprintf(
 		"%s\n\nBookkeeper created this commit by rendering configuration from %s",
 		commitMsg,
-		sourceCommitID,
+		srcCommitID,
 	)
 
+	// Find all recent commits
+	var memberCommitMsgs []string
+	if prevSrcCommitID != "" {
+		// Add info about member commits
+		formattedCommitMsg = fmt.Sprintf(
+			"%s\n\nThis includes the following changes (newest to oldest):",
+			formattedCommitMsg,
+		)
+		var err error
+		if memberCommitMsgs, err =
+			repo.CommitMessages(prevSrcCommitID, srcCommitID); err != nil {
+			return "", errors.Wrapf(
+				err,
+				"error getting commit messages between commit %q and %q",
+				prevSrcCommitID,
+				srcCommitID,
+			)
+		}
+		for _, memberCommitMsg := range memberCommitMsgs {
+			formattedCommitMsg = fmt.Sprintf(
+				"%s\n  * %s",
+				formattedCommitMsg,
+				memberCommitMsg,
+			)
+		}
+	}
+
 	if len(req.Images) != 0 {
-		commitMsg = fmt.Sprintf(
-			"%s\n\nBookkeeper incorporated the following new images into this "+
+		formattedCommitMsg = fmt.Sprintf(
+			"%s\n\nBookkeeper also incorporated the following new images into this "+
 				"commit:\n",
-			commitMsg,
+			formattedCommitMsg,
 		)
 		for _, image := range req.Images {
-			commitMsg = fmt.Sprintf(
+			formattedCommitMsg = fmt.Sprintf(
 				"%s\n  * %s",
-				commitMsg,
+				formattedCommitMsg,
 				image,
 			)
 		}
 	}
 
-	return commitMsg, nil
+	return formattedCommitMsg, nil
 }
 
 func writeFiles(dir string, yamlBytes []byte) error {
