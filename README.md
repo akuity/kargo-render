@@ -1,4 +1,4 @@
-# Bookkeeper -- Rendered YAML Branches Utility
+# Bookkeeper -- Rendered Branches Utility
 
 ![CI](https://github.com/akuityio/bookkeeper-prototype/actions/workflows/ci.yaml/badge.svg)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
