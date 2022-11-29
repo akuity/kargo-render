@@ -6,18 +6,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/oauth2"
 
 	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/git"
+	"github.com/akuityio/bookkeeper/internal/github"
 	"github.com/akuityio/bookkeeper/internal/metadata"
 )
 
@@ -205,23 +203,7 @@ func (s *service) RenderConfig(
 		Debug("pushed fully-rendered configuration")
 
 	// Open a PR if requested
-	//
-	// TODO: Support git providers other than GitHub
-	//
-	// TODO: Move this into its own github package
-	if commitBranch != req.TargetBranch {
-		var owner, repo string
-		if owner, repo, err = parseGitHubURL(req.RepoURL); err != nil {
-			return res, err
-		}
-		githubClient := github.NewClient(
-			oauth2.NewClient(
-				ctx,
-				oauth2.StaticTokenSource(
-					&oauth2.Token{AccessToken: req.RepoCreds.Password},
-				),
-			),
-		)
+	if branchConfig.OpenPR {
 		commitMsgParts := strings.SplitN(commitMsg, "\n", 2)
 		// PR title is just the first line of the commit message
 		prTitle := fmt.Sprintf("%s --> %s", commitMsgParts[0], req.TargetBranch)
@@ -230,25 +212,24 @@ func (s *service) RenderConfig(
 		if len(commitMsgParts) == 2 {
 			prBody = strings.TrimSpace(commitMsgParts[1])
 		}
-		var pr *github.PullRequest
-		if pr, _, err = githubClient.PullRequests.Create(
+		// TODO: Support git providers other than GitHub
+		if res.PullRequestURL, err = github.OpenPR(
 			ctx,
-			owner,
-			repo,
-			&github.NewPullRequest{
-				Title:               github.String(prTitle),
-				Base:                github.String(req.TargetBranch),
-				Head:                github.String(commitBranch),
-				Body:                github.String(prBody),
-				MaintainerCanModify: github.Bool(false),
+			req.RepoURL,
+			prTitle,
+			prBody,
+			req.TargetBranch,
+			commitBranch,
+			git.RepoCredentials{
+				Username: req.RepoCreds.Username,
+				Password: req.RepoCreds.Password,
 			},
 		); err != nil {
 			return res,
 				errors.Wrap(err, "error opening pull request to the target branch")
 		}
-		logger.WithField("prURL", *pr.HTMLURL).Debug("opened PR")
+		logger.WithField("prURL", res.PullRequestURL).Debug("opened PR")
 		res.ActionTaken = ActionTakenOpenedPR
-		res.PullRequestURL = *pr.HTMLURL
 	} else {
 		res.ActionTaken = ActionTakenPushedDirectly
 		res.CommitID = commitID
@@ -323,15 +304,6 @@ func (s *service) switchToCommitBranch(
 	targetBranchLogger.WithField("commitBranch", commitBranch).
 		Debug("created commit branch")
 	return commitBranch, nil
-}
-
-func parseGitHubURL(url string) (string, string, error) {
-	regex := regexp.MustCompile(`^https\://github\.com/([\w-]+)/([\w-]+).*`)
-	parts := regex.FindStringSubmatch(url)
-	if len(parts) != 3 {
-		return "", "", errors.Errorf("error parsing github repository URL %q", url)
-	}
-	return parts[1], parts[2], nil
 }
 
 // checkoutSourceCommit examines a RenderRequest and determines if it is
