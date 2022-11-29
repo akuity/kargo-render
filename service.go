@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -62,9 +63,16 @@ func (s *service) RenderConfig(
 		"repo":         req.RepoURL,
 		"targetBranch": req.TargetBranch,
 	})
-	startEndLogger.Debug("starting configuration rendering")
 
 	res := RenderResponse{}
+
+	var err error
+	if req, err = validateAndCanonicalizeRequest(req); err != nil {
+		return res, err
+	}
+	startEndLogger.Debug("validated rendering request")
+
+	startEndLogger.Debug("starting configuration rendering")
 
 	repo, err := git.Clone(
 		ctx,
@@ -304,6 +312,73 @@ func (s *service) switchToCommitBranch(
 	targetBranchLogger.WithField("commitBranch", commitBranch).
 		Debug("created commit branch")
 	return commitBranch, nil
+}
+
+func validateAndCanonicalizeRequest(req RenderRequest) (RenderRequest, error) {
+	req.RepoURL = strings.TrimSpace(req.RepoURL)
+	if req.RepoURL == "" {
+		return req, errors.New("validation failed: RepoURL is a required field")
+	}
+	repoURLRegex :=
+		regexp.MustCompile(`^(?:(?:(?:https?://)|(?:git@))[\w:/\-\.\?=@&%]+)$`)
+	if !repoURLRegex.MatchString(req.RepoURL) {
+		return req, errors.Errorf(
+			"validation failed: RepoURL %q does not appear to be a valid git "+
+				"repository URL",
+			req.RepoURL,
+		)
+	}
+
+	// TODO: Should this be required? I think some git providers don't require
+	// this if the password is a bearer token -- e.g. such as in the case of a
+	// GitHub personal access token.
+	req.RepoCreds.Username = strings.TrimSpace(req.RepoCreds.Username)
+	req.RepoCreds.Password = strings.TrimSpace(req.RepoCreds.Password)
+	if req.RepoCreds.Password == "" {
+		return req, errors.New(
+			"validation failed: RepoCreds.Password is a required field",
+		)
+	}
+
+	req.Commit = strings.TrimSpace(req.Commit)
+	if req.Commit != "" {
+		shaRegex := regexp.MustCompile(`^[a-fA-F0-9]{8,40}$`)
+		if !shaRegex.MatchString(req.Commit) {
+			return req, errors.Errorf(
+				"validation failed: Commit %q does not appear to be a valid commit ID",
+				req.Commit,
+			)
+		}
+	}
+
+	req.TargetBranch = strings.TrimSpace(req.TargetBranch)
+	if req.TargetBranch == "" {
+		return req,
+			errors.New("validation failed: TargetBranch is a required field")
+	}
+	targetBranchRegex := regexp.MustCompile(`^(?:[\w\.-]+\/?)*\w$`)
+	if !targetBranchRegex.MatchString(req.TargetBranch) {
+		return req, errors.Errorf(
+			"validation failed: TargetBranch %q is an invalid branch name",
+			req.TargetBranch,
+		)
+	}
+	req.TargetBranch = strings.TrimPrefix(req.TargetBranch, "refs/heads/")
+
+	if len(req.Images) > 0 {
+		for i := range req.Images {
+			req.Images[i] = strings.TrimSpace(req.Images[i])
+			if req.Images[i] == "" {
+				return req, errors.New(
+					"validation failed: Images must not contain any empty strings",
+				)
+			}
+		}
+	}
+
+	req.CommitMessage = strings.TrimSpace(req.CommitMessage)
+
+	return req, nil
 }
 
 // checkoutSourceCommit examines a RenderRequest and determines if it is
