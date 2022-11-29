@@ -59,13 +59,12 @@ func (s *service) RenderConfig(
 ) (RenderResponse, error) {
 	req.id = uuid.NewV4().String()
 
-	logger := s.logger.WithFields(
-		log.Fields{
-			"request":      req.id,
-			"repo":         req.RepoURL,
-			"targetBranch": req.TargetBranch,
-		},
-	)
+	logger := s.logger.WithField("request", req.id)
+	startEndLogger := logger.WithFields(log.Fields{
+		"repo":         req.RepoURL,
+		"targetBranch": req.TargetBranch,
+	})
+	startEndLogger.Debug("starting configuration rendering")
 
 	res := RenderResponse{}
 
@@ -105,6 +104,7 @@ func (s *service) RenderConfig(
 		// TODO: Wrap this error
 		return res, err
 	}
+	logger.Debug("completed last-mile rendering")
 
 	// Switch to the commit branch. The commit branch might be the target branch,
 	// but if branchConfig.OpenPR is true, it could be a new child of the target
@@ -113,9 +113,6 @@ func (s *service) RenderConfig(
 	if err != nil {
 		return res, errors.Wrap(err, "error switching to target branch")
 	}
-	logger = logger.WithFields(log.Fields{
-		"commitBranch": commitBranch,
-	})
 
 	if err = rmYAML(repo.WorkingDir()); err != nil {
 		return res, errors.Wrap(err, "error cleaning commit branch")
@@ -145,6 +142,7 @@ func (s *service) RenderConfig(
 	); err != nil {
 		return res, errors.Wrap(err, "error writing branch metadata")
 	}
+	logger.WithField("sourceCommit", srcCommitID).Debug("wrote branch metadata")
 
 	// Write the new fully-rendered config to the root of the repo
 	if err = writeFiles(repo.WorkingDir(), fullyRenderedBytes); err != nil {
@@ -175,6 +173,7 @@ func (s *service) RenderConfig(
 	if err != nil {
 		return res, err
 	}
+	logger.Debug("prepared commit message")
 
 	// Commit the fully-rendered configuration
 	if err = repo.AddAllAndCommit(commitMsg); err != nil {
@@ -183,7 +182,17 @@ func (s *service) RenderConfig(
 			"error committing fully-rendered configuration",
 		)
 	}
-	logger.Debug("committed fully-rendered configuration")
+	commitID, err := repo.LastCommitID()
+	if err != nil {
+		return res, errors.Wrap(
+			err,
+			"error getting last commit ID from the commit branch",
+		)
+	}
+	logger.WithFields(log.Fields{
+		"commitBranch": commitBranch,
+		"commitID":     commitID,
+	}).Debug("committed fully-rendered configuration")
 
 	// Push the fully-rendered configuration to the remote commit branch
 	if err = repo.Push(); err != nil {
@@ -192,7 +201,8 @@ func (s *service) RenderConfig(
 			"error pushing fully-rendered configuration",
 		)
 	}
-	logger.Debug("pushed fully-rendered configuration")
+	logger.WithField("commitBranch", commitBranch).
+		Debug("pushed fully-rendered configuration")
 
 	// Open a PR if requested
 	//
@@ -236,20 +246,15 @@ func (s *service) RenderConfig(
 			return res,
 				errors.Wrap(err, "error opening pull request to the target branch")
 		}
+		logger.WithField("prURL", *pr.HTMLURL).Debug("opened PR")
 		res.ActionTaken = ActionTakenOpenedPR
 		res.PullRequestURL = *pr.HTMLURL
-		return res, nil
+	} else {
+		res.ActionTaken = ActionTakenPushedDirectly
+		res.CommitID = commitID
 	}
 
-	// Get the ID of the last commit on the target branch
-	res.ActionTaken = ActionTakenPushedDirectly
-	if res.CommitID, err = repo.LastCommitID(); err != nil {
-		return res, errors.Wrap(
-			err,
-			"error getting last commit ID from the target branch",
-		)
-	}
-	logger.Debug("obtained sha of last commit")
+	startEndLogger.Debug("completed configuration rendering")
 
 	return res, nil
 }
@@ -259,13 +264,8 @@ func (s *service) switchToCommitBranch(
 	branchConfig config.BranchConfig,
 	req RenderRequest,
 ) (string, error) {
-	logger := s.logger.WithFields(
-		log.Fields{
-			"request":      req.id,
-			"repo":         req.RepoURL,
-			"targetBranch": req.TargetBranch,
-		},
-	)
+	logger := s.logger.WithField("request", req.id)
+	targetBranchLogger := logger.WithField("targetBranch", req.TargetBranch)
 
 	// Check if the target branch exists on the remote
 	targetBranchExists, err := repo.RemoteBranchExists(req.TargetBranch)
@@ -274,17 +274,17 @@ func (s *service) switchToCommitBranch(
 	}
 
 	if targetBranchExists {
-		logger.Debug("target branch exists on remote")
+		targetBranchLogger.Debug("target branch exists on remote")
 		if err = repo.Checkout(req.TargetBranch); err != nil {
 			return "", errors.Wrap(err, "error checking out target branch")
 		}
-		logger.Debug("checked out target branch")
+		targetBranchLogger.Debug("checked out target branch")
 	} else {
-		logger.Debug("target branch does not exist on remote")
+		targetBranchLogger.Debug("target branch does not exist on remote")
 		if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
 			return "", errors.Wrap(err, "error creating new target branch")
 		}
-		logger.Debug("created target branch")
+		targetBranchLogger.Debug("created target branch")
 		if _, err = os.Create(
 			filepath.Join(repo.WorkingDir(), ".keep"),
 		); err != nil {
@@ -296,17 +296,22 @@ func (s *service) switchToCommitBranch(
 			return "",
 				errors.Wrap(err, "error making initial commit to new target branch")
 		}
-		logger.Debug("made initial commit to new target branch")
+		targetBranchLogger.Debug("made initial commit to new target branch")
 		if err = repo.Push(); err != nil {
 			return "",
 				errors.Wrap(err, "error pushing new target branch to remote")
 		}
-		logger.Debug("pushed new target branch to remote")
+		targetBranchLogger.Debug("pushed new target branch to remote")
 	}
 
 	if !branchConfig.OpenPR {
+		targetBranchLogger.Debug(
+			"changes will be written directly to the target branch",
+		)
 		return req.TargetBranch, nil
 	}
+
+	targetBranchLogger.Debug("changes will be PR'ed to the target branch")
 
 	// If we get to here, we're supposed to be opening a PR instead of
 	// committing directly to the target branch, so we should create and check
@@ -315,7 +320,8 @@ func (s *service) switchToCommitBranch(
 	if err = repo.CreateChildBranch(commitBranch); err != nil {
 		return "", errors.Wrap(err, "error creating child of target branch")
 	}
-	logger.Debug("created child of target branch")
+	targetBranchLogger.WithField("commitBranch", commitBranch).
+		Debug("created commit branch")
 	return commitBranch, nil
 }
 

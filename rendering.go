@@ -10,6 +10,7 @@ import (
 	"github.com/akuityio/bookkeeper/internal/kustomize"
 	"github.com/akuityio/bookkeeper/internal/ytt"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 var lastMileKustomizationBytes = []byte(
@@ -26,26 +27,46 @@ func (s *service) preRender(
 	branchConfig config.BranchConfig,
 	req RenderRequest,
 ) ([]byte, error) {
+	logger := s.logger.WithField("request", req.id)
 	// Use the caller's preferred config management tool for pre-rendering.
+	var bytes []byte
+	var err error
+	var cfgMgmtLogger *log.Entry
 	if branchConfig.ConfigManagement.Helm != nil {
-		return helm.PreRender(
+		cfgMgmtLogger = logger.WithFields(log.Fields{
+			"configManagementTool": "helm",
+			"releaseName":          branchConfig.ConfigManagement.Helm.ReleaseName,
+			"chartPath":            branchConfig.ConfigManagement.Helm.ChartPath,
+			"valuesPaths":          branchConfig.ConfigManagement.Helm.ValuesPaths,
+		})
+		bytes, err = helm.PreRender(
 			repo.WorkingDir(),
 			req.TargetBranch,
 			branchConfig.ConfigManagement.Helm,
 		)
-	}
-	if branchConfig.ConfigManagement.Ytt != nil {
-		return ytt.PreRender(
+	} else if branchConfig.ConfigManagement.Ytt != nil {
+		cfgMgmtLogger = logger.WithFields(log.Fields{
+			"configManagementTool": "ytt",
+			"paths":                branchConfig.ConfigManagement.Ytt.Paths,
+		})
+		bytes, err = ytt.PreRender(
 			repo.WorkingDir(),
 			req.TargetBranch,
 			branchConfig.ConfigManagement.Ytt,
 		)
+	} else {
+		cfgMgmtLogger = logger.WithFields(log.Fields{
+			"configManagementTool": "kustomize",
+			"path":                 branchConfig.ConfigManagement.Kustomize.Path,
+		})
+		bytes, err = kustomize.PreRender(
+			repo.WorkingDir(),
+			req.TargetBranch,
+			branchConfig.ConfigManagement.Kustomize,
+		)
 	}
-	return kustomize.PreRender(
-		repo.WorkingDir(),
-		req.TargetBranch,
-		branchConfig.ConfigManagement.Kustomize,
-	)
+	cfgMgmtLogger.Debug("completed pre-rendering")
+	return bytes, err
 }
 
 func (s *service) renderLastMile(
