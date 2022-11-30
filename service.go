@@ -131,13 +131,6 @@ func (s *service) RenderConfig(
 		return res, errors.Wrap(err, "error loading branch metadata")
 	}
 
-	// Ensure the .bookkeeper directory exists
-	bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
-	if err = os.MkdirAll(bkDir, 0755); err != nil {
-		return res,
-			errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
-	}
-
 	// Write branch metadata
 	if err = metadata.WriteTargetBranchMetadata(
 		metadata.TargetBranchMetadata{
@@ -274,13 +267,19 @@ func (s *service) switchToCommitBranch(
 			return "", errors.Wrap(err, "error creating new target branch")
 		}
 		targetBranchLogger.Debug("created target branch")
-		if _, err = os.Create(
-			filepath.Join(repo.WorkingDir(), ".keep"),
-		); err != nil {
+		bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
+		if err = os.MkdirAll(bkDir, 0755); err != nil {
 			return "",
-				errors.Wrap(err, "error writing .keep file to new target branch")
+				errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
 		}
-		logger.Debug("wrote .keep file")
+		logger.Debug("created .bookkeeper/ directory")
+		if err = metadata.WriteTargetBranchMetadata(
+			metadata.TargetBranchMetadata{},
+			repo.WorkingDir(),
+		); err != nil {
+			return "", errors.Wrap(err, "error writing blank target branch metadata")
+		}
+		targetBranchLogger.Debug("wrote blank target branch metadata")
 		if err = repo.AddAllAndCommit("Initial commit"); err != nil {
 			return "",
 				errors.Wrap(err, "error making initial commit to new target branch")
@@ -421,7 +420,8 @@ func checkoutSourceCommit(repo git.Repo, req RenderRequest) (string, error) {
 		return req.Commit, nil
 	}
 
-	// Follow the branch metadata back to the real source commit
+	// If we get to here, we should follow the branch metadata back to the real
+	// source commit
 	err = repo.Checkout(targetBranchMetadata.SourceCommit)
 	return targetBranchMetadata.SourceCommit, errors.Wrapf(
 		err,
