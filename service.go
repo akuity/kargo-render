@@ -88,9 +88,35 @@ func (s *service) RenderConfig(
 	}
 	defer repo.Close()
 
-	srcCommitID, err := checkoutSourceCommit(repo, req)
-	if err != nil {
-		return res, err
+	// TODO: Add some logging to this block
+	var srcCommitID string
+	var intermediateMetadata *metadata.TargetBranchMetadata
+	if req.Commit == "" {
+		if srcCommitID, err = repo.LastCommitID(); err != nil {
+			return res, errors.Wrap(err, "error getting last commit ID")
+		}
+	} else {
+		if err = repo.Checkout(req.Commit); err != nil {
+			return res, errors.Wrapf(err, "error checking out %q", req.Commit)
+		}
+		if intermediateMetadata, err =
+			metadata.LoadTargetBranchMetadata(repo.WorkingDir()); err != nil {
+			return res, errors.Wrap(err, "error loading branch metadata")
+		}
+		if intermediateMetadata == nil {
+			// We're not on a target branch. We assume we're on the default branch.
+			srcCommitID = req.Commit
+		} else {
+			// Follow the branch metadata back to the real source commit
+			if err = repo.Checkout(intermediateMetadata.SourceCommit); err != nil {
+				return res, errors.Wrapf(
+					err,
+					"error checking out %q",
+					intermediateMetadata.SourceCommit,
+				)
+			}
+			srcCommitID = intermediateMetadata.SourceCommit
+		}
 	}
 
 	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
@@ -100,17 +126,10 @@ func (s *service) RenderConfig(
 	}
 	branchConfig := repoConfig.GetBranchConfig(req.TargetBranch)
 
-	// Render
 	preRenderedBytes, err := s.preRender(repo, branchConfig, req)
 	if err != nil {
-		return res, err
+		return res, errors.Wrap(err, "error pre-rendering configuration")
 	}
-	fullyRenderedBytes, err := s.renderLastMile(repo, req, preRenderedBytes)
-	if err != nil {
-		// TODO: Wrap this error
-		return res, err
-	}
-	logger.Debug("completed last-mile rendering")
 
 	// Switch to the commit branch. The commit branch might be the target branch,
 	// but if branchConfig.OpenPR is true, it could be a new child of the target
@@ -124,19 +143,31 @@ func (s *service) RenderConfig(
 		return res, errors.Wrap(err, "error cleaning commit branch")
 	}
 
-	// Load any existing metadata now because we'll want to use it and it won't
-	// be long before we potentially overwrite it. Get it while the gettin's good.
-	oldMetadata, err := metadata.LoadTargetBranchMetadata(repo.WorkingDir())
+	oldTargetBranchMetadata, err :=
+		metadata.LoadTargetBranchMetadata(repo.WorkingDir())
 	if err != nil {
 		return res, errors.Wrap(err, "error loading branch metadata")
 	}
 
+	images, fullyRenderedBytes, err := s.renderLastMile(
+		repo,
+		*oldTargetBranchMetadata,
+		intermediateMetadata,
+		req,
+		preRenderedBytes,
+	)
+	if err != nil {
+		return res, errors.Wrap(err, "error in last-mile configuration rendering")
+	}
+	logger.Debug("completed last-mile rendering")
+
 	// Write branch metadata
+	newTargetBranchMetadata := metadata.TargetBranchMetadata{
+		SourceCommit:       srcCommitID,
+		ImageSubstitutions: images,
+	}
 	if err = metadata.WriteTargetBranchMetadata(
-		metadata.TargetBranchMetadata{
-			SourceCommit:       srcCommitID,
-			ImageSubstitutions: req.Images,
-		},
+		newTargetBranchMetadata,
 		repo.WorkingDir(),
 	); err != nil {
 		return res, errors.Wrap(err, "error writing branch metadata")
@@ -164,11 +195,13 @@ func (s *service) RenderConfig(
 		return res, nil
 	}
 
-	var prevSrcCommitID string
-	if oldMetadata != nil {
-		prevSrcCommitID = oldMetadata.SourceCommit
-	}
-	commitMsg, err := buildCommitMessage(repo, req, prevSrcCommitID, srcCommitID)
+	commitMsg, err := buildCommitMessage(
+		repo,
+		req,
+		oldTargetBranchMetadata.SourceCommit,
+		srcCommitID,
+		newTargetBranchMetadata,
+	)
 	if err != nil {
 		return res, err
 	}
@@ -380,56 +413,6 @@ func validateAndCanonicalizeRequest(req RenderRequest) (RenderRequest, error) {
 	return req, nil
 }
 
-// checkoutSourceCommit examines a RenderRequest and determines if it is
-// requesting to render configuration from a specific commit. If not, it returns
-// the ID of the most recent commit.
-//
-// THIS ASSUMES THAT THIS FUNCTION IS ONLY CALLED IMMEDIATELY AFTER CLONING THE
-// REPOSITORY, MEANING THE HEAD OF THE CURRENT BRANCH IS THE HEAD OF THE
-// REPOSITORY'S DEFAULT BRANCH.
-//
-// If the RenderRequest specifies a commit, it is checked out. If metadata in
-// that commit indicates it was, itself, rendered from source configuration
-// in another commit, this function "follows" that reference back to the
-// original commit.
-func checkoutSourceCommit(repo git.Repo, req RenderRequest) (string, error) {
-	// If no commit ID was specified return the commit ID at the head of this
-	// branch and we're done.
-	if req.Commit == "" {
-		sourceCommitID, err := repo.LastCommitID()
-		return sourceCommitID,
-			errors.Wrap(err, "error getting last commit ID from the default branch")
-	}
-
-	// Check out the specified commit
-	if err := repo.Checkout(req.Commit); err != nil {
-		return "", errors.Wrapf(err, "error checking out %q", req.Commit)
-	}
-
-	// Try to load target branch metadata
-	targetBranchMetadata, err :=
-		metadata.LoadTargetBranchMetadata(repo.WorkingDir())
-	if err != nil {
-		return "",
-			errors.Wrapf(err, "error loading branch metadata from %q", req.Commit)
-	}
-
-	// If we got no branch metadata, then we assume we're already sitting on the
-	// source commit.
-	if targetBranchMetadata == nil {
-		return req.Commit, nil
-	}
-
-	// If we get to here, we should follow the branch metadata back to the real
-	// source commit
-	err = repo.Checkout(targetBranchMetadata.SourceCommit)
-	return targetBranchMetadata.SourceCommit, errors.Wrapf(
-		err,
-		"error checking out %q",
-		targetBranchMetadata.SourceCommit,
-	)
-}
-
 // buildCommitMessage builds a commit message for rendered configuration being
 // written to a target branch by using the source commit's own commit message
 // as a starting point. The message is then augmented with details about where
@@ -440,6 +423,7 @@ func buildCommitMessage(
 	req RenderRequest,
 	prevSrcCommitID string,
 	srcCommitID string,
+	targetBranchMetadata metadata.TargetBranchMetadata,
 ) (string, error) {
 	var commitMsg string
 	if req.CommitMessage != "" {
@@ -490,13 +474,13 @@ func buildCommitMessage(
 		}
 	}
 
-	if len(req.Images) != 0 {
+	if len(targetBranchMetadata.ImageSubstitutions) != 0 {
 		formattedCommitMsg = fmt.Sprintf(
-			"%s\n\nBookkeeper also incorporated the following new images into this "+
+			"%s\n\nBookkeeper also incorporated the following images into this "+
 				"commit:\n",
 			formattedCommitMsg,
 		)
-		for _, image := range req.Images {
+		for _, image := range targetBranchMetadata.ImageSubstitutions {
 			formattedCommitMsg = fmt.Sprintf(
 				"%s\n  * %s",
 				formattedCommitMsg,
