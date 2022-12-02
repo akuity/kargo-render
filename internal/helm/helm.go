@@ -4,7 +4,6 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/pkg/errors"
 )
 
@@ -12,7 +11,7 @@ import (
 func PreRender(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.HelmConfig,
+	cfg *Config,
 ) ([]byte, error) {
 	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
 	yamlBytes, err := cmd.Output()
@@ -26,7 +25,7 @@ func PreRender(
 func buildPreRenderCmd(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.HelmConfig,
+	cfg *Config,
 ) *exec.Cmd {
 	var chartPath string
 	if cfg.ChartPath != "" {

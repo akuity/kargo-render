@@ -1,4 +1,4 @@
-package config
+package bookkeeper
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/akuityio/bookkeeper/internal/ytt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,7 +97,7 @@ func TestLoadRepoConfig(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			_, err := LoadRepoConfig(testCase.setup())
+			_, err := loadRepoConfig(testCase.setup())
 			testCase.assertions(err)
 		})
 	}
@@ -106,22 +107,22 @@ func TestGetBranchConfig(t *testing.T) {
 	const testBranchName = "foo"
 	testCases := []struct {
 		name       string
-		repoConfig RepoConfig
-		assertions func(BranchConfig)
+		repoConfig *repoConfig
+		assertions func(branchConfig)
 	}{
 		{
 			name: "branch config explicitly specified",
 			repoConfig: &repoConfig{
-				BranchConfigs: []BranchConfig{
+				BranchConfigs: []branchConfig{
 					{
 						Name: testBranchName,
-						ConfigManagement: ConfigManagementConfig{
-							Ytt: &YttConfig{},
+						ConfigManagement: configManagementConfig{
+							Ytt: &ytt.Config{},
 						},
 					},
 				},
 			},
-			assertions: func(cfg BranchConfig) {
+			assertions: func(cfg branchConfig) {
 				require.Equal(t, testBranchName, cfg.Name)
 				require.Nil(t, cfg.ConfigManagement.Helm)
 				require.Nil(t, cfg.ConfigManagement.Kustomize)
@@ -131,13 +132,13 @@ func TestGetBranchConfig(t *testing.T) {
 		{
 			name: "default branch config explicitly specified",
 			repoConfig: &repoConfig{
-				DefaultBranchConfig: &BranchConfig{
-					ConfigManagement: ConfigManagementConfig{
-						Ytt: &YttConfig{},
+				DefaultBranchConfig: &branchConfig{
+					ConfigManagement: configManagementConfig{
+						Ytt: &ytt.Config{},
 					},
 				},
 			},
-			assertions: func(cfg BranchConfig) {
+			assertions: func(cfg branchConfig) {
 				require.Equal(t, testBranchName, cfg.Name)
 				require.Nil(t, cfg.ConfigManagement.Helm)
 				require.Nil(t, cfg.ConfigManagement.Kustomize)
@@ -147,7 +148,7 @@ func TestGetBranchConfig(t *testing.T) {
 		{
 			name:       "nothing explicitly specified",
 			repoConfig: &repoConfig{},
-			assertions: func(cfg BranchConfig) {
+			assertions: func(cfg branchConfig) {
 				require.Equal(t, testBranchName, cfg.Name)
 				require.Nil(t, cfg.ConfigManagement.Helm)
 				require.NotNil(t, cfg.ConfigManagement.Kustomize)
@@ -158,7 +159,7 @@ func TestGetBranchConfig(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.assertions(
-				testCase.repoConfig.GetBranchConfig(testBranchName),
+				testCase.repoConfig.getBranchConfig(testBranchName),
 			)
 		})
 	}

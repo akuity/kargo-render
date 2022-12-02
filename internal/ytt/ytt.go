@@ -3,7 +3,6 @@ package ytt
 import (
 	"os/exec"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/pkg/errors"
 )
 
@@ -11,7 +10,7 @@ import (
 func PreRender(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.YttConfig,
+	cfg *Config,
 ) ([]byte, error) {
 	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
 	yamlBytes, err := cmd.Output()
@@ -25,10 +24,10 @@ func PreRender(
 func buildPreRenderCmd(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.YttConfig,
+	cfg *Config,
 ) *exec.Cmd {
 	if cfg == nil {
-		cfg = &config.YttConfig{}
+		cfg = &Config{}
 	}
 	var cmdArgs []string
 	if len(cfg.Paths) > 0 {

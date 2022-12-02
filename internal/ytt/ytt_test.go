@@ -4,7 +4,6 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +12,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 	const testTargetBranchName = "env/dev"
 	testCases := []struct {
 		name       string
-		cfg        *config.YttConfig
+		cfg        *Config
 		assertions func(*exec.Cmd)
 	}{
 		{
@@ -32,7 +31,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "paths empty",
-			cfg:  &config.YttConfig{},
+			cfg:  &Config{},
 			assertions: func(cmd *exec.Cmd) {
 				expectedCmd := exec.Command(
 					"ytt",
@@ -47,7 +46,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "paths specified",
-			cfg: &config.YttConfig{
+			cfg: &Config{
 				Paths: []string{"abc", "xyz"},
 			},
 			assertions: func(cmd *exec.Cmd) {
