@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +13,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 	const testTargetBranchName = "env/dev"
 	testCases := []struct {
 		name       string
-		cfg        *config.KustomizeConfig
+		cfg        *Config
 		assertions func(*exec.Cmd)
 	}{
 		{
@@ -27,7 +26,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "path not specified",
-			cfg:  &config.KustomizeConfig{},
+			cfg:  &Config{},
 			assertions: func(cmd *exec.Cmd) {
 				expectedCmd := exec.Command("kustomize", "build")
 				expectedCmd.Dir = filepath.Join(testRepoRoot, testTargetBranchName)
@@ -36,7 +35,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "path specified",
-			cfg: &config.KustomizeConfig{
+			cfg: &Config{
 				Path: "my-path",
 			},
 			assertions: func(cmd *exec.Cmd) {

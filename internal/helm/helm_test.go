@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,12 +14,12 @@ func TestBuildPreRenderCmd(t *testing.T) {
 	const testTargetBranchName = "env/dev"
 	testCases := []struct {
 		name       string
-		cfg        *config.HelmConfig
+		cfg        *Config
 		assertions func(*exec.Cmd)
 	}{
 		{
 			name: "chartPath not specified, valuesPaths empty",
-			cfg: &config.HelmConfig{
+			cfg: &Config{
 				ReleaseName: testReleaseName,
 			},
 			assertions: func(cmd *exec.Cmd) {
@@ -38,7 +37,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "chartPath specified, valuesPaths empty",
-			cfg: &config.HelmConfig{
+			cfg: &Config{
 				ReleaseName: testReleaseName,
 				ChartPath:   "my-chart-path",
 			},
@@ -57,7 +56,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "chartPath not specified, valuesPaths provided",
-			cfg: &config.HelmConfig{
+			cfg: &Config{
 				ReleaseName: testReleaseName,
 				ValuesPaths: []string{"abc/values.yaml", "xyz/values.yaml"},
 			},
@@ -78,7 +77,7 @@ func TestBuildPreRenderCmd(t *testing.T) {
 		},
 		{
 			name: "chartPath specified, valuesPaths provided",
-			cfg: &config.HelmConfig{
+			cfg: &Config{
 				ReleaseName: testReleaseName,
 				ChartPath:   "my-chart-path",
 				ValuesPaths: []string{"abc/values.yaml", "xyz/values.yaml"},

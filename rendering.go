@@ -9,11 +9,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper/internal/config"
-	"github.com/akuityio/bookkeeper/internal/git"
 	"github.com/akuityio/bookkeeper/internal/helm"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
-	"github.com/akuityio/bookkeeper/internal/metadata"
 	"github.com/akuityio/bookkeeper/internal/ytt"
 )
 
@@ -26,60 +23,51 @@ resources:
 `,
 )
 
-func (s *service) preRender(
-	repo git.Repo,
-	branchConfig config.BranchConfig,
-	req RenderRequest,
-) ([]byte, error) {
-	logger := s.logger.WithField("request", req.id)
+func preRender(rc renderRequestContext) ([]byte, error) {
+	logger := rc.logger
 	// Use the caller's preferred config management tool for pre-rendering.
 	var bytes []byte
 	var err error
 	var cfgMgmtLogger *log.Entry
-	if branchConfig.ConfigManagement.Helm != nil {
+	if rc.target.branchConfig.ConfigManagement.Helm != nil {
+		// nolint: lll
 		cfgMgmtLogger = logger.WithFields(log.Fields{
 			"configManagementTool": "helm",
-			"releaseName":          branchConfig.ConfigManagement.Helm.ReleaseName,
-			"chartPath":            branchConfig.ConfigManagement.Helm.ChartPath,
-			"valuesPaths":          branchConfig.ConfigManagement.Helm.ValuesPaths,
+			"releaseName":          rc.target.branchConfig.ConfigManagement.Helm.ReleaseName,
+			"chartPath":            rc.target.branchConfig.ConfigManagement.Helm.ChartPath,
+			"valuesPaths":          rc.target.branchConfig.ConfigManagement.Helm.ValuesPaths,
 		})
 		bytes, err = helm.PreRender(
-			repo.WorkingDir(),
-			req.TargetBranch,
-			branchConfig.ConfigManagement.Helm,
+			rc.repo.WorkingDir(),
+			rc.request.TargetBranch,
+			rc.target.branchConfig.ConfigManagement.Helm,
 		)
-	} else if branchConfig.ConfigManagement.Ytt != nil {
+	} else if rc.target.branchConfig.ConfigManagement.Ytt != nil {
 		cfgMgmtLogger = logger.WithFields(log.Fields{
 			"configManagementTool": "ytt",
-			"paths":                branchConfig.ConfigManagement.Ytt.Paths,
+			"paths":                rc.target.branchConfig.ConfigManagement.Ytt.Paths,
 		})
 		bytes, err = ytt.PreRender(
-			repo.WorkingDir(),
-			req.TargetBranch,
-			branchConfig.ConfigManagement.Ytt,
+			rc.repo.WorkingDir(),
+			rc.request.TargetBranch,
+			rc.target.branchConfig.ConfigManagement.Ytt,
 		)
 	} else {
 		cfgMgmtLogger = logger.WithFields(log.Fields{
 			"configManagementTool": "kustomize",
-			"path":                 branchConfig.ConfigManagement.Kustomize.Path,
+			"path":                 rc.target.branchConfig.ConfigManagement.Kustomize.Path, // nolint: lll
 		})
 		bytes, err = kustomize.PreRender(
-			repo.WorkingDir(),
-			req.TargetBranch,
-			branchConfig.ConfigManagement.Kustomize,
+			rc.repo.WorkingDir(),
+			rc.request.TargetBranch,
+			rc.target.branchConfig.ConfigManagement.Kustomize,
 		)
 	}
 	cfgMgmtLogger.Debug("completed pre-rendering")
 	return bytes, err
 }
 
-func (s *service) renderLastMile(
-	repo git.Repo,
-	oldTargetBranchMetadata metadata.TargetBranchMetadata,
-	intermediateMetadata *metadata.TargetBranchMetadata,
-	req RenderRequest,
-	preRenderedBytes []byte,
-) ([]string, []byte, error) {
+func renderLastMile(rc renderRequestContext) ([]string, []byte, error) {
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, nil, errors.Wrapf(
@@ -93,7 +81,11 @@ func (s *service) renderLastMile(
 	// Write the pre-rendered bytes to a file
 	preRenderedPath := filepath.Join(tempDir, "all.yaml")
 	// nolint: gosec
-	if err = os.WriteFile(preRenderedPath, preRenderedBytes, 0644); err != nil {
+	if err = os.WriteFile(
+		preRenderedPath,
+		rc.target.prerenderedConfig,
+		0644,
+	); err != nil {
 		return nil, nil, errors.Wrapf(
 			err,
 			"error writing pre-rendered configuration to %q",
@@ -116,7 +108,7 @@ func (s *service) renderLastMile(
 	}
 
 	// Apply new images from old target branch metadata if any were specified
-	for _, image := range oldTargetBranchMetadata.ImageSubstitutions {
+	for _, image := range rc.target.oldBranchMetadata.ImageSubstitutions {
 		if err = kustomize.SetImage(tempDir, image); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
@@ -126,8 +118,8 @@ func (s *service) renderLastMile(
 		}
 	}
 	// Apply new images from intermediate metadata if any were specified
-	if intermediateMetadata != nil {
-		for _, image := range intermediateMetadata.ImageSubstitutions {
+	if rc.intermediate.branchMetadata != nil {
+		for _, image := range rc.intermediate.branchMetadata.ImageSubstitutions {
 			if err = kustomize.SetImage(tempDir, image); err != nil {
 				return nil, nil, errors.Wrapf(
 					err,
@@ -139,7 +131,7 @@ func (s *service) renderLastMile(
 	}
 	// Apply new images from the request if any were specified. These will take
 	// precedence over anything we already set.
-	for _, image := range req.Images {
+	for _, image := range rc.request.Images {
 		if err = kustomize.SetImage(tempDir, image); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,

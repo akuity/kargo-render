@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/strings"
 )
 
@@ -46,7 +45,7 @@ func SetImage(dir string, image string) error {
 func PreRender(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.KustomizeConfig,
+	cfg *Config,
 ) ([]byte, error) {
 	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
 	yamlBytes, err := cmd.Output()
@@ -61,10 +60,10 @@ func PreRender(
 func buildPreRenderCmd(
 	repoRoot string,
 	targetBranch string,
-	cfg *config.KustomizeConfig,
+	cfg *Config,
 ) *exec.Cmd {
 	if cfg == nil {
-		cfg = &config.KustomizeConfig{}
+		cfg = &Config{}
 	}
 	cmd := exec.Command("kustomize", "build")
 	if cfg.Path != "" {

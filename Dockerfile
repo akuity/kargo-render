@@ -29,6 +29,7 @@ RUN go mod download
 COPY cmd cmd
 COPY internal internal
 COPY *.go .
+COPY schema.json .
 
 RUN ls
 

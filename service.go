@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -14,10 +13,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper/internal/config"
 	"github.com/akuityio/bookkeeper/internal/git"
-	"github.com/akuityio/bookkeeper/internal/github"
-	"github.com/akuityio/bookkeeper/internal/metadata"
 )
 
 type ServiceOptions struct {
@@ -74,115 +70,109 @@ func (s *service) RenderConfig(
 
 	startEndLogger.Debug("starting configuration rendering")
 
-	repo, err := git.Clone(
+	rc := renderRequestContext{
+		logger:  logger,
+		request: req,
+	}
+
+	if rc.repo, err = git.Clone(
 		ctx,
-		req.RepoURL,
+		rc.request.RepoURL,
 		git.RepoCredentials{
-			SSHPrivateKey: req.RepoCreds.SSHPrivateKey,
-			Username:      req.RepoCreds.Username,
-			Password:      req.RepoCreds.Password,
+			SSHPrivateKey: rc.request.RepoCreds.SSHPrivateKey,
+			Username:      rc.request.RepoCreds.Username,
+			Password:      rc.request.RepoCreds.Password,
 		},
-	)
-	if err != err {
+	); err != err {
 		return res, errors.Wrap(err, "error cloning remote repository")
 	}
-	defer repo.Close()
+	defer rc.repo.Close()
 
 	// TODO: Add some logging to this block
-	var srcCommitID string
-	var intermediateMetadata *metadata.TargetBranchMetadata
-	if req.Commit == "" {
-		if srcCommitID, err = repo.LastCommitID(); err != nil {
+	if rc.request.Commit == "" {
+		if rc.source.commit, err = rc.repo.LastCommitID(); err != nil {
 			return res, errors.Wrap(err, "error getting last commit ID")
 		}
 	} else {
-		if err = repo.Checkout(req.Commit); err != nil {
-			return res, errors.Wrapf(err, "error checking out %q", req.Commit)
+		if err = rc.repo.Checkout(rc.request.Commit); err != nil {
+			return res, errors.Wrapf(err, "error checking out %q", rc.request.Commit)
 		}
-		if intermediateMetadata, err =
-			metadata.LoadTargetBranchMetadata(repo.WorkingDir()); err != nil {
+		if rc.intermediate.branchMetadata, err =
+			loadBranchMetadata(rc.repo.WorkingDir()); err != nil {
 			return res, errors.Wrap(err, "error loading branch metadata")
 		}
-		if intermediateMetadata == nil {
+		if rc.intermediate.branchMetadata == nil {
 			// We're not on a target branch. We assume we're on the default branch.
-			srcCommitID = req.Commit
+			rc.source.commit = rc.request.Commit
 		} else {
 			// Follow the branch metadata back to the real source commit
-			if err = repo.Checkout(intermediateMetadata.SourceCommit); err != nil {
+			if err = rc.repo.Checkout(
+				rc.intermediate.branchMetadata.SourceCommit,
+			); err != nil {
 				return res, errors.Wrapf(
 					err,
 					"error checking out %q",
-					intermediateMetadata.SourceCommit,
+					rc.intermediate.branchMetadata.SourceCommit,
 				)
 			}
-			srcCommitID = intermediateMetadata.SourceCommit
+			rc.source.commit = rc.intermediate.branchMetadata.SourceCommit
 		}
 	}
 
-	repoConfig, err := config.LoadRepoConfig(repo.WorkingDir())
+	repoConfig, err := loadRepoConfig(rc.repo.WorkingDir())
 	if err != nil {
 		return res,
 			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
 	}
-	branchConfig := repoConfig.GetBranchConfig(req.TargetBranch)
+	rc.target.branchConfig = repoConfig.getBranchConfig(rc.request.TargetBranch)
 
-	preRenderedBytes, err := s.preRender(repo, branchConfig, req)
-	if err != nil {
+	if rc.target.prerenderedConfig, err = preRender(rc); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering configuration")
 	}
 
-	// Switch to the commit branch. The commit branch might be the target branch,
-	// but if branchConfig.OpenPR is true, it could be a new child of the target
-	// branch.
-	commitBranch, err := s.switchToCommitBranch(repo, branchConfig, req)
-	if err != nil {
+	if err = switchToTargetBranch(rc); err != nil {
 		return res, errors.Wrap(err, "error switching to target branch")
 	}
 
-	if err = rmYAML(repo.WorkingDir()); err != nil {
-		return res, errors.Wrap(err, "error cleaning commit branch")
-	}
-
-	oldTargetBranchMetadata, err :=
-		metadata.LoadTargetBranchMetadata(repo.WorkingDir())
+	oldTargetBranchMetadata, err := loadBranchMetadata(rc.repo.WorkingDir())
 	if err != nil {
 		return res, errors.Wrap(err, "error loading branch metadata")
 	}
+	rc.target.oldBranchMetadata = *oldTargetBranchMetadata
 
-	images, fullyRenderedBytes, err := s.renderLastMile(
-		repo,
-		*oldTargetBranchMetadata,
-		intermediateMetadata,
-		req,
-		preRenderedBytes,
-	)
-	if err != nil {
+	if rc.target.commit.branch, err = switchToCommitBranch(rc); err != nil {
+		return res, errors.Wrap(err, "error switching to commit branch")
+	}
+
+	rc.target.newBranchMetadata.SourceCommit = rc.source.commit
+	if rc.target.newBranchMetadata.ImageSubstitutions,
+		rc.target.renderedConfig,
+		err =
+		renderLastMile(rc); err != nil {
 		return res, errors.Wrap(err, "error in last-mile configuration rendering")
 	}
 	logger.Debug("completed last-mile rendering")
 
 	// Write branch metadata
-	newTargetBranchMetadata := metadata.TargetBranchMetadata{
-		SourceCommit:       srcCommitID,
-		ImageSubstitutions: images,
-	}
-	if err = metadata.WriteTargetBranchMetadata(
-		newTargetBranchMetadata,
-		repo.WorkingDir(),
+	if err = writeBranchMetadata(
+		rc.target.newBranchMetadata,
+		rc.repo.WorkingDir(),
 	); err != nil {
 		return res, errors.Wrap(err, "error writing branch metadata")
 	}
-	logger.WithField("sourceCommit", srcCommitID).Debug("wrote branch metadata")
+	logger.WithField("sourceCommit", rc.source.commit).
+		Debug("wrote branch metadata")
 
 	// Write the new fully-rendered config to the root of the repo
-	if err = writeFiles(repo.WorkingDir(), fullyRenderedBytes); err != nil {
+	if err =
+		writeFiles(rc.repo.WorkingDir(), rc.target.renderedConfig); err != nil {
 		return res, err
 	}
 	logger.Debug("wrote fully-rendered configuration")
 
 	// Before committing, check if we actually have any diffs from the head of
 	// this branch. We'd have an error if we tried to commit with no diffs!
-	hasDiffs, err := repo.HasDiffs()
+	hasDiffs, err := rc.repo.HasDiffs()
 	if err != nil {
 		return res, errors.Wrap(err, "error checking for diffs")
 	}
@@ -195,70 +185,42 @@ func (s *service) RenderConfig(
 		return res, nil
 	}
 
-	commitMsg, err := buildCommitMessage(
-		repo,
-		req,
-		oldTargetBranchMetadata.SourceCommit,
-		srcCommitID,
-		newTargetBranchMetadata,
-	)
-	if err != nil {
+	if rc.target.commit.message, err = buildCommitMessage(rc); err != nil {
 		return res, err
 	}
 	logger.Debug("prepared commit message")
 
 	// Commit the fully-rendered configuration
-	if err = repo.AddAllAndCommit(commitMsg); err != nil {
+	if err = rc.repo.AddAllAndCommit(rc.target.commit.message); err != nil {
 		return res, errors.Wrapf(
 			err,
 			"error committing fully-rendered configuration",
 		)
 	}
-	commitID, err := repo.LastCommitID()
-	if err != nil {
+	if rc.target.commit.id, err = rc.repo.LastCommitID(); err != nil {
 		return res, errors.Wrap(
 			err,
 			"error getting last commit ID from the commit branch",
 		)
 	}
 	logger.WithFields(log.Fields{
-		"commitBranch": commitBranch,
-		"commitID":     commitID,
+		"commitBranch": rc.target.commit.branch,
+		"commitID":     rc.target.commit.id,
 	}).Debug("committed fully-rendered configuration")
 
 	// Push the fully-rendered configuration to the remote commit branch
-	if err = repo.Push(); err != nil {
+	if err = rc.repo.Push(); err != nil {
 		return res, errors.Wrap(
 			err,
 			"error pushing fully-rendered configuration",
 		)
 	}
-	logger.WithField("commitBranch", commitBranch).
+	logger.WithField("commitBranch", rc.target.commit.branch).
 		Debug("pushed fully-rendered configuration")
 
 	// Open a PR if requested
-	if branchConfig.OpenPR {
-		commitMsgParts := strings.SplitN(commitMsg, "\n", 2)
-		// PR title is just the first line of the commit message
-		prTitle := fmt.Sprintf("%s --> %s", commitMsgParts[0], req.TargetBranch)
-		// PR body is just the first line of the commit message
-		var prBody string
-		if len(commitMsgParts) == 2 {
-			prBody = strings.TrimSpace(commitMsgParts[1])
-		}
-		// TODO: Support git providers other than GitHub
-		if res.PullRequestURL, err = github.OpenPR(
-			ctx,
-			req.RepoURL,
-			prTitle,
-			prBody,
-			req.TargetBranch,
-			commitBranch,
-			git.RepoCredentials{
-				Username: req.RepoCreds.Username,
-				Password: req.RepoCreds.Password,
-			},
-		); err != nil {
+	if rc.target.branchConfig.OpenPR {
+		if res.PullRequestURL, err = openPR(ctx, rc); err != nil {
 			return res,
 				errors.Wrap(err, "error opening pull request to the target branch")
 		}
@@ -266,7 +228,7 @@ func (s *service) RenderConfig(
 		res.ActionTaken = ActionTakenOpenedPR
 	} else {
 		res.ActionTaken = ActionTakenPushedDirectly
-		res.CommitID = commitID
+		res.CommitID = rc.target.commit.id
 	}
 
 	startEndLogger.Debug("completed configuration rendering")
@@ -274,168 +236,23 @@ func (s *service) RenderConfig(
 	return res, nil
 }
 
-func (s *service) switchToCommitBranch(
-	repo git.Repo,
-	branchConfig config.BranchConfig,
-	req RenderRequest,
-) (string, error) {
-	logger := s.logger.WithField("request", req.id)
-	targetBranchLogger := logger.WithField("targetBranch", req.TargetBranch)
-
-	// Check if the target branch exists on the remote
-	targetBranchExists, err := repo.RemoteBranchExists(req.TargetBranch)
-	if err != nil {
-		return "", errors.Wrap(err, "error checking for existence of target branch")
-	}
-
-	if targetBranchExists {
-		targetBranchLogger.Debug("target branch exists on remote")
-		if err = repo.Checkout(req.TargetBranch); err != nil {
-			return "", errors.Wrap(err, "error checking out target branch")
-		}
-		targetBranchLogger.Debug("checked out target branch")
-	} else {
-		targetBranchLogger.Debug("target branch does not exist on remote")
-		if err = repo.CreateOrphanedBranch(req.TargetBranch); err != nil {
-			return "", errors.Wrap(err, "error creating new target branch")
-		}
-		targetBranchLogger.Debug("created target branch")
-		bkDir := filepath.Join(repo.WorkingDir(), ".bookkeeper")
-		if err = os.MkdirAll(bkDir, 0755); err != nil {
-			return "",
-				errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
-		}
-		logger.Debug("created .bookkeeper/ directory")
-		if err = metadata.WriteTargetBranchMetadata(
-			metadata.TargetBranchMetadata{},
-			repo.WorkingDir(),
-		); err != nil {
-			return "", errors.Wrap(err, "error writing blank target branch metadata")
-		}
-		targetBranchLogger.Debug("wrote blank target branch metadata")
-		if err = repo.AddAllAndCommit("Initial commit"); err != nil {
-			return "",
-				errors.Wrap(err, "error making initial commit to new target branch")
-		}
-		targetBranchLogger.Debug("made initial commit to new target branch")
-		if err = repo.Push(); err != nil {
-			return "",
-				errors.Wrap(err, "error pushing new target branch to remote")
-		}
-		targetBranchLogger.Debug("pushed new target branch to remote")
-	}
-
-	if !branchConfig.OpenPR {
-		targetBranchLogger.Debug(
-			"changes will be written directly to the target branch",
-		)
-		return req.TargetBranch, nil
-	}
-
-	targetBranchLogger.Debug("changes will be PR'ed to the target branch")
-
-	// If we get to here, we're supposed to be opening a PR instead of
-	// committing directly to the target branch, so we should create and check
-	// out a new child of the target branch.
-	commitBranch := fmt.Sprintf("bookkeeper/%s", req.id)
-	if err = repo.CreateChildBranch(commitBranch); err != nil {
-		return "", errors.Wrap(err, "error creating child of target branch")
-	}
-	targetBranchLogger.WithField("commitBranch", commitBranch).
-		Debug("created commit branch")
-	return commitBranch, nil
-}
-
-func validateAndCanonicalizeRequest(req RenderRequest) (RenderRequest, error) {
-	req.RepoURL = strings.TrimSpace(req.RepoURL)
-	if req.RepoURL == "" {
-		return req, errors.New("validation failed: RepoURL is a required field")
-	}
-	repoURLRegex :=
-		regexp.MustCompile(`^(?:(?:(?:https?://)|(?:git@))[\w:/\-\.\?=@&%]+)$`)
-	if !repoURLRegex.MatchString(req.RepoURL) {
-		return req, errors.Errorf(
-			"validation failed: RepoURL %q does not appear to be a valid git "+
-				"repository URL",
-			req.RepoURL,
-		)
-	}
-
-	// TODO: Should this be required? I think some git providers don't require
-	// this if the password is a bearer token -- e.g. such as in the case of a
-	// GitHub personal access token.
-	req.RepoCreds.Username = strings.TrimSpace(req.RepoCreds.Username)
-	req.RepoCreds.Password = strings.TrimSpace(req.RepoCreds.Password)
-	if req.RepoCreds.Password == "" {
-		return req, errors.New(
-			"validation failed: RepoCreds.Password is a required field",
-		)
-	}
-
-	req.Commit = strings.TrimSpace(req.Commit)
-	if req.Commit != "" {
-		shaRegex := regexp.MustCompile(`^[a-fA-F0-9]{8,40}$`)
-		if !shaRegex.MatchString(req.Commit) {
-			return req, errors.Errorf(
-				"validation failed: Commit %q does not appear to be a valid commit ID",
-				req.Commit,
-			)
-		}
-	}
-
-	req.TargetBranch = strings.TrimSpace(req.TargetBranch)
-	if req.TargetBranch == "" {
-		return req,
-			errors.New("validation failed: TargetBranch is a required field")
-	}
-	targetBranchRegex := regexp.MustCompile(`^(?:[\w\.-]+\/?)*\w$`)
-	if !targetBranchRegex.MatchString(req.TargetBranch) {
-		return req, errors.Errorf(
-			"validation failed: TargetBranch %q is an invalid branch name",
-			req.TargetBranch,
-		)
-	}
-	req.TargetBranch = strings.TrimPrefix(req.TargetBranch, "refs/heads/")
-
-	if len(req.Images) > 0 {
-		for i := range req.Images {
-			req.Images[i] = strings.TrimSpace(req.Images[i])
-			if req.Images[i] == "" {
-				return req, errors.New(
-					"validation failed: Images must not contain any empty strings",
-				)
-			}
-		}
-	}
-
-	req.CommitMessage = strings.TrimSpace(req.CommitMessage)
-
-	return req, nil
-}
-
 // buildCommitMessage builds a commit message for rendered configuration being
 // written to a target branch by using the source commit's own commit message
 // as a starting point. The message is then augmented with details about where
 // Bookkeeper rendered it from (the source commit) and any image substitutions
 // Bookkeeper made per the RenderRequest.
-func buildCommitMessage(
-	repo git.Repo,
-	req RenderRequest,
-	prevSrcCommitID string,
-	srcCommitID string,
-	targetBranchMetadata metadata.TargetBranchMetadata,
-) (string, error) {
+func buildCommitMessage(rc renderRequestContext) (string, error) {
 	var commitMsg string
-	if req.CommitMessage != "" {
-		commitMsg = req.CommitMessage
+	if rc.request.CommitMessage != "" {
+		commitMsg = rc.request.CommitMessage
 	} else {
 		// Use the source commit's message as a starting point
 		var err error
-		if commitMsg, err = repo.CommitMessage(srcCommitID); err != nil {
+		if commitMsg, err = rc.repo.CommitMessage(rc.source.commit); err != nil {
 			return "", errors.Wrapf(
 				err,
 				"error getting commit message for commit %q",
-				srcCommitID,
+				rc.source.commit,
 			)
 		}
 	}
@@ -444,25 +261,27 @@ func buildCommitMessage(
 	formattedCommitMsg := fmt.Sprintf(
 		"%s\n\nBookkeeper created this commit by rendering configuration from %s",
 		commitMsg,
-		srcCommitID,
+		rc.source.commit,
 	)
 
 	// Find all recent commits
 	var memberCommitMsgs []string
-	if prevSrcCommitID != "" {
+	if rc.target.oldBranchMetadata.SourceCommit != "" {
 		// Add info about member commits
 		formattedCommitMsg = fmt.Sprintf(
 			"%s\n\nThis includes the following changes (newest to oldest):",
 			formattedCommitMsg,
 		)
 		var err error
-		if memberCommitMsgs, err =
-			repo.CommitMessages(prevSrcCommitID, srcCommitID); err != nil {
+		if memberCommitMsgs, err = rc.repo.CommitMessages(
+			rc.target.oldBranchMetadata.SourceCommit,
+			rc.source.commit,
+		); err != nil {
 			return "", errors.Wrapf(
 				err,
 				"error getting commit messages between commit %q and %q",
-				prevSrcCommitID,
-				srcCommitID,
+				rc.target.oldBranchMetadata.SourceCommit,
+				rc.source.commit,
 			)
 		}
 		for _, memberCommitMsg := range memberCommitMsgs {
@@ -474,13 +293,13 @@ func buildCommitMessage(
 		}
 	}
 
-	if len(targetBranchMetadata.ImageSubstitutions) != 0 {
+	if len(rc.target.newBranchMetadata.ImageSubstitutions) != 0 {
 		formattedCommitMsg = fmt.Sprintf(
 			"%s\n\nBookkeeper also incorporated the following images into this "+
 				"commit:\n",
 			formattedCommitMsg,
 		)
-		for _, image := range targetBranchMetadata.ImageSubstitutions {
+		for _, image := range rc.target.newBranchMetadata.ImageSubstitutions {
 			formattedCommitMsg = fmt.Sprintf(
 				"%s\n  * %s",
 				formattedCommitMsg,
@@ -519,19 +338,6 @@ func writeFiles(dir string, yamlBytes []byte) error {
 				"error writing fully-rendered configuration to %q",
 				fileName,
 			)
-		}
-	}
-	return nil
-}
-
-func rmYAML(dir string) error {
-	files, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		if err = os.Remove(file); err != nil {
-			return err
 		}
 	}
 	return nil

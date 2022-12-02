@@ -1,4 +1,4 @@
-package metadata
+package bookkeeper
 
 import (
 	"os"
@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestLoadTargetBranchMetadata(t *testing.T) {
+func TestLoadBranchMetadata(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func() string
-		assertions func(*TargetBranchMetadata, error)
+		assertions func(*branchMetadata, error)
 	}{
 		{
 			name: "metadata does not exist",
@@ -22,7 +22,7 @@ func TestLoadTargetBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(md *TargetBranchMetadata, err error) {
+			assertions: func(md *branchMetadata, err error) {
 				require.NoError(t, err)
 				require.Nil(t, md)
 			},
@@ -43,7 +43,7 @@ func TestLoadTargetBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(_ *TargetBranchMetadata, err error) {
+			assertions: func(_ *branchMetadata, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "error unmarshaling branch metadata")
 			},
@@ -64,24 +64,24 @@ func TestLoadTargetBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(_ *TargetBranchMetadata, err error) {
+			assertions: func(_ *branchMetadata, err error) {
 				require.NoError(t, err)
 			},
 		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			md, err := LoadTargetBranchMetadata(testCase.setup())
+			md, err := loadBranchMetadata(testCase.setup())
 			testCase.assertions(md, err)
 		})
 	}
 }
 
-func TestWriteTargetBranchMetadata(t *testing.T) {
+func TestWriteBranchMetadata(t *testing.T) {
 	repoDir, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
-	err = WriteTargetBranchMetadata(
-		TargetBranchMetadata{
+	err = writeBranchMetadata(
+		branchMetadata{
 			SourceCommit: "1234567",
 		},
 		repoDir,
@@ -91,4 +91,24 @@ func TestWriteTargetBranchMetadata(t *testing.T) {
 		file.Exists(filepath.Join(repoDir, ".bookkeeper", "metadata.yaml"))
 	require.NoError(t, err)
 	require.True(t, exists)
+}
+
+func TestRmYAML(t *testing.T) {
+	testDir, err := os.MkdirTemp("", "")
+	require.NoError(t, err)
+	defer os.RemoveAll(testDir)
+	file1 := filepath.Join(testDir, "foo.yaml")
+	file2 := filepath.Join(testDir, "bar.yaml")
+	_, err = os.Create(file1)
+	require.NoError(t, err)
+	_, err = os.Create(file2)
+	require.NoError(t, err)
+	err = rmYAML(testDir)
+	require.NoError(t, err)
+	exists, err := file.Exists(file1)
+	require.NoError(t, err)
+	require.False(t, exists)
+	exists, err = file.Exists(file2)
+	require.NoError(t, err)
+	require.False(t, exists)
 }
