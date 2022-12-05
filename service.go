@@ -14,6 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/akuityio/bookkeeper/internal/git"
+	"github.com/akuityio/bookkeeper/internal/kustomize"
 )
 
 type ServiceOptions struct {
@@ -124,9 +125,22 @@ func (s *service) RenderConfig(
 		return res,
 			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
 	}
-	rc.target.branchConfig = repoConfig.getBranchConfig(rc.request.TargetBranch)
+	rc.target.branchConfig = repoConfig.BranchConfigs[rc.request.TargetBranch]
 
-	if rc.target.prerenderedConfig, err = preRender(rc); err != nil {
+	if len(rc.target.branchConfig.AppConfigs) == 0 {
+		rc.target.branchConfig.AppConfigs = map[string]appConfig{
+			"app": {
+				ConfigManagement: configManagementConfig{
+					Kustomize: &kustomize.Config{
+						Path: rc.request.TargetBranch,
+					},
+				},
+				OutputPath: "app",
+			},
+		}
+	}
+
+	if rc.target.prerenderedManifests, err = preRender(rc); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering configuration")
 	}
 
@@ -146,7 +160,7 @@ func (s *service) RenderConfig(
 
 	rc.target.newBranchMetadata.SourceCommit = rc.source.commit
 	if rc.target.newBranchMetadata.ImageSubstitutions,
-		rc.target.renderedConfig,
+		rc.target.renderedManifests,
 		err =
 		renderLastMile(rc); err != nil {
 		return res, errors.Wrap(err, "error in last-mile configuration rendering")
@@ -164,8 +178,7 @@ func (s *service) RenderConfig(
 		Debug("wrote branch metadata")
 
 	// Write the new fully-rendered config to the root of the repo
-	if err =
-		writeFiles(rc.repo.WorkingDir(), rc.target.renderedConfig); err != nil {
+	if err = writeAllAppManifests(rc); err != nil {
 		return res, err
 	}
 	logger.Debug("wrote fully-rendered configuration")
@@ -311,7 +324,32 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 	return formattedCommitMsg, nil
 }
 
-func writeFiles(dir string, yamlBytes []byte) error {
+func writeAllAppManifests(rc renderRequestContext) error {
+	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
+		var outputDir string
+		if appConfig.OutputPath != "" {
+			outputDir = filepath.Join(rc.repo.WorkingDir(), appConfig.OutputPath)
+		} else {
+			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
+		}
+		if err := writeAppManifests(
+			outputDir,
+			rc.target.renderedManifests[appName],
+		); err != nil {
+			return errors.Wrapf(
+				err, "error writing manifests for app %q to %q",
+				appName,
+				outputDir,
+			)
+		}
+	}
+	return nil
+}
+
+func writeAppManifests(dir string, yamlBytes []byte) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return errors.Wrapf(err, "error creating directory %q", dir)
+	}
 	resourcesBytes := bytes.Split(yamlBytes, []byte("---\n"))
 	for _, resourceBytes := range resourcesBytes {
 		resource := struct {

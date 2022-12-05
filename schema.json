@@ -16,17 +16,32 @@
 
 		"branchConfig": {
 			"type": "object",
-			"required": ["name"],
 			"additionalProperties": false,
 			"properties": {
-				"name": {
-					"$ref": "#/definitions/relativePath"
-				},
-				"configManagement": {
-					"$ref": "#/definitions/configManagementConfig"
+				"appConfigs": {
+					"type": "object",
+					"additionalProperties": false,
+					"patternProperties": {
+						"^[\\w-]+$": {
+							"$ref": "#/definitions/appConfig"	
+						}
+					}
 				},
 				"openPR": {
 					"type": "boolean"
+				}
+			}
+		},
+
+		"appConfig": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"configManagement": {
+					"$ref": "#/definitions/configManagementConfig"
+				},
+				"outputPath": {
+					"$ref": "#/definitions/relativePath"
 				}
 			}
 		},
@@ -119,13 +134,13 @@
 			"$ref": "#/definitions/configVersion"
 		},
 		"branchConfigs": {
-			"type": "array",
-			"items": {
-				"$ref": "#/definitions/branchConfig"
+			"type": "object",
+			"additionalProperties": false,
+			"patternProperties": {
+				"^(?:[\\w\\.-]+\/?)*\\w$": {
+					"$ref": "#/definitions/branchConfig"	
+				}
 			}
-		},
-		"defaultBranchConfig": {
-			"$ref": "#/definitions/branchConfig"
 		}
 	}
 }

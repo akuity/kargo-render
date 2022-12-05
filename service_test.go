@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWriteFiles(t *testing.T) {
+func TestWriteAppManifests(t *testing.T) {
 	testYAMLChunk1 := []byte(`kind: Deployment
 metadata:
   name: foobar
@@ -29,7 +29,7 @@ metadata:
 	testDir, err := os.MkdirTemp("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(testDir)
-	err = writeFiles(testDir, testYAMLBytes)
+	err = writeAppManifests(testDir, testYAMLBytes)
 	require.NoError(t, err)
 	filename := filepath.Join(testDir, "foobar-deployment.yaml")
 	exists, err := file.Exists(filename)

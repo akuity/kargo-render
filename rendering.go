@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/akuityio/bookkeeper/internal/file"
 	"github.com/akuityio/bookkeeper/internal/helm"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
 	"github.com/akuityio/bookkeeper/internal/ytt"
@@ -23,51 +24,54 @@ resources:
 `,
 )
 
-func preRender(rc renderRequestContext) ([]byte, error) {
+func preRender(rc renderRequestContext) (map[string][]byte, error) {
 	logger := rc.logger
-	// Use the caller's preferred config management tool for pre-rendering.
-	var bytes []byte
+	manifests := map[string][]byte{}
 	var err error
-	var cfgMgmtLogger *log.Entry
-	if rc.target.branchConfig.ConfigManagement.Helm != nil {
-		// nolint: lll
-		cfgMgmtLogger = logger.WithFields(log.Fields{
-			"configManagementTool": "helm",
-			"releaseName":          rc.target.branchConfig.ConfigManagement.Helm.ReleaseName,
-			"chartPath":            rc.target.branchConfig.ConfigManagement.Helm.ChartPath,
-			"valuesPaths":          rc.target.branchConfig.ConfigManagement.Helm.ValuesPaths,
-		})
-		bytes, err = helm.PreRender(
-			rc.repo.WorkingDir(),
-			rc.request.TargetBranch,
-			rc.target.branchConfig.ConfigManagement.Helm,
-		)
-	} else if rc.target.branchConfig.ConfigManagement.Ytt != nil {
-		cfgMgmtLogger = logger.WithFields(log.Fields{
-			"configManagementTool": "ytt",
-			"paths":                rc.target.branchConfig.ConfigManagement.Ytt.Paths,
-		})
-		bytes, err = ytt.PreRender(
-			rc.repo.WorkingDir(),
-			rc.request.TargetBranch,
-			rc.target.branchConfig.ConfigManagement.Ytt,
-		)
-	} else {
-		cfgMgmtLogger = logger.WithFields(log.Fields{
-			"configManagementTool": "kustomize",
-			"path":                 rc.target.branchConfig.ConfigManagement.Kustomize.Path, // nolint: lll
-		})
-		bytes, err = kustomize.PreRender(
-			rc.repo.WorkingDir(),
-			rc.request.TargetBranch,
-			rc.target.branchConfig.ConfigManagement.Kustomize,
-		)
+	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
+		var appLogger *log.Entry = logger.WithField("app", appName)
+		if appConfig.ConfigManagement.Helm != nil {
+			// nolint: lll
+			appLogger = logger.WithFields(log.Fields{
+				"configManagementTool": "helm",
+				"releaseName":          appConfig.ConfigManagement.Helm.ReleaseName,
+				"chartPath":            appConfig.ConfigManagement.Helm.ChartPath,
+				"valuesPaths":          appConfig.ConfigManagement.Helm.ValuesPaths,
+			})
+			manifests[appName], err = helm.PreRender(
+				rc.repo.WorkingDir(),
+				rc.request.TargetBranch,
+				appConfig.ConfigManagement.Helm,
+			)
+		} else if appConfig.ConfigManagement.Ytt != nil {
+			appLogger = logger.WithFields(log.Fields{
+				"configManagementTool": "ytt",
+				"paths":                appConfig.ConfigManagement.Ytt.Paths,
+			})
+			manifests[appName], err = ytt.PreRender(
+				rc.repo.WorkingDir(),
+				rc.request.TargetBranch,
+				appConfig.ConfigManagement.Ytt,
+			)
+		} else {
+			appLogger = logger.WithFields(log.Fields{
+				"configManagementTool": "kustomize",
+				"path":                 appConfig.ConfigManagement.Kustomize.Path,
+			})
+			manifests[appName], err = kustomize.PreRender(
+				rc.repo.WorkingDir(),
+				rc.request.TargetBranch,
+				appConfig.ConfigManagement.Kustomize,
+			)
+		}
+		appLogger.Debug("completed pre-rendering")
 	}
-	cfgMgmtLogger.Debug("completed pre-rendering")
-	return bytes, err
+	return manifests, err
 }
 
-func renderLastMile(rc renderRequestContext) ([]string, []byte, error) {
+func renderLastMile(
+	rc renderRequestContext,
+) ([]string, map[string][]byte, error) {
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, nil, errors.Wrapf(
@@ -77,21 +81,6 @@ func renderLastMile(rc renderRequestContext) ([]string, []byte, error) {
 		)
 	}
 	defer os.RemoveAll(tempDir)
-
-	// Write the pre-rendered bytes to a file
-	preRenderedPath := filepath.Join(tempDir, "all.yaml")
-	// nolint: gosec
-	if err = os.WriteFile(
-		preRenderedPath,
-		rc.target.prerenderedConfig,
-		0644,
-	); err != nil {
-		return nil, nil, errors.Wrapf(
-			err,
-			"error writing pre-rendered configuration to %q",
-			preRenderedPath,
-		)
-	}
 
 	// Create kustomization.yaml
 	kustomizationFile := filepath.Join(tempDir, "kustomization.yaml")
@@ -162,10 +151,51 @@ func renderLastMile(rc renderRequestContext) ([]string, []byte, error) {
 		images[i] = fmt.Sprintf("%s:%s", image.Name, image.NewTag)
 	}
 
-	fullyRenderedBytes, err := kustomize.LastMileRender(tempDir)
-	return images, fullyRenderedBytes, errors.Wrapf(
-		err,
-		"error rendering configuration from %q",
-		tempDir,
-	)
+	manifests := map[string][]byte{}
+	for appName := range rc.target.branchConfig.AppConfigs {
+		appDir := filepath.Join(tempDir, appName)
+		if err = os.MkdirAll(appDir, 0755); err != nil {
+			return nil, nil, errors.Wrapf(
+				err,
+				"error creating directory %q for last mile rendering of app %q",
+				appDir,
+				appName,
+			)
+		}
+		appKustomizationFile := filepath.Join(appDir, "kustomization.yaml")
+		if err = file.CopyFile(
+			kustomizationFile,
+			appKustomizationFile,
+		); err != nil {
+			return nil, nil, errors.Wrapf(
+				err,
+				"error copying kustomization.yaml from %q to %q",
+				kustomizationFile,
+				appKustomizationFile,
+			)
+		}
+		// Write the pre-rendered manifests to a file
+		preRenderedPath := filepath.Join(appDir, "all.yaml")
+		// nolint: gosec
+		if err = os.WriteFile(
+			preRenderedPath,
+			rc.target.prerenderedManifests[appName],
+			0644,
+		); err != nil {
+			return nil, nil, errors.Wrapf(
+				err,
+				"error writing pre-rendered configuration to %q",
+				preRenderedPath,
+			)
+		}
+		if manifests[appName], err = kustomize.LastMileRender(appDir); err != nil {
+			return nil, nil, errors.Wrapf(
+				err,
+				"error rendering configuration from %q",
+				tempDir,
+			)
+		}
+	}
+
+	return images, manifests, nil
 }
