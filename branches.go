@@ -112,19 +112,36 @@ func switchToCommitBranch(rc renderRequestContext) (string, error) {
 	logger := rc.logger.WithField("targetBranch", rc.request.TargetBranch)
 
 	var commitBranch string
-	if !rc.target.branchConfig.OpenPR {
+	if !rc.target.branchConfig.PRs.Enabled {
 		commitBranch = rc.request.TargetBranch
 		logger.Debug(
 			"changes will be written directly to the target branch",
 		)
 	} else {
-		commitBranch = fmt.Sprintf("bookkeeper/%s", rc.request.id)
-		logger.Debug("changes will be PR'ed to the target branch")
-		if err := rc.repo.CreateChildBranch(commitBranch); err != nil {
-			return "", errors.Wrap(err, "error creating child of target branch")
+		if rc.target.branchConfig.PRs.UseUniqueBranchNames {
+			commitBranch = fmt.Sprintf("prs/bookkeeper/%s", rc.request.id)
+		} else {
+			commitBranch = fmt.Sprintf("prs/bookkeeper/%s", rc.request.TargetBranch)
 		}
-		logger.WithField("commitBranch", commitBranch).
-			Debug("created commit branch")
+		logger = logger.WithField("commitBranch", commitBranch)
+		logger.Debug("changes will be PR'ed to the target branch")
+		commitBranchExists, err := rc.repo.RemoteBranchExists(commitBranch)
+		if err != nil {
+			return "",
+				errors.Wrap(err, "error checking for existence of commit branch")
+		}
+		if commitBranchExists {
+			logger.Debug("commit branch exists on remote")
+			if err = rc.repo.Checkout(commitBranch); err != nil {
+				return "", errors.Wrap(err, "error checking out commit branch")
+			}
+			logger.Debug("checked out commit branch")
+		} else {
+			if err := rc.repo.CreateChildBranch(commitBranch); err != nil {
+				return "", errors.Wrap(err, "error creating child of target branch")
+			}
+			logger.Debug("created commit branch")
+		}
 	}
 
 	if err := rmYAML(rc.repo.WorkingDir()); err != nil {

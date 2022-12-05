@@ -146,12 +146,10 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 	out := cmd.OutOrStdout()
 	if outputFormat == "" {
 		switch res.ActionTaken {
-		case bookkeeper.ActionTakenPushedDirectly:
-			fmt.Fprintf(
+		case bookkeeper.ActionTakenNone:
+			fmt.Fprintln(
 				out,
-				"\nCommitted %s to branch %s\n",
-				res.CommitID,
-				req.TargetBranch,
+				"\nThis request would not change any state. No action was taken.",
 			)
 		case bookkeeper.ActionTakenOpenedPR:
 			fmt.Fprintf(
@@ -159,13 +157,15 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 				"\nOpened PR %s\n",
 				res.PullRequestURL,
 			)
-		case bookkeeper.ActionTakenNone:
+		case bookkeeper.ActionTakenPushedDirectly:
 			fmt.Fprintf(
 				out,
-				"\nNewly rendered configuration does not differ from the head of "+
-					"branch %s. No action was taken.\n",
+				"\nCommitted %s to branch %s\n",
+				res.CommitID,
 				req.TargetBranch,
 			)
+		case bookkeeper.ActionTakenUpdatedPR:
+
 		}
 	} else {
 		if err := output(res, out, outputFormat); err != nil {

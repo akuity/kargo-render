@@ -38,9 +38,9 @@ type branchConfig struct {
 	// AppConfigs is a map of application-specific configuration indexed by app
 	// name.
 	AppConfigs map[string]appConfig `json:"appConfigs,omitempty"`
-	// OpenPR specifies whether to open a PR against TargetBranch (true) instead
-	// of directly committing directly to it (false).
-	OpenPR bool `json:"openPR,omitempty"`
+	// PRs encapsulates details about how to manage any pull requests associated
+	// with this branch.
+	PRs pullRequestConfig `json:"prs,omitempty"`
 }
 
 // appConfig encapsulates application-specific Bookkeeper configuration.
@@ -63,6 +63,24 @@ type configManagementConfig struct { // nolint: revive
 	Kustomize *kustomize.Config `json:"kustomize,omitempty"`
 	// Ytt encapsulates optional ytt configuration options.
 	Ytt *ytt.Config `json:"ytt,omitempty"`
+}
+
+// pullRequestConfig encapsulates details related to PR management for a branch.
+type pullRequestConfig struct {
+	// Enabled specifies whether PRs should be opened for changes to a given
+	// environment-specific branch.
+	Enabled bool `json:"enabled,omitempty"`
+	// UseUniqueBranchNames specifies whether each PR should be based on a
+	// new/unique branch name. When this is false (the default), PRs to a given
+	// environment-specific branch will be opened from a predictably names branch.
+	// The consequence of using a new/unique branch name vs a single predictable
+	// named branch will be either a new PR per render request for a given
+	// environment-specific branch (if true) vs a single PR that batches all
+	// unmerged changes to the environment-specific branch. Which of these one
+	// prefers would depend on team preferences and the particulars of whatever
+	// other automation is involved. There are valid reasons for using either
+	// approach.
+	UseUniqueBranchNames bool `json:"useUniqueBranchNames,omitempty"`
 }
 
 // loadRepoConfig attempts to load configuration from a Bookkeeper.json or

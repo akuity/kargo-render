@@ -190,7 +190,7 @@ func (s *service) RenderConfig(
 		return res, errors.Wrap(err, "error checking for diffs")
 	}
 	if !hasDiffs {
-		logger.Debug(
+		logger.WithField("commitBranch", rc.target.commit.branch).Debug(
 			"fully-rendered configuration does not differ from the head of the " +
 				"commit branch; no further action is required",
 		)
@@ -232,13 +232,17 @@ func (s *service) RenderConfig(
 		Debug("pushed fully-rendered configuration")
 
 	// Open a PR if requested
-	if rc.target.branchConfig.OpenPR {
+	if rc.target.branchConfig.PRs.Enabled {
 		if res.PullRequestURL, err = openPR(ctx, rc); err != nil {
 			return res,
 				errors.Wrap(err, "error opening pull request to the target branch")
 		}
 		logger.WithField("prURL", res.PullRequestURL).Debug("opened PR")
-		res.ActionTaken = ActionTakenOpenedPR
+		if res.PullRequestURL == "" {
+			res.ActionTaken = ActionTakenUpdatedPR
+		} else {
+			res.ActionTaken = ActionTakenOpenedPR
+		}
 	} else {
 		res.ActionTaken = ActionTakenPushedDirectly
 		res.CommitID = rc.target.commit.id
