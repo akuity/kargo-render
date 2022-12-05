@@ -26,21 +26,31 @@ func init() {
 	configSchemaJSONLoader = gojsonschema.NewBytesLoader(configSchemaBytes)
 }
 
+// repoConfig all Bookkeeper configuration options for a repository.
 type repoConfig struct {
-	BranchConfigs       []branchConfig `json:"branchConfigs,omitempty"`
-	DefaultBranchConfig *branchConfig  `json:"defaultBranchConfig,omitempty"`
+	// BranchConfigs is a map of branch-specific configuration indexed by branch
+	// name.
+	BranchConfigs map[string]branchConfig `json:"branchConfigs,omitempty"`
 }
 
 // branchConfig encapsulates branch-specific Bookkeeper configuration.
 type branchConfig struct {
-	// Name is the name of the branch to which this configuration applies.
-	Name string `json:"name,omitempty"`
-	// ConfigManagement encapsulates configuration management options to be
-	// used with this branch.
-	ConfigManagement configManagementConfig `json:"configManagement,omitempty"`
+	// AppConfigs is a map of application-specific configuration indexed by app
+	// name.
+	AppConfigs map[string]appConfig `json:"appConfigs,omitempty"`
 	// OpenPR specifies whether to open a PR against TargetBranch (true) instead
 	// of directly committing directly to it (false).
 	OpenPR bool `json:"openPR,omitempty"`
+}
+
+// appConfig encapsulates application-specific Bookkeeper configuration.
+type appConfig struct {
+	// ConfigManagement encapsulates configuration management options to be
+	// used with this branch and app.
+	ConfigManagement configManagementConfig `json:"configManagement,omitempty"`
+	// OutputPath specifies a path relative to the root of the repository where
+	// rendered manifests for this app will be stored in this branch.
+	OutputPath string `json:"outputPath,omitempty"`
 }
 
 // configManagementConfig is a wrapper around more specific configuration for
@@ -96,25 +106,6 @@ func loadRepoConfig(repoPath string) (*repoConfig, error) {
 	}
 	err = json.Unmarshal(configBytes, cfg)
 	return cfg, errors.Wrap(err, "error unmarshaling Bookkeeper configuration")
-}
-
-func (r *repoConfig) getBranchConfig(branch string) branchConfig {
-	for _, branchConfig := range r.BranchConfigs {
-		if branchConfig.Name == branch {
-			return branchConfig
-		}
-	}
-	if r.DefaultBranchConfig != nil {
-		cfg := r.DefaultBranchConfig
-		cfg.Name = branch
-		return *cfg
-	}
-	return branchConfig{
-		Name: branch,
-		ConfigManagement: configManagementConfig{
-			Kustomize: &kustomize.Config{},
-		},
-	}
 }
 
 func normalizeAndValidate(configBytes []byte) ([]byte, error) {

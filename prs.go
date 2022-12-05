@@ -20,7 +20,15 @@ func openPR(ctx context.Context, rc renderRequestContext) (string, error) {
 	if len(commitMsgParts) == 2 {
 		body = strings.TrimSpace(commitMsgParts[1])
 	}
-	// TODO: Support git providers other than GitHub
+	// TODO: Support git providers other than GitHub.
+	//
+	// Wish list:
+	//
+	// * GitHub Enterprise
+	// * Bitbucket
+	// * Azure DevOps
+	// * GitLab
+	// * Other?
 	url, err := github.OpenPR(
 		ctx,
 		rc.request.RepoURL,

@@ -23,12 +23,12 @@ type intermediateContext struct {
 }
 
 type targetContext struct {
-	branchConfig      branchConfig
-	oldBranchMetadata branchMetadata
-	newBranchMetadata branchMetadata
-	prerenderedConfig []byte
-	renderedConfig    []byte
-	commit            commitContext
+	branchConfig         branchConfig
+	oldBranchMetadata    branchMetadata
+	newBranchMetadata    branchMetadata
+	prerenderedManifests map[string][]byte
+	renderedManifests    map[string][]byte
+	commit               commitContext
 }
 
 type commitContext struct {

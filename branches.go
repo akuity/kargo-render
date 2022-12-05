@@ -91,11 +91,6 @@ func switchToTargetBranch(rc renderRequestContext) error {
 		return errors.Wrap(err, "error creating new target branch")
 	}
 	logger.Debug("created target branch")
-	bkDir := filepath.Join(rc.repo.WorkingDir(), ".bookkeeper")
-	if err = os.MkdirAll(bkDir, 0755); err != nil {
-		return errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
-	}
-	logger.Debug("created .bookkeeper/ directory")
 	if err =
 		writeBranchMetadata(branchMetadata{}, rc.repo.WorkingDir()); err != nil {
 		return errors.Wrap(err, "error writing blank target branch metadata")

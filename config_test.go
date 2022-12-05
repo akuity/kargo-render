@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/ytt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -99,68 +98,6 @@ func TestLoadRepoConfig(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			_, err := loadRepoConfig(testCase.setup())
 			testCase.assertions(err)
-		})
-	}
-}
-
-func TestGetBranchConfig(t *testing.T) {
-	const testBranchName = "foo"
-	testCases := []struct {
-		name       string
-		repoConfig *repoConfig
-		assertions func(branchConfig)
-	}{
-		{
-			name: "branch config explicitly specified",
-			repoConfig: &repoConfig{
-				BranchConfigs: []branchConfig{
-					{
-						Name: testBranchName,
-						ConfigManagement: configManagementConfig{
-							Ytt: &ytt.Config{},
-						},
-					},
-				},
-			},
-			assertions: func(cfg branchConfig) {
-				require.Equal(t, testBranchName, cfg.Name)
-				require.Nil(t, cfg.ConfigManagement.Helm)
-				require.Nil(t, cfg.ConfigManagement.Kustomize)
-				require.NotNil(t, cfg.ConfigManagement.Ytt)
-			},
-		},
-		{
-			name: "default branch config explicitly specified",
-			repoConfig: &repoConfig{
-				DefaultBranchConfig: &branchConfig{
-					ConfigManagement: configManagementConfig{
-						Ytt: &ytt.Config{},
-					},
-				},
-			},
-			assertions: func(cfg branchConfig) {
-				require.Equal(t, testBranchName, cfg.Name)
-				require.Nil(t, cfg.ConfigManagement.Helm)
-				require.Nil(t, cfg.ConfigManagement.Kustomize)
-				require.NotNil(t, cfg.ConfigManagement.Ytt)
-			},
-		},
-		{
-			name:       "nothing explicitly specified",
-			repoConfig: &repoConfig{},
-			assertions: func(cfg branchConfig) {
-				require.Equal(t, testBranchName, cfg.Name)
-				require.Nil(t, cfg.ConfigManagement.Helm)
-				require.NotNil(t, cfg.ConfigManagement.Kustomize)
-				require.Nil(t, cfg.ConfigManagement.Ytt)
-			},
-		},
-	}
-	for _, testCase := range testCases {
-		t.Run(testCase.name, func(t *testing.T) {
-			testCase.assertions(
-				testCase.repoConfig.getBranchConfig(testBranchName),
-			)
 		})
 	}
 }
