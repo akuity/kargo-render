@@ -92,23 +92,3 @@ func TestWriteBranchMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, exists)
 }
-
-func TestRmYAML(t *testing.T) {
-	testDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
-	file1 := filepath.Join(testDir, "foo.yaml")
-	file2 := filepath.Join(testDir, "bar.yaml")
-	_, err = os.Create(file1)
-	require.NoError(t, err)
-	_, err = os.Create(file2)
-	require.NoError(t, err)
-	err = rmYAML(testDir)
-	require.NoError(t, err)
-	exists, err := file.Exists(file1)
-	require.NoError(t, err)
-	require.False(t, exists)
-	exists, err = file.Exists(file2)
-	require.NoError(t, err)
-	require.False(t, exists)
-}

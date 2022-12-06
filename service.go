@@ -135,7 +135,6 @@ func (s *service) RenderManifests(
 						Path: rc.request.TargetBranch,
 					},
 				},
-				OutputPath: "app",
 			},
 		}
 	}
