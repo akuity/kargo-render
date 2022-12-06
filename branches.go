@@ -15,8 +15,8 @@ import (
 // internal use by Bookkeeper.
 type branchMetadata struct {
 	// SourceCommit ia a back-reference to the specific commit in the repository's
-	// default branch (i.e. main or master) from which the configuration stored in
-	// this branch was rendered.
+	// default branch (i.e. main or master) from which the manifests stored in
+	// this branch were rendered.
 	SourceCommit string `json:"sourceCommit,omitempty"`
 	// ImageSubstitutions is a list of new images that were used in rendering this
 	// branch.

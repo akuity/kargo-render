@@ -29,14 +29,14 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 	manifests := map[string][]byte{}
 	var err error
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
-		var appLogger *log.Entry = logger.WithField("app", appName)
+		appLogger := logger.WithField("app", appName)
 		if appConfig.ConfigManagement.Helm != nil {
 			// nolint: lll
-			appLogger = logger.WithFields(log.Fields{
-				"configManagementTool": "helm",
-				"releaseName":          appConfig.ConfigManagement.Helm.ReleaseName,
-				"chartPath":            appConfig.ConfigManagement.Helm.ChartPath,
-				"valuesPaths":          appConfig.ConfigManagement.Helm.ValuesPaths,
+			appLogger = appLogger.WithFields(log.Fields{
+				"configManagement": "helm",
+				"releaseName":      appConfig.ConfigManagement.Helm.ReleaseName,
+				"chartPath":        appConfig.ConfigManagement.Helm.ChartPath,
+				"valuesPaths":      appConfig.ConfigManagement.Helm.ValuesPaths,
 			})
 			manifests[appName], err = helm.PreRender(
 				rc.repo.WorkingDir(),
@@ -44,9 +44,9 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 				appConfig.ConfigManagement.Helm,
 			)
 		} else if appConfig.ConfigManagement.Ytt != nil {
-			appLogger = logger.WithFields(log.Fields{
-				"configManagementTool": "ytt",
-				"paths":                appConfig.ConfigManagement.Ytt.Paths,
+			appLogger = appLogger.WithFields(log.Fields{
+				"configManagement": "ytt",
+				"paths":            appConfig.ConfigManagement.Ytt.Paths,
 			})
 			manifests[appName], err = ytt.PreRender(
 				rc.repo.WorkingDir(),
@@ -54,9 +54,9 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 				appConfig.ConfigManagement.Ytt,
 			)
 		} else {
-			appLogger = logger.WithFields(log.Fields{
-				"configManagementTool": "kustomize",
-				"path":                 appConfig.ConfigManagement.Kustomize.Path,
+			appLogger = appLogger.WithFields(log.Fields{
+				"configManagement": "kustomize",
+				"path":             appConfig.ConfigManagement.Kustomize.Path,
 			})
 			manifests[appName], err = kustomize.PreRender(
 				rc.repo.WorkingDir(),
@@ -64,7 +64,7 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 				appConfig.ConfigManagement.Kustomize,
 			)
 		}
-		appLogger.Debug("completed pre-rendering")
+		appLogger.Debug("completed manifest pre-rendering")
 	}
 	return manifests, err
 }
@@ -72,6 +72,8 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 func renderLastMile(
 	rc renderRequestContext,
 ) ([]string, map[string][]byte, error) {
+	logger := rc.logger
+
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, nil, errors.Wrapf(
@@ -184,17 +186,19 @@ func renderLastMile(
 		); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
-				"error writing pre-rendered configuration to %q",
+				"error writing pre-rendered manifests to %q",
 				preRenderedPath,
 			)
 		}
 		if manifests[appName], err = kustomize.LastMileRender(appDir); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
-				"error rendering configuration from %q",
-				tempDir,
+				"error rendering manifests from %q",
+				appDir,
 			)
 		}
+		logger.WithField("app", appName).
+			Debug("completed last-mile manifest rendering")
 	}
 
 	return images, manifests, nil
