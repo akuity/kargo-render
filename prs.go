@@ -13,13 +13,16 @@ import (
 
 func openPR(ctx context.Context, rc renderRequestContext) (string, error) {
 	commitMsgParts := strings.SplitN(rc.target.commit.message, "\n", 2)
-	// PR title is just the first line of the commit message
-	title := fmt.Sprintf("%s <-- %s", rc.request.TargetBranch, commitMsgParts[0])
-	// PR body is just the first line of the commit message
-	var body string
-	if len(commitMsgParts) == 2 {
-		body = strings.TrimSpace(commitMsgParts[1])
+	var title string
+	if rc.target.branchConfig.PRs.UseUniqueBranchNames {
+		// PR title is just the first line of the commit message
+		title = fmt.Sprintf("%s <-- %s", rc.request.TargetBranch, commitMsgParts[0])
+	} else {
+		// Something more generic because this PR can be updated with more commits
+		title =
+			fmt.Sprintf("%s <-- latest batched changes", rc.request.TargetBranch)
 	}
+
 	// TODO: Support git providers other than GitHub.
 	//
 	// Wish list:
@@ -33,7 +36,7 @@ func openPR(ctx context.Context, rc renderRequestContext) (string, error) {
 		ctx,
 		rc.request.RepoURL,
 		title,
-		body,
+		"See individual commit messages for details.",
 		rc.request.TargetBranch,
 		rc.target.commit.branch,
 		git.RepoCredentials{
@@ -41,6 +44,8 @@ func openPR(ctx context.Context, rc renderRequestContext) (string, error) {
 			Password: rc.request.RepoCreds.Password,
 		},
 	)
+	// TODO: Catch specific errors that have to do with an open PR already being
+	// associated with the target branch
 	return url,
 		errors.Wrap(err, "error opening pull request to the target branch")
 }

@@ -27,8 +27,8 @@
 						}
 					}
 				},
-				"openPR": {
-					"type": "boolean"
+				"prs": {
+					"$ref": "#/definitions/pullRequestConfig"
 				}
 			}
 		},
@@ -119,6 +119,19 @@
 					"items": {
 						"$ref": "#/definitions/relativePath"
 					}
+				}
+			}
+		},
+
+		"pullRequestConfig": {
+			"type": "object",
+			"additionalProperties": false,
+			"properties": {
+				"enabled": {
+					"type": "boolean"
+				},
+				"useUniqueBranchNames": {
+					"type": "boolean"
 				}
 			}
 		}

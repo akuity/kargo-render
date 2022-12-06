@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"regexp"
+	"strings"
 
 	"github.com/google/go-github/v47/github"
 	"github.com/pkg/errors"
@@ -44,9 +45,12 @@ func OpenPR(
 			MaintainerCanModify: github.Bool(false),
 		},
 	)
-	// We don't unconditionally return *pr.HTMLURL and err because if err != nil,
-	// pr might be == nil
 	if err != nil {
+		// If the error is simply that a PR already exists for this branch, that's
+		// fine. Just ignore that.
+		if strings.Contains(err.Error(), "A pull request already exists for") {
+			return "", nil
+		}
 		return "",
 			errors.Wrap(err, "error opening pull request to the target branch")
 	}

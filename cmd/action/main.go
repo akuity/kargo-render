@@ -44,21 +44,24 @@ func main() {
 	}
 
 	switch res.ActionTaken {
-	case bookkeeper.ActionTakenPushedDirectly:
-		fmt.Printf(
-			"\nCommitted %s to branch %s\n",
-			res.CommitID,
-			req.TargetBranch,
+	case bookkeeper.ActionTakenNone:
+		fmt.Println(
+			"\nThis request would not change any state. No action was taken.",
 		)
 	case bookkeeper.ActionTakenOpenedPR:
 		fmt.Printf(
 			"\nOpened PR %s\n",
 			res.PullRequestURL,
 		)
-	case bookkeeper.ActionTakenNone:
+	case bookkeeper.ActionTakenPushedDirectly:
 		fmt.Printf(
-			"\nNewly rendered configuration does not differ from the head of "+
-				"branch %s. No action was taken.\n",
+			"\nCommitted %s to branch %s\n",
+			res.CommitID,
+			req.TargetBranch,
+		)
+	case bookkeeper.ActionTakenUpdatedPR:
+		fmt.Printf(
+			"\nUpdated an existing PR to %s\n",
 			req.TargetBranch,
 		)
 	}

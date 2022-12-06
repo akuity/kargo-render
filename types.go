@@ -5,18 +5,21 @@ package bookkeeper
 type ActionTaken string
 
 const (
-	// ActionTakenPushedDirectly represents the case where Bookkeeper responded
-	// to a RenderRequest by pushing a new commit directly to the target branch.
-	ActionTakenPushedDirectly ActionTaken = "PUSHED_DIRECTLY"
-	// ActionTakenOpenedPR represents the case where Bookkeeper responded to a
-	// RenderRequest by opening a new pull request against the target branch.
-	ActionTakenOpenedPR ActionTaken = "OPENED_PR"
 	// ActionTakenNone represents the case where Bookkeeper responded
 	// to a RenderRequest by, effectively, doing nothing. This occurs in cases
 	// where the fully rendered configuration that would have been written to the
 	// target branch does not differ from what is already present at the head of
 	// that branch.
 	ActionTakenNone ActionTaken = "NONE"
+	// ActionTakenOpenedPR represents the case where Bookkeeper responded to a
+	// RenderRequest by opening a new pull request against the target branch.
+	ActionTakenOpenedPR ActionTaken = "OPENED_PR"
+	// ActionTakenPushedDirectly represents the case where Bookkeeper responded
+	// to a RenderRequest by pushing a new commit directly to the target branch.
+	ActionTakenPushedDirectly ActionTaken = "PUSHED_DIRECTLY"
+	// ActionTakenUpdatedPR represents the case where Bookkeeper responded to a
+	// RenderRequest by updating an existing PR.
+	ActionTakenUpdatedPR ActionTaken = "UPDATED_PR"
 )
 
 // RenderRequest is a request for Bookkeeper to render some environment-specific
