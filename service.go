@@ -24,8 +24,8 @@ type ServiceOptions struct {
 // Service is an interface for components that can handle bookkeeping requests.
 // Implementations of this interface are transport-agnostic.
 type Service interface {
-	// RenderConfig handles a bookkeeping request.
-	RenderConfig(context.Context, RenderRequest) (RenderResponse, error)
+	// RenderManifests handles a bookkeeping request.
+	RenderManifests(context.Context, RenderRequest) (RenderResponse, error)
 }
 
 type service struct {
@@ -49,7 +49,7 @@ func NewService(opts *ServiceOptions) Service {
 }
 
 // nolint: gocyclo
-func (s *service) RenderConfig(
+func (s *service) RenderManifests(
 	ctx context.Context,
 	req RenderRequest,
 ) (RenderResponse, error) {
@@ -61,6 +61,8 @@ func (s *service) RenderConfig(
 		"targetBranch": req.TargetBranch,
 	})
 
+	startEndLogger.Debug("handling rendering request")
+
 	res := RenderResponse{}
 
 	var err error
@@ -68,8 +70,6 @@ func (s *service) RenderConfig(
 		return res, err
 	}
 	startEndLogger.Debug("validated rendering request")
-
-	startEndLogger.Debug("starting configuration rendering")
 
 	rc := renderRequestContext{
 		logger:  logger,
@@ -141,7 +141,7 @@ func (s *service) RenderConfig(
 	}
 
 	if rc.target.prerenderedManifests, err = preRender(rc); err != nil {
-		return res, errors.Wrap(err, "error pre-rendering configuration")
+		return res, errors.Wrap(err, "error pre-rendering manifests")
 	}
 
 	if err = switchToTargetBranch(rc); err != nil {
@@ -163,9 +163,8 @@ func (s *service) RenderConfig(
 		rc.target.renderedManifests,
 		err =
 		renderLastMile(rc); err != nil {
-		return res, errors.Wrap(err, "error in last-mile configuration rendering")
+		return res, errors.Wrap(err, "error in last-mile manifest rendering")
 	}
-	logger.Debug("completed last-mile rendering")
 
 	// Write branch metadata
 	if err = writeBranchMetadata(
@@ -177,11 +176,11 @@ func (s *service) RenderConfig(
 	logger.WithField("sourceCommit", rc.source.commit).
 		Debug("wrote branch metadata")
 
-	// Write the new fully-rendered config to the root of the repo
+	// Write the new fully-rendered manifests to the root of the repo
 	if err = writeAllAppManifests(rc); err != nil {
 		return res, err
 	}
-	logger.Debug("wrote fully-rendered configuration")
+	logger.Debug("wrote manifests")
 
 	// Before committing, check if we actually have any diffs from the head of
 	// this branch. We'd have an error if we tried to commit with no diffs!
@@ -191,7 +190,7 @@ func (s *service) RenderConfig(
 	}
 	if !hasDiffs {
 		logger.WithField("commitBranch", rc.target.commit.branch).Debug(
-			"fully-rendered configuration does not differ from the head of the " +
+			"manifests do not differ from the head of the " +
 				"commit branch; no further action is required",
 		)
 		res.ActionTaken = ActionTakenNone
@@ -203,12 +202,9 @@ func (s *service) RenderConfig(
 	}
 	logger.Debug("prepared commit message")
 
-	// Commit the fully-rendered configuration
+	// Commit the changes
 	if err = rc.repo.AddAllAndCommit(rc.target.commit.message); err != nil {
-		return res, errors.Wrapf(
-			err,
-			"error committing fully-rendered configuration",
-		)
+		return res, errors.Wrapf(err, "error committing manifests")
 	}
 	if rc.target.commit.id, err = rc.repo.LastCommitID(); err != nil {
 		return res, errors.Wrap(
@@ -219,17 +215,17 @@ func (s *service) RenderConfig(
 	logger.WithFields(log.Fields{
 		"commitBranch": rc.target.commit.branch,
 		"commitID":     rc.target.commit.id,
-	}).Debug("committed fully-rendered configuration")
+	}).Debug("committed all changes")
 
-	// Push the fully-rendered configuration to the remote commit branch
+	// Push the commit branch to the remote
 	if err = rc.repo.Push(); err != nil {
 		return res, errors.Wrap(
 			err,
-			"error pushing fully-rendered configuration",
+			"error pushing commit branch to remote",
 		)
 	}
 	logger.WithField("commitBranch", rc.target.commit.branch).
-		Debug("pushed fully-rendered configuration")
+		Debug("pushed commit branch to remote")
 
 	// Open a PR if requested
 	if rc.target.branchConfig.PRs.Enabled {
@@ -248,12 +244,12 @@ func (s *service) RenderConfig(
 		res.CommitID = rc.target.commit.id
 	}
 
-	startEndLogger.Debug("completed configuration rendering")
+	startEndLogger.Debug("completed rendering request")
 
 	return res, nil
 }
 
-// buildCommitMessage builds a commit message for rendered configuration being
+// buildCommitMessage builds a commit message for rendered manifests being
 // written to a target branch by using the source commit's own commit message
 // as a starting point. The message is then augmented with details about where
 // Bookkeeper rendered it from (the source commit) and any image substitutions
@@ -276,7 +272,7 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 
 	// Add the source commit's ID
 	formattedCommitMsg := fmt.Sprintf(
-		"%s\n\nBookkeeper created this commit by rendering configuration from %s",
+		"%s\n\nBookkeeper created this commit by rendering manifests from %s",
 		commitMsg,
 		rc.source.commit,
 	)
@@ -377,7 +373,7 @@ func writeAppManifests(dir string, yamlBytes []byte) error {
 		if err := os.WriteFile(fileName, resourceBytes, 0644); err != nil {
 			return errors.Wrapf(
 				err,
-				"error writing fully-rendered configuration to %q",
+				"error writing manifest to %q",
 				fileName,
 			)
 		}

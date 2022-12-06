@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var desc = "Bookkeeper renders environment-specific configurations to " +
+var desc = "Bookkeeper renders environment-specific manifests into " +
 	"environment-specific branches of your gitops repos"
 
 func newRootCommand() (*cobra.Command, error) {

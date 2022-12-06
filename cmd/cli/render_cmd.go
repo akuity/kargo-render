@@ -9,8 +9,8 @@ import (
 )
 
 func newRenderCommand() (*cobra.Command, error) {
-	const desc = "Render environment-specific configuration from a remote " +
-		"gitops repo to an environment-specific branch"
+	const desc = "Render environment-specific manifests into an " +
+		"environment-specific branch of the remote gitops repo"
 	cmd := &cobra.Command{
 		Use:   "render",
 		Short: desc,
@@ -79,8 +79,7 @@ func newRenderCommand() (*cobra.Command, error) {
 		flagTargetBranch,
 		"t",
 		"",
-		"the environment-specific branch to write fully-rendered configuration "+
-			"to (required)",
+		"the environment-specific branch to render manifests into (required)",
 	)
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		return nil, err
@@ -134,7 +133,7 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 		},
 	)
 
-	res, err := svc.RenderConfig(cmd.Context(), req)
+	res, err := svc.RenderManifests(cmd.Context(), req)
 	if err != nil {
 		return err
 	}
