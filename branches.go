@@ -144,30 +144,19 @@ func switchToCommitBranch(rc renderRequestContext) (string, error) {
 		}
 	}
 
-	if err := rmYAML(rc.repo.WorkingDir()); err != nil {
-		return "", errors.Wrap(err, "error cleaning commit branch")
+	// Clean existing output paths
+	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
+		var outputDir string
+		if appConfig.OutputPath != "" {
+			outputDir = filepath.Join(rc.repo.WorkingDir(), appConfig.OutputPath)
+		} else {
+			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
+		}
+		if err := os.RemoveAll(outputDir); err != nil {
+			return "", errors.Wrapf(err, "error deleting %q", outputDir)
+		}
 	}
+	logger.Debug("cleaned commit branch")
 
 	return commitBranch, nil
-}
-
-func rmYAML(dir string) error {
-	files, err := filepath.Glob(filepath.Join(dir, "*.yaml"))
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		if err = os.Remove(file); err != nil {
-			return err
-		}
-	}
-	if files, err = filepath.Glob(filepath.Join(dir, "*.yml")); err != nil {
-		return err
-	}
-	for _, file := range files {
-		if err = os.Remove(file); err != nil {
-			return err
-		}
-	}
-	return nil
 }
