@@ -176,10 +176,10 @@ func (s *service) RenderManifests(
 		Debug("wrote branch metadata")
 
 	// Write the new fully-rendered manifests to the root of the repo
-	if err = writeAllAppManifests(rc); err != nil {
+	if err = writeAllManifests(rc); err != nil {
 		return res, err
 	}
-	logger.Debug("wrote manifests")
+	logger.Debug("wrote all manifests")
 
 	// Before committing, check if we actually have any diffs from the head of
 	// this branch. We'd have an error if we tried to commit with no diffs!
@@ -324,18 +324,26 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 	return formattedCommitMsg, nil
 }
 
-func writeAllAppManifests(rc renderRequestContext) error {
+func writeAllManifests(rc renderRequestContext) error {
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
+		appLogger := rc.logger.WithField("app", appName)
 		var outputDir string
 		if appConfig.OutputPath != "" {
 			outputDir = filepath.Join(rc.repo.WorkingDir(), appConfig.OutputPath)
 		} else {
 			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
 		}
-		if err := writeAppManifests(
-			outputDir,
-			rc.target.renderedManifests[appName],
-		); err != nil {
+		var err error
+		if appConfig.CondenseManifests {
+			appLogger.Debug("manifests will be condensed into a single file")
+			err =
+				writeCondensedManifests(outputDir, rc.target.renderedManifests[appName])
+		} else {
+			appLogger.Debug("manifests will NOT be condensed into a single file")
+			err = writeManifests(outputDir, rc.target.renderedManifests[appName])
+		}
+		appLogger.Debug("wrote manifests")
+		if err != nil {
 			return errors.Wrapf(
 				err, "error writing manifests for app %q to %q",
 				appName,
@@ -346,7 +354,7 @@ func writeAllAppManifests(rc renderRequestContext) error {
 	return nil
 }
 
-func writeAppManifests(dir string, yamlBytes []byte) error {
+func writeManifests(dir string, yamlBytes []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", dir)
 	}
@@ -379,4 +387,17 @@ func writeAppManifests(dir string, yamlBytes []byte) error {
 		}
 	}
 	return nil
+}
+
+func writeCondensedManifests(dir string, manifestsBytes []byte) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return errors.Wrapf(err, "error creating directory %q", dir)
+	}
+	fileName := filepath.Join(dir, "all.yaml")
+	return errors.Wrapf(
+		// nolint: gosec
+		os.WriteFile(fileName, manifestsBytes, 0644),
+		"error writing manifests to %q",
+		fileName,
+	)
 }
