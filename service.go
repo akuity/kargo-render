@@ -232,11 +232,12 @@ func (s *service) RenderManifests(
 			return res,
 				errors.Wrap(err, "error opening pull request to the target branch")
 		}
-		logger.WithField("prURL", res.PullRequestURL).Debug("opened PR")
 		if res.PullRequestURL == "" {
 			res.ActionTaken = ActionTakenUpdatedPR
+			logger.Debug("updated existing PR")
 		} else {
 			res.ActionTaken = ActionTakenOpenedPR
+			logger.WithField("prURL", res.PullRequestURL).Debug("opened PR")
 		}
 	} else {
 		res.ActionTaken = ActionTakenPushedDirectly
