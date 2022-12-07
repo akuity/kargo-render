@@ -42,6 +42,9 @@
 				},
 				"outputPath": {
 					"$ref": "#/definitions/relativePath"
+				},
+				"condenseManifests": {
+					"type": "boolean"
 				}
 			}
 		},

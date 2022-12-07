@@ -51,6 +51,9 @@ type appConfig struct {
 	// OutputPath specifies a path relative to the root of the repository where
 	// rendered manifests for this app will be stored in this branch.
 	OutputPath string `json:"outputPath,omitempty"`
+	// CondenseManifests specifies whether rendered manifests should be condensed
+	// into a single file.
+	CondenseManifests bool `json:"condenseManifests,omitempty"`
 }
 
 // configManagementConfig is a wrapper around more specific configuration for
