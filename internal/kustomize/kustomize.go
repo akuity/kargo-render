@@ -1,9 +1,9 @@
 package kustomize
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 
@@ -40,35 +40,9 @@ func SetImage(dir string, image string) error {
 }
 
 // TODO: Document this
-func PreRender(
-	repoRoot string,
-	targetBranch string,
-	cfg *Config,
-) ([]byte, error) {
-	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
-	return libExec.Exec(cmd)
-}
-
-func buildPreRenderCmd(
-	repoRoot string,
-	targetBranch string,
-	cfg *Config,
-) *exec.Cmd {
-	if cfg == nil {
-		cfg = &Config{}
-	}
+// TODO: Use repo server to do this
+func Render(_ context.Context, path string, images []string) ([]byte, error) {
 	cmd := exec.Command("kustomize", "build")
-	if cfg.Path != "" {
-		cmd.Dir = filepath.Join(repoRoot, cfg.Path)
-	} else {
-		cmd.Dir = filepath.Join(repoRoot, targetBranch)
-	}
-	return cmd
-}
-
-// TODO: Document this
-func LastMileRender(dir string) ([]byte, error) {
-	cmd := exec.Command("kustomize", "build")
-	cmd.Dir = dir
+	cmd.Dir = path
 	return libExec.Exec(cmd)
 }

@@ -139,7 +139,7 @@ func (s *service) RenderManifests(
 		}
 	}
 
-	if rc.target.prerenderedManifests, err = preRender(rc); err != nil {
+	if rc.target.prerenderedManifests, err = preRender(ctx, rc); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering manifests")
 	}
 
@@ -161,7 +161,7 @@ func (s *service) RenderManifests(
 	if rc.target.newBranchMetadata.ImageSubstitutions,
 		rc.target.renderedManifests,
 		err =
-		renderLastMile(rc); err != nil {
+		renderLastMile(ctx, rc); err != nil {
 		return res, errors.Wrap(err, "error in last-mile manifest rendering")
 	}
 
