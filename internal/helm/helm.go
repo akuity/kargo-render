@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/pkg/errors"
+	libExec "github.com/akuityio/bookkeeper/internal/exec"
 )
 
 // TODO: Document this
@@ -13,13 +13,7 @@ func PreRender(
 	targetBranch string,
 	cfg *Config,
 ) ([]byte, error) {
-	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
-	yamlBytes, err := cmd.Output()
-	return yamlBytes, errors.Wrapf(
-		err,
-		"error running `%s`",
-		cmd.String(),
-	)
+	return libExec.Exec(buildPreRenderCmd(repoRoot, targetBranch, cfg))
 }
 
 func buildPreRenderCmd(
