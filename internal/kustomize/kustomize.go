@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	libExec "github.com/akuityio/bookkeeper/internal/exec"
 	"github.com/akuityio/bookkeeper/internal/strings"
 )
 
@@ -34,11 +35,8 @@ func SetImage(dir string, image string) error {
 		),
 	)
 	cmd.Dir = dir
-	return errors.Wrapf(
-		cmd.Run(),
-		"error running kustomize set image in directory %q",
-		dir,
-	)
+	_, err = libExec.Exec(cmd)
+	return err
 }
 
 // TODO: Document this
@@ -48,13 +46,7 @@ func PreRender(
 	cfg *Config,
 ) ([]byte, error) {
 	cmd := buildPreRenderCmd(repoRoot, targetBranch, cfg)
-	yamlBytes, err := cmd.Output()
-	return yamlBytes, errors.Wrapf(
-		err,
-		"error running `%s` in directory %q",
-		cmd.String(),
-		cmd.Dir,
-	)
+	return libExec.Exec(cmd)
 }
 
 func buildPreRenderCmd(
@@ -78,11 +70,5 @@ func buildPreRenderCmd(
 func LastMileRender(dir string) ([]byte, error) {
 	cmd := exec.Command("kustomize", "build")
 	cmd.Dir = dir
-	yamlBytes, err := cmd.Output()
-	return yamlBytes, errors.Wrapf(
-		err,
-		"error running `%s` in directory %q",
-		cmd.String(),
-		cmd.Dir,
-	)
+	return libExec.Exec(cmd)
 }
