@@ -84,7 +84,7 @@ func (s *service) RenderManifests(
 			Username:      rc.request.RepoCreds.Username,
 			Password:      rc.request.RepoCreds.Password,
 		},
-	); err != err {
+	); err != nil {
 		return res, errors.Wrap(err, "error cloning remote repository")
 	}
 	defer rc.repo.Close()
