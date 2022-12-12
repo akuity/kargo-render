@@ -1,6 +1,7 @@
 package bookkeeper
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,45 +25,67 @@ resources:
 `,
 )
 
-func preRender(rc renderRequestContext) (map[string][]byte, error) {
+func preRender(
+	ctx context.Context,
+	rc renderRequestContext,
+) (map[string][]byte, error) {
 	logger := rc.logger
 	manifests := map[string][]byte{}
 	var err error
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
 		appLogger := logger.WithField("app", appName)
 		if appConfig.ConfigManagement.Helm != nil {
-			// nolint: lll
+			chartPath := appConfig.ConfigManagement.Helm.ChartPath
+			if chartPath == "" {
+				chartPath = "base"
+			}
+			valuesPaths := appConfig.ConfigManagement.Helm.ValuesPaths
+			if len(valuesPaths) == 0 {
+				valuesPaths =
+					[]string{filepath.Join(rc.request.TargetBranch, "values.yaml")}
+			}
 			appLogger = appLogger.WithFields(log.Fields{
 				"configManagement": "helm",
 				"releaseName":      appConfig.ConfigManagement.Helm.ReleaseName,
-				"chartPath":        appConfig.ConfigManagement.Helm.ChartPath,
-				"valuesPaths":      appConfig.ConfigManagement.Helm.ValuesPaths,
+				"chartPath":        chartPath,
+				"valuesPaths":      valuesPaths,
 			})
-			manifests[appName], err = helm.PreRender(
-				rc.repo.WorkingDir(),
-				rc.request.TargetBranch,
-				appConfig.ConfigManagement.Helm,
+			chartPath = filepath.Join(rc.repo.WorkingDir(), chartPath)
+			absValuesPaths := make([]string, len(valuesPaths))
+			for i, valuesPath := range valuesPaths {
+				absValuesPaths[i] = filepath.Join(rc.repo.WorkingDir(), valuesPath)
+			}
+			manifests[appName], err = helm.Render(
+				ctx,
+				appConfig.ConfigManagement.Helm.ReleaseName,
+				chartPath,
+				absValuesPaths,
 			)
 		} else if appConfig.ConfigManagement.Ytt != nil {
+			paths := appConfig.ConfigManagement.Ytt.Paths
+			if len(paths) == 0 {
+				paths = []string{"base", rc.request.TargetBranch}
+			}
 			appLogger = appLogger.WithFields(log.Fields{
 				"configManagement": "ytt",
-				"paths":            appConfig.ConfigManagement.Ytt.Paths,
+				"paths":            paths,
 			})
-			manifests[appName], err = ytt.PreRender(
-				rc.repo.WorkingDir(),
-				rc.request.TargetBranch,
-				appConfig.ConfigManagement.Ytt,
-			)
+			absPaths := make([]string, len(paths))
+			for i, path := range paths {
+				absPaths[i] = filepath.Join(rc.repo.WorkingDir(), path)
+			}
+			manifests[appName], err = ytt.Render(ctx, absPaths)
 		} else {
+			path := appConfig.ConfigManagement.Kustomize.Path
+			if path == "" {
+				path = rc.request.TargetBranch
+			}
 			appLogger = appLogger.WithFields(log.Fields{
 				"configManagement": "kustomize",
-				"path":             appConfig.ConfigManagement.Kustomize.Path,
+				"path":             path,
 			})
-			manifests[appName], err = kustomize.PreRender(
-				rc.repo.WorkingDir(),
-				rc.request.TargetBranch,
-				appConfig.ConfigManagement.Kustomize,
-			)
+			path = filepath.Join(rc.repo.WorkingDir(), path)
+			manifests[appName], err = kustomize.Render(ctx, path, nil)
 		}
 		appLogger.Debug("completed manifest pre-rendering")
 	}
@@ -70,6 +93,7 @@ func preRender(rc renderRequestContext) (map[string][]byte, error) {
 }
 
 func renderLastMile(
+	ctx context.Context,
 	rc renderRequestContext,
 ) ([]string, map[string][]byte, error) {
 	logger := rc.logger
@@ -190,7 +214,8 @@ func renderLastMile(
 				preRenderedPath,
 			)
 		}
-		if manifests[appName], err = kustomize.LastMileRender(appDir); err != nil {
+		if manifests[appName], err =
+			kustomize.Render(ctx, appDir, nil); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
 				"error rendering manifests from %q",
