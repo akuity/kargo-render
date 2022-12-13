@@ -1,20 +1,18 @@
 package bookkeeper
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/akuityio/bookkeeper/internal/git"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
+	"github.com/akuityio/bookkeeper/internal/manifests"
 )
 
 type ServiceOptions struct {
@@ -334,12 +332,12 @@ func writeAllManifests(rc renderRequestContext) error {
 			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
 		}
 		var err error
-		if appConfig.CondenseManifests {
-			appLogger.Debug("manifests will be condensed into a single file")
+		if appConfig.CombineManifests {
+			appLogger.Debug("manifests will be combined into a single file")
 			err =
-				writeCondensedManifests(outputDir, rc.target.renderedManifests[appName])
+				writeCombinedManifests(outputDir, rc.target.renderedManifests[appName])
 		} else {
-			appLogger.Debug("manifests will NOT be condensed into a single file")
+			appLogger.Debug("manifests will NOT be combined into a single file")
 			err = writeManifests(outputDir, rc.target.renderedManifests[appName])
 		}
 		appLogger.Debug("wrote manifests")
@@ -358,27 +356,17 @@ func writeManifests(dir string, yamlBytes []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", dir)
 	}
-	resourcesBytes := bytes.Split(yamlBytes, []byte("---\n"))
-	for _, resourceBytes := range resourcesBytes {
-		resource := struct {
-			Kind     string `json:"kind"`
-			Metadata struct {
-				Name string `json:"name"`
-			} `json:"metadata"`
-		}{}
-		if err := yaml.Unmarshal(resourceBytes, &resource); err != nil {
-			return errors.Wrap(err, "error unmarshaling resource")
-		}
+	manifestsByResourceTypeAndName, err := manifests.SplitYAML(yamlBytes)
+	if err != nil {
+		return err
+	}
+	for resourceTypeAndName, manifest := range manifestsByResourceTypeAndName {
 		fileName := filepath.Join(
 			dir,
-			fmt.Sprintf(
-				"%s-%s.yaml",
-				strings.ToLower(resource.Metadata.Name),
-				strings.ToLower(resource.Kind),
-			),
+			fmt.Sprintf("%s.yaml", resourceTypeAndName),
 		)
 		// nolint: gosec
-		if err := os.WriteFile(fileName, resourceBytes, 0644); err != nil {
+		if err := os.WriteFile(fileName, manifest, 0644); err != nil {
 			return errors.Wrapf(
 				err,
 				"error writing manifest to %q",
@@ -389,14 +377,14 @@ func writeManifests(dir string, yamlBytes []byte) error {
 	return nil
 }
 
-func writeCondensedManifests(dir string, manifestsBytes []byte) error {
+func writeCombinedManifests(dir string, manifests []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", dir)
 	}
 	fileName := filepath.Join(dir, "all.yaml")
 	return errors.Wrapf(
 		// nolint: gosec
-		os.WriteFile(fileName, manifestsBytes, 0644),
+		os.WriteFile(fileName, manifests, 0644),
 		"error writing manifests to %q",
 		fileName,
 	)
