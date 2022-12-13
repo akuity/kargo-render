@@ -155,6 +155,16 @@ func (s *service) RenderManifests(
 		return res, errors.Wrap(err, "error switching to commit branch")
 	}
 
+	if rc.target.commit.branch != rc.request.TargetBranch {
+		// The commit branch isn't the target branch and we should take into account
+		// any metadata that already exists in the commit branch, in case that
+		// branch already existed.
+		if rc.target.commit.oldBranchMetadata, err =
+			loadBranchMetadata(rc.repo.WorkingDir()); err != nil {
+			return res, errors.Wrap(err, "error loading branch metadata")
+		}
+	}
+
 	rc.target.newBranchMetadata.SourceCommit = rc.source.commit
 	if rc.target.newBranchMetadata.ImageSubstitutions,
 		rc.target.renderedManifests,

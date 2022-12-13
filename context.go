@@ -32,7 +32,8 @@ type targetContext struct {
 }
 
 type commitContext struct {
-	branch  string
-	id      string
-	message string
+	branch            string
+	oldBranchMetadata *branchMetadata
+	id                string
+	message           string
 }
