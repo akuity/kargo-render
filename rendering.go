@@ -6,13 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper/internal/file"
 	"github.com/akuityio/bookkeeper/internal/helm"
 	"github.com/akuityio/bookkeeper/internal/kustomize"
+	"github.com/akuityio/bookkeeper/internal/strings"
 	"github.com/akuityio/bookkeeper/internal/ytt"
 )
 
@@ -108,73 +107,26 @@ func renderLastMile(
 	}
 	defer os.RemoveAll(tempDir)
 
-	// Create kustomization.yaml
-	kustomizationFile := filepath.Join(tempDir, "kustomization.yaml")
-	if err = os.WriteFile( // nolint: gosec
-		kustomizationFile,
-		lastMileKustomizationBytes,
-		0644,
-	); err != nil {
-		return nil, nil, errors.Wrapf(
-			err,
-			"error writing to %q",
-			kustomizationFile,
-		)
+	imageMap := map[string]string{}
+	for _, imageSub := range rc.target.oldBranchMetadata.ImageSubstitutions {
+		addr, tag, _ := strings.SplitLast(imageSub, ":")
+		imageMap[addr] = tag
 	}
-
-	// Apply new images from old target branch metadata if any were specified
-	for _, image := range rc.target.oldBranchMetadata.ImageSubstitutions {
-		if err = kustomize.SetImage(tempDir, image); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error applying new image %q",
-				image,
-			)
-		}
-	}
-	// Apply new images from intermediate metadata if any were specified
 	if rc.intermediate.branchMetadata != nil {
-		for _, image := range rc.intermediate.branchMetadata.ImageSubstitutions {
-			if err = kustomize.SetImage(tempDir, image); err != nil {
-				return nil, nil, errors.Wrapf(
-					err,
-					"error applying new image %q",
-					image,
-				)
-			}
+		for _, imageSub := range rc.intermediate.branchMetadata.ImageSubstitutions {
+			addr, tag, _ := strings.SplitLast(imageSub, ":")
+			imageMap[addr] = tag
 		}
 	}
-	// Apply new images from the request if any were specified. These will take
-	// precedence over anything we already set.
-	for _, image := range rc.request.Images {
-		if err = kustomize.SetImage(tempDir, image); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error applying new image %q",
-				image,
-			)
-		}
+	for _, imageSub := range rc.request.Images {
+		addr, tag, _ := strings.SplitLast(imageSub, ":")
+		imageMap[addr] = tag
 	}
-
-	// Read images back from kustomization.yaml. This is a convenient way to
-	// collapse images from intermediate metadata and request images into a single
-	// list of images, with precedence given to the latter.
-	kustomization := struct {
-		Images []struct {
-			Name   string `json:"name,omitempty"`
-			NewTag string `json:"newTag,omitempty"`
-		} `json:"images,omitempty"`
-	}{}
-	kustomizationBytes, err := os.ReadFile(kustomizationFile)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "error reading kustomization.yaml")
-	}
-	if err = yaml.Unmarshal(kustomizationBytes, &kustomization); err != nil {
-		return nil, nil, errors.Wrap(err, "error unmarshaling kustomization.yaml")
-	}
-	images := make([]string, len(kustomization.Images))
-	for i, image := range kustomization.Images {
-		images[i] = fmt.Sprintf("%s:%s", image.Name, image.NewTag)
+	images := make([]string, len(imageMap))
+	i := 0
+	for addr, tag := range imageMap {
+		images[i] = fmt.Sprintf("%s:%s", addr, tag)
+		i++
 	}
 
 	manifests := map[string][]byte{}
@@ -188,17 +140,28 @@ func renderLastMile(
 				appName,
 			)
 		}
+		// Create kustomization.yaml
 		appKustomizationFile := filepath.Join(appDir, "kustomization.yaml")
-		if err = file.CopyFile(
-			kustomizationFile,
+		if err = os.WriteFile( // nolint: gosec
 			appKustomizationFile,
+			lastMileKustomizationBytes,
+			0644,
 		); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
-				"error copying kustomization.yaml from %q to %q",
-				kustomizationFile,
+				"error writing last-mile kustomization.yaml to %q",
 				appKustomizationFile,
 			)
+		}
+		// Apply images
+		for _, image := range images {
+			if err = kustomize.SetImage(appDir, image); err != nil {
+				return nil, nil, errors.Wrapf(
+					err,
+					"error applying new image %q",
+					image,
+				)
+			}
 		}
 		// Write the pre-rendered manifests to a file
 		preRenderedPath := filepath.Join(appDir, "all.yaml")

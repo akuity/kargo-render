@@ -43,7 +43,7 @@
 				"outputPath": {
 					"$ref": "#/definitions/relativePath"
 				},
-				"condenseManifests": {
+				"combineManifests": {
 					"type": "boolean"
 				}
 			}
