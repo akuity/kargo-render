@@ -118,6 +118,12 @@ func renderLastMile(
 			imageMap[addr] = tag
 		}
 	}
+	if rc.target.commit.oldBranchMetadata != nil {
+		for _, imageSub := range rc.target.commit.oldBranchMetadata.ImageSubstitutions { // nolint: lll
+			addr, tag, _ := strings.SplitLast(imageSub, ":")
+			imageMap[addr] = tag
+		}
+	}
 	for _, imageSub := range rc.request.Images {
 		addr, tag, _ := strings.SplitLast(imageSub, ":")
 		imageMap[addr] = tag
