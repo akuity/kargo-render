@@ -159,16 +159,6 @@ func renderLastMile(
 				appKustomizationFile,
 			)
 		}
-		// Apply images
-		for _, image := range images {
-			if err = kustomize.SetImage(appDir, image); err != nil {
-				return nil, nil, errors.Wrapf(
-					err,
-					"error applying new image %q",
-					image,
-				)
-			}
-		}
 		// Write the pre-rendered manifests to a file
 		preRenderedPath := filepath.Join(appDir, "all.yaml")
 		// nolint: gosec
@@ -184,7 +174,7 @@ func renderLastMile(
 			)
 		}
 		if manifests[appName], err =
-			kustomize.Render(ctx, appDir, nil); err != nil {
+			kustomize.Render(ctx, appDir, images); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
 				"error rendering manifests from %q",
