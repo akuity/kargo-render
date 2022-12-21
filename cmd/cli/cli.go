@@ -1,11 +1,11 @@
-package main
+package cli
 
 import (
 	"fmt"
 	"os"
 )
 
-func main() {
+func Run() {
 	cmd, err := newRootCommand()
 	if err != nil {
 		fmt.Println(err)
