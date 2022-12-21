@@ -1,4 +1,4 @@
-package main
+package action
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/akuityio/bookkeeper/internal/version"
 )
 
-func main() {
+func Run() {
 	version := version.GetVersion()
 
 	if len(os.Args) > 1 && os.Args[1] == "version" {

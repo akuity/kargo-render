@@ -35,14 +35,11 @@ RUN ls
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-      -o bin/bookkeeper-action \
-      ./cmd/action \
-    && bin/bookkeeper-action version \
-    && GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-      -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
       -o bin/bookkeeper \
-      ./cmd/cli \
-    && bin/bookkeeper version
+      ./cmd \
+    && bin/bookkeeper version \
+    && cd bin \
+    && ln -s bookkeeper bookkeeper-action
 
 FROM alpine:3.15.4 as final
 

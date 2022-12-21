@@ -1,4 +1,4 @@
-package main
+package action
 
 import libLog "github.com/akuityio/bookkeeper/internal/log"
 
