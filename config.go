@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -28,19 +29,51 @@ func init() {
 
 // repoConfig all Bookkeeper configuration options for a repository.
 type repoConfig struct {
-	// BranchConfigs is a map of branch-specific configuration indexed by branch
-	// name.
-	BranchConfigs map[string]branchConfig `json:"branchConfigs,omitempty"`
+	// BranchConfigs is a list of branch-specific configurations.
+	BranchConfigs []branchConfig `json:"branchConfigs,omitempty"`
+}
+
+func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
+	for _, cfg := range r.BranchConfigs {
+		if cfg.Name == name {
+			return cfg, nil
+		}
+		regex, err := regexp.Compile(cfg.Pattern)
+		if err != nil {
+			return branchConfig{},
+				errors.Errorf("error compiling regular expression /%s/", cfg.Pattern)
+		}
+		submatches := regex.FindStringSubmatch(name)
+		if len(submatches) > 0 {
+			return cfg.expand(submatches), nil
+		}
+	}
+	return branchConfig{}, nil
 }
 
 // branchConfig encapsulates branch-specific Bookkeeper configuration.
 type branchConfig struct {
+	// Name is the name of the environment-specific branch this configuration is
+	// for. This is mutually exclusive with the Pattern field.
+	Name string `json:"name,omitempty"`
+	// Pattern is a regular expression that can be used to specify multiple
+	// environment-specific branches this configuration is for.
+	Pattern string `json:"pattern,omitempty"`
 	// AppConfigs is a map of application-specific configuration indexed by app
 	// name.
 	AppConfigs map[string]appConfig `json:"appConfigs,omitempty"`
 	// PRs encapsulates details about how to manage any pull requests associated
 	// with this branch.
 	PRs pullRequestConfig `json:"prs,omitempty"`
+}
+
+func (b branchConfig) expand(values []string) branchConfig {
+	cfg := b
+	cfg.AppConfigs = map[string]appConfig{}
+	for appName, appConfig := range b.AppConfigs {
+		cfg.AppConfigs[appName] = appConfig.expand(values)
+	}
+	return cfg
 }
 
 // appConfig encapsulates application-specific Bookkeeper configuration.
@@ -56,6 +89,13 @@ type appConfig struct {
 	CombineManifests bool `json:"combineManifests,omitempty"`
 }
 
+func (a appConfig) expand(values []string) appConfig {
+	cfg := a
+	cfg.ConfigManagement = a.ConfigManagement.expand(values)
+	cfg.OutputPath = file.ExpandPath(a.OutputPath, values)
+	return cfg
+}
+
 // configManagementConfig is a wrapper around more specific configuration for
 // one of three supported configuration management tools: helm, kustomize, or
 // ytt. Only one of its fields may be non-nil.
@@ -66,6 +106,23 @@ type configManagementConfig struct { // nolint: revive
 	Kustomize *kustomize.Config `json:"kustomize,omitempty"`
 	// Ytt encapsulates optional ytt configuration options.
 	Ytt *ytt.Config `json:"ytt,omitempty"`
+}
+
+func (c configManagementConfig) expand(values []string) configManagementConfig {
+	cfg := c
+	if c.Helm != nil {
+		helmCfg := c.Helm.Expand(values)
+		cfg.Helm = &helmCfg
+	}
+	if c.Kustomize != nil {
+		kustomizeCfg := c.Kustomize.Expand(values)
+		cfg.Kustomize = &kustomizeCfg
+	}
+	if c.Ytt != nil {
+		yttCfg := c.Ytt.Expand(values)
+		cfg.Ytt = &yttCfg
+	}
+	return cfg
 }
 
 // pullRequestConfig encapsulates details related to PR management for a branch.

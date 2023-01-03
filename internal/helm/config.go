@@ -1,5 +1,7 @@
 package helm
 
+import "github.com/akuityio/bookkeeper/internal/file"
+
 // Config encapsulates optional Helm configuration options.
 type Config struct {
 	// ReleaseName specifies the release name that will be used when executing the
@@ -15,4 +17,18 @@ type Config struct {
 	// `--values` flag in the `helm template` command. By convention, if left
 	// unspecified, one path will be assumed: <branch name>/values.yaml.
 	ValuesPaths []string `json:"valuesPaths,omitempty"`
+}
+
+// Expand expands all file/directory paths referenced by this configuration
+// object, replacing placeholders of the form ${n} where n is a non-negative
+// integer, with corresponding values from the provided string array. The
+// modified object is returned.
+func (c Config) Expand(values []string) Config {
+	cfg := c
+	cfg.ChartPath = file.ExpandPath(c.ChartPath, values)
+	cfg.ValuesPaths = make([]string, len(c.ValuesPaths))
+	for i, pathTemplate := range c.ValuesPaths {
+		cfg.ValuesPaths[i] = file.ExpandPath(pathTemplate, values)
+	}
+	return cfg
 }

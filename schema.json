@@ -11,6 +11,11 @@
 
 		"relativePath": {
 			"type": "string",
+			"pattern": "^(?:\\w|\\.|(?:\\$\\{\\d+\\}))(?:\\w|\\.|/|-|(?:\\$\\{\\d+\\}))*$"
+		},
+
+		"branchName": {
+			"type": "string",
 			"pattern": "^(?:[\\w\\.-]+\/?)*\\w$"
 		},
 
@@ -18,6 +23,12 @@
 			"type": "object",
 			"additionalProperties": false,
 			"properties": {
+				"name": {
+					"$ref": "#/definitions/branchName"
+				},
+				"pattern": {
+					"type": "string"
+				},
 				"appConfigs": {
 					"type": "object",
 					"additionalProperties": false,
@@ -150,12 +161,9 @@
 			"$ref": "#/definitions/configVersion"
 		},
 		"branchConfigs": {
-			"type": "object",
-			"additionalProperties": false,
-			"patternProperties": {
-				"^(?:[\\w\\.-]+\/?)*\\w$": {
-					"$ref": "#/definitions/branchConfig"	
-				}
+			"type": "array",
+			"items": {
+				"$ref": "#/definitions/branchConfig"
 			}
 		}
 	}
