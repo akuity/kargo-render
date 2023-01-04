@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/akuityio/bookkeeper/internal/helm"
+	"github.com/akuityio/bookkeeper/internal/kustomize"
+	"github.com/akuityio/bookkeeper/internal/ytt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,4 +153,95 @@ func TestNormalizeAndValidate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExpandBranchConfig(t *testing.T) {
+	const val = "foo"
+	testCfg := branchConfig{
+		AppConfigs: map[string]appConfig{
+			"my-kustomize-app": {
+				ConfigManagement: configManagementConfig{
+					Kustomize: &kustomize.Config{
+						Path: "${0}",
+					},
+				},
+				OutputPath: "${0}",
+			},
+			"my-helm-app": {
+				ConfigManagement: configManagementConfig{
+					Helm: &helm.Config{
+						ChartPath:   "${0}",
+						ValuesPaths: []string{"${0}", "${0}"},
+					},
+				},
+				OutputPath: "${0}",
+			},
+			"my-ytt-app": {
+				ConfigManagement: configManagementConfig{
+					Ytt: &ytt.Config{
+						Paths: []string{"${0}", "${0}"},
+					},
+				},
+				OutputPath: "${0}",
+			},
+		},
+	}
+	cfg := testCfg.expand([]string{val})
+	require.Equal(
+		t,
+		val,
+		cfg.AppConfigs["my-kustomize-app"].ConfigManagement.Kustomize.Path,
+	)
+	require.Equal(
+		t,
+		val,
+		cfg.AppConfigs["my-kustomize-app"].OutputPath,
+	)
+	require.Equal(
+		t,
+		val,
+		cfg.AppConfigs["my-helm-app"].ConfigManagement.Helm.ChartPath,
+	)
+	require.Equal(
+		t,
+		[]string{val, val},
+		cfg.AppConfigs["my-helm-app"].ConfigManagement.Helm.ValuesPaths,
+	)
+	require.Equal(
+		t,
+		val,
+		cfg.AppConfigs["my-helm-app"].OutputPath,
+	)
+	require.Equal(
+		t,
+		[]string{val, val},
+		cfg.AppConfigs["my-ytt-app"].ConfigManagement.Ytt.Paths,
+	)
+	require.Equal(
+		t,
+		val,
+		cfg.AppConfigs["my-ytt-app"].OutputPath,
+	)
+	// Check that the original testCfg.AppConfigs haven't been touched.
+	// References to maps are pointers, hence the extra care.
+	require.Equal(
+		t,
+		"${0}",
+		testCfg.AppConfigs["my-kustomize-app"].ConfigManagement.Kustomize.Path,
+	)
+	require.Equal(
+		t,
+		"${0}",
+		testCfg.AppConfigs["my-helm-app"].ConfigManagement.Helm.ChartPath,
+	)
+	require.Equal(
+		t,
+		[]string{"${0}", "${0}"},
+		testCfg.AppConfigs["my-helm-app"].ConfigManagement.Helm.ValuesPaths,
+	)
+	require.Equal(
+		t,
+		[]string{"${0}", "${0}"},
+		testCfg.AppConfigs["my-ytt-app"].ConfigManagement.Ytt.Paths,
+	)
 }

@@ -123,7 +123,14 @@ func (s *service) RenderManifests(
 		return res,
 			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
 	}
-	rc.target.branchConfig = repoConfig.BranchConfigs[rc.request.TargetBranch]
+	if rc.target.branchConfig, err =
+		repoConfig.GetBranchConfig(rc.request.TargetBranch); err != nil {
+		return res, errors.Wrapf(
+			err,
+			"error loading configuration for branch %q",
+			rc.request.TargetBranch,
+		)
+	}
 
 	if len(rc.target.branchConfig.AppConfigs) == 0 {
 		rc.target.branchConfig.AppConfigs = map[string]appConfig{
