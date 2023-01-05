@@ -38,14 +38,16 @@ func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
 		if cfg.Name == name {
 			return cfg, nil
 		}
-		regex, err := regexp.Compile(cfg.Pattern)
-		if err != nil {
-			return branchConfig{},
-				errors.Errorf("error compiling regular expression /%s/", cfg.Pattern)
-		}
-		submatches := regex.FindStringSubmatch(name)
-		if len(submatches) > 0 {
-			return cfg.expand(submatches), nil
+		if cfg.Pattern != "" {
+			regex, err := regexp.Compile(cfg.Pattern)
+			if err != nil {
+				return branchConfig{},
+					errors.Errorf("error compiling regular expression /%s/", cfg.Pattern)
+			}
+			submatches := regex.FindStringSubmatch(name)
+			if len(submatches) > 0 {
+				return cfg.expand(submatches), nil
+			}
 		}
 	}
 	return branchConfig{}, nil
