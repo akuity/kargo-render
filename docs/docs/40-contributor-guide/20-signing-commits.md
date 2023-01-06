@@ -4,7 +4,7 @@ description: Signing commits
 
 # Signing commits
 
-All commits merged into Bookkeeper's main branch MUST bear a DCO (Developer
+All commits merged into Bookkeeper's `main` branch MUST bear a DCO (Developer
 Certificate of Origin) sign-off. This is a line placed at the end of a commit
 message containing a contributor’s “signature.” In adding this, the contributor
 certifies that they have the right to contribute the material in question.

@@ -27,26 +27,26 @@ GitOps repository:
 
 ```yaml
 name: 'Bookkeeper'
-description: 'Publish rendered config to an environment-specific branch'
+description: 'Publish rendered manifests to an environment branch'
 inputs:
   personalAccessToken:
     description: 'A personal access token that allows Bookkeeper to write to your repository'
     required: true
   targetBranch:
-    description: 'The environment-specific branch for which you want to render configuration'
+    description: 'The environment branch for which you want to render manifests'
     required: true
 runs:
   using: 'docker'
-  image: 'krancour/mystery-image:v0.1.0-alpha.1'
+  image: 'krancour/mystery-image:v0.1.0-alpha.2-rc.8'
   entrypoint: 'bookkeeper-action'
 ```
 
 :::note
 The odd-looking reference to a Docker image named
-`krancour/mystery-image:v0.1.0-alpha.1` is not a mistake. As previously
+`krancour/mystery-image:v0.1.0-alpha.2-rc.8` is not a mistake. As previously
 noted, GitHub support for private actions is very poor. Among other things, this
 means there is no method of authenticating to a Docker registry to pull private
-images. `krancour/mystery-image:v0.1.0-alpha.1` is a public copy of the
+images. `krancour/mystery-image:v0.1.0-alpha.2-rc.8` is a public copy of the
 official Bookkeeper image. We hope that its obscure name prevents it from
 attracting much notice.
 :::
@@ -68,21 +68,21 @@ Example usage:
 
 ```yaml
 jobs:
-  render-dev-manifests:
-    name: Render dev manifests
+  render-test-manifests:
+    name: Render test manifests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Render manifests
-        uses: ./.github/actions/bookkeeper/
-        with:
-          personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
-          targetBranch: env/dev
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Render manifests
+      uses: ./.github/actions/bookkeeper/
+      with:
+        personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
+        targetBranch: env/test
 ```
 
-In the example `render-dev-manifests` job above, you can see that rendering
-configuration into an environment-specific branch requires little more than
+In the example `render-test-manifests` job above, you can see that rendering
+manifests into an environment-specific branch requires little more than
 providing a token, and specifying the branch name. The action takes care of the
 rest.
 

@@ -17,7 +17,7 @@ easiest option for experimenting locally with Bookkeeper!
 Example usage:
 
 ```shell
-docker run -it ghcr.io/akuityio/bookkeeper-prototype:v0.1.0-alpha.1 \
+docker run -it ghcr.io/akuityio/bookkeeper-prototype:v0.1.0-alpha.2-rc.8 \
   bookkeeper render \
   --repo https://github.com/<your GitHub handle>/bookkeeper-demo-deploy \
   --repo-username <your GitHub handle> \
@@ -27,17 +27,17 @@ docker run -it ghcr.io/akuityio/bookkeeper-prototype:v0.1.0-alpha.1 \
 
 :::tip
 Although the exact procedure for emulating the example above will vary from one
-automation platform to the next, the Bookkeeper image and this variant of the
-CLI should permit you to integrate Bookkeeper with a broad range of automation
-platforms including, but not limited to, popular choices such as
-[CircleCI](https://circleci.com/) or [Travis CI](https://www.travis-ci.com/).
+automation platform to the next, the Bookkeeper image should permit you to
+integrate Bookkeeper with a broad range of automation platforms including, but
+not limited to, popular choices such as [CircleCI](https://circleci.com/) or
+[Travis CI](https://www.travis-ci.com/).
 :::
 
 :::caution
-This variant of the Bookkeeper CLI is not designed to be run anywhere except
-within a container based on the official Bookkeeper image. The official
-Bookkeeper image provides compatible versions of Kustomize, ytt, and Helm that
-cannot be guaranteed to exist on other systems.
+The `bookkeeper` CLI is not designed to be run anywhere except within a
+container based on the official Bookkeeper image. The official Bookkeeper image
+provides compatible versions of Kustomize, ytt, and Helm that cannot be
+guaranteed to exist on other systems.
 :::
 
 :::tip

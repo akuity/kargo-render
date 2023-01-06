@@ -14,7 +14,7 @@ go get github.com/akuityio/bookkeeper
 ```
 
 Then instantiate an implementation of the `bookkeeper.Service` interface and
-invoke the `RenderConfig()` function:
+invoke the `RenderManifests()` function:
 
 ```golang
 import "github.com/akuityio/bookkeeper"
@@ -27,7 +27,7 @@ svc := bookkeeper.NewService(
   },
 )
 
-res, err := svc.RenderConfig(
+res, err := svc.RenderManifests(
   context.Background(),
   bookkeeper.RenderRequest{
     RepoURL: "https://<repo URL>",
