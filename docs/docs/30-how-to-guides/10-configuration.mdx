@@ -1,0 +1,467 @@
+---
+title: Configuration
+description: Configuring Bookkeeper
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Configuring Bookkeeper
+
+Bookkeeper is configured using a file named `Bookfile.yaml`, which should be
+stored at the root of the default branch of your GitOps repository.
+
+The role of `Bookfile.yaml` is simply to enumerate your environment branches,
+and for each, specify:
+
+* Which configuration management tools to use in rendering that environment
+  branch -- and what the inputs to those tools are.
+
+* Where to place the rendered manifests within the environment branch.
+
+* Other policies, such as:
+
+    * Whether to commit directly to the environment branch or open a PR instead.
+
+    * Whether to produce a manifest per Kubernetes resource or combine all
+      resources into a single manifest.
+
+## Basic configuration
+
+Before introducing example configurations, it's worth a brief digression to
+discuss the different perspectives teams may adopt with respect to their
+environments and applications.
+
+With an _application-centric_ perspective, a team treats their applications
+as "first class." _Environments_ are simply different instances of an
+application. This perspective might be adopted by a team that is developing and
+deploying multiple, distinct, monolithic applications that can be deployed
+independently of one another.
+
+With an _environment-centric_ perspective, a team treats their environments as
+"first class." _Applications_ are simply different denizens of an environment.
+This perspective might be adopted by a team that is employing a microsevice
+architecture wherein each "application" is a single component of a larger whole
+that should be deployed as an atomic unit.
+
+Understanding these two perspectives is important insofar as it impacts how a
+team is likely to organize their GitOps repositories.
+
+A team with an application-centric approach is likely to use a GitOps repository
+_per application_. Each Bookkeeper-managed environment branch within that
+repository will contain environment-specific manifests for the one application.
+In contrast, a team with an environment-centric approach is likely to include
+configuration for multiple applications in a single GitOps repository. Each
+Bookkeeper-managed environment branch within that repository will contain
+environment-specific manifests for multiple applications.
+
+Ultimately, the fundamental difference between the two approaches is whether a
+single GitOps repository houses manifests for one application or for multiple.
+With the latter scenario being the (very slightly) more complex of the two, all
+examples that follow will involve _two_ applications -- `foo` and `bar`. When we
+render manifests for an environment branch, we wish to render manifests for
+_both_ apps.
+
+<Tabs groupId="bookfile">
+
+<TabItem value="kustomize" label="Kustomize">
+
+For each environment branch, the configuration below specifies the location of
+environment-specific Kustomize overlays for each application. It also specifies
+where within each environment branch to store the rendered manifests for each
+application.
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- name: env/test
+  appConfigs:
+    foo:
+      configManagement:
+        kustomize:
+          path: env/test/foo # test overlay for app "foo"
+      outputPath: foo
+    bar:
+      configManagement:
+        kustomize:
+          path: env/test/bar # test overlay for app "bar"
+      outputPath: bar
+- name: env/stage
+  appConfigs:
+    foo:
+      configManagement:
+        kustomize:
+          path: env/stage/foo # stage overlay for app "foo"
+      outputPath: foo
+    bar:
+      configManagement:
+        kustomize:
+          path: env/stage/bar # stage overlay for app "bar"
+      outputPath: bar
+- name: env/prod
+  appConfigs:
+    foo:
+      configManagement:
+        kustomize:
+          path: env/prod/foo # prod overlay for app "foo"
+      outputPath: foo
+    bar:
+      configManagement:
+        kustomize:
+          path: env/prod/bar # prod overlay for app "bar"
+      outputPath: bar
+```
+
+Refer directly to
+[Kustomize's documentation](https://kubectl.docs.kubernetes.io/references/kustomize/)
+for more information.
+
+</TabItem>
+
+<TabItem value="ytt" label="ytt">
+
+For each environment branch, the configuration below specifies the multiple
+paths that should be used as arguments to the `ytt` command for each
+application. It also specifies where within each environment branch to store the
+rendered manifests for each application.
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- name: env/test
+  appConfigs:
+    foo:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/foo
+          - env/test/foo
+      outputPath: foo
+    bar:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/bar
+          - env/test/bar
+      outputPath: bar
+- name: env/stage
+  appConfigs:
+    foo:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/foo
+          - env/stage/foo
+      outputPath: foo
+    bar:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/bar
+          - env/stage/bar
+      outputPath: bar
+- name: env/prod
+  appConfigs:
+    foo:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/foo
+          - env/prod/foo
+      outputPath: foo
+    bar:
+      configManagement:
+        ytt:
+          paths: # use all of these paths as args to the ytt command
+          - base/bar
+          - env/prod/bar
+      outputPath: bar
+```
+
+Refer directly to [ytt's documentation](https://carvel.dev/ytt/) for more
+information.
+
+</TabItem>
+
+<TabItem value="helm" label="Helm">
+
+For each environment branch, the configuration below specifies a release name,
+chart, and values file to use as arguments to the `helm template` command for
+each application. It also specifies where within each environment branch to
+store the rendered manifests for each application.
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- name: env/test
+  appConfigs:
+    foo:
+      configManagement:
+        helm:
+          releaseName: foo
+          chartPath: charts/foo
+          valuesPaths:
+          - env/test/foo/values.yaml
+      outputPath: foo
+    bar:
+      configManagement:
+        helm:
+          releaseName: bar
+          chartPath: charts/bar
+          valuesPaths:
+          - env/test/bar/values.yaml
+      outputPath: bar
+- name: env/stage
+  appConfigs:
+    foo:
+      configManagement:
+        helm:
+          releaseName: foo
+          chartPath: charts/foo
+          valuesPaths:
+          - env/stage/foo/values.yaml
+      outputPath: foo
+    bar:
+      configManagement:
+        helm:
+          releaseName: bar
+          chartPath: charts/bar
+          valuesPaths:
+          - env/stage/bar/values.yaml
+      outputPath: bar
+- name: env/prod
+  appConfigs:
+    foo:
+      configManagement:
+        helm:
+          releaseName: foo
+          chartPath: charts/foo
+          valuesPaths:
+          - env/prod/foo/values.yaml
+      outputPath: foo
+    bar:
+      configManagement:
+        helm:
+          releaseName: bar
+          chartPath: charts/bar
+          valuesPaths:
+          - env/prod/bar/values.yaml
+      outputPath: bar
+```
+
+Refer directly to [Helm's documentation](https://helm.sh/docs/) for more
+information.
+
+</TabItem>
+
+</Tabs>
+
+## Keeping things DRY
+
+In our introductory examples, you may notice that the configuration for each
+environment branch looks remarkably similar to the configuration for every other
+environment branch. Paths and other values for each environment were
+consistently a function of the environment's name. This is an obvious
+[DRY violation](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself).
+
+To keep configuration more succinct, Bookkeeper supports matching environment
+branches with applicable configuration using patterns (i.e. regular
+expressions). Capture groups can be used in those patterns to extract meaningful
+information, such as environment name, and paths that reference those capture
+groups will be expanded accordingly.
+
+The following examples are equivalent to our initial examples, but are
+considerably more succinct:
+
+<Tabs groupId="dry-bookfile">
+
+<TabItem value="kustomize" label="Kustomize">
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- pattern: env/(\w+)
+  appConfigs:
+    foo:
+      configManagement:
+        kustomize:
+          path: env/${1}/foo
+      outputPath: foo
+    bar:
+      configManagement:
+        kustomize:
+          path: env/${1}/bar
+      outputPath: bar
+```
+
+</TabItem>
+
+<TabItem value="ytt" label="ytt">
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- pattern: env/(\w+)
+  appConfigs:
+    foo:
+      configManagement:
+        ytt:
+          paths:
+          - base/foo
+          - env/${1}/foo
+      outputPath: foo
+    bar:
+      configManagement:
+        ytt:
+          paths:
+          - base/bar
+          - env/${1}/bar
+      outputPath: bar
+```
+
+</TabItem>
+
+<TabItem value="helm" label="Helm">
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+- pattern: env/(\w+)
+  appConfigs:
+    foo:
+      configManagement:
+        helm:
+          releaseName: foo
+          chartPath: charts/foo
+          valuesPaths:
+          - env/${1}/foo/values.yaml
+      outputPath: foo
+    bar:
+      configManagement:
+        helm:
+          releaseName: bar
+          chartPath: charts/bar
+          valuesPaths:
+          - env/${1}/bar/values.yaml
+      outputPath: bar
+```
+
+</TabItem>
+
+</Tabs>
+
+## Other options
+
+This section covers environment branch configuration options that are not
+specific to any configuration management tool.
+
+### Pull requests
+
+For any environment branch, you can specify that Bookkeeper should open pull
+requests for changes to that branch instead of committing those changes
+directly. (Committing changes directly is the default behavior.) This is an
+effective method of creating opportunities for manifest changes to be reviewed
+and before they are applied by a CD platform that is tracking the head of that
+environment branch.
+
+This option can be applied as follows:
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+# ...
+- name: env/prod
+  appConfigs:
+    my-app:
+      configManagement:
+        # omitted for brevity
+  prs:
+    enabled: true
+```
+
+:::info
+At this time, pull requests are only supported for remote GitOps repositories
+hosted on GitHub, but support for most major Git hosting providers is planned.
+:::
+
+When PRs are enabled, changes are, by default, committed to a predictably named
+intermediate branch. PRs are opened _from_ that intermediate branch _to_ the
+environment branch. If _new_ changes are queued up for the environment branch
+and such a PR is already open, the new commits are applied to the intermediate
+branch, which implicitly amends the open PR. This makes a single PR a record of
+all pending changes to a given environment branch.
+
+Some teams may prefer a different approach wherein every change headed for an
+environment branch results in a new PR. In this case, if change `a` results in a
+new PR `A` and that PR has not yet been merged, a subsequent change `b` results
+in a new PR `B` that contains the commits for _both_ changes `a` and `b`. To
+catch the environment branch all the way up with both changes, `B` can be merged
+and `A` can be closed, unmerged. Alternatively, in this scenario, `A` could be
+merged to catch the environment branch up to change `a` and `B` can remain open
+for further consideration.
+
+:::caution
+The downside to this option is that for teams making frequent commits to the
+default branch of the GitOps repository, there may be _many_ open PRs at any
+given moment and _many_ of them may end up closed, unmerged. This can get rather
+noisy, so it's worth carefully considering whether you need this behavior.
+:::
+
+To enable this:
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+# ...
+- name: env/prod
+  # ...
+  prs:
+    enabled: true
+    useUniqueBranchNames: true
+```
+
+### Combining manifests
+
+For any app configuration within an environment branch, you can specify that
+Bookkeeper should combine all Kubernetes resources into a single manifest file
+(named `all.yaml`). When not enabled (the default) Bookkeeper produces a
+separate manifest file named `<resource name>-<resource type>` for every
+Kubernetes resource. Enabling this or not is strictly a matter of preference.
+
+To enable combining manifests, use configuration like the following:
+
+```yaml
+configVersion: v1alpha1
+branchConfigs:
+# ...
+- name: env/prod
+  appConfigs:
+    my-app:
+      # ...
+      outputPath: my-app
+      combineManifests: true
+```
+
+## Convention over configuration
+
+In the absence of a `Bookkeeper.yaml` file at the root of the default branch,
+Bookkeeper will assume:
+
+* You are using [Kustomize](https://kustomize.io/) for configuration management.
+
+* Environment-specific Kustomize overlays exist within paths in the default
+  branch that _exactly_ match the names of the environment branches for which
+  they are inputs. e.g. The Kustomize overlay to be rendered for any environment
+  branch `x` exists within the path `x/`, relative to the root of the default
+  branch.
+
+* Changes should be committed directly to environment branches.
+
+* Every Kubernetes resource will be rendered into its own manifest file and
+  _not_ combined into a single manifest file.
+
+* Rendered manifests will be stored in the `app/` directory of the environment
+  branches.
+
+If deemed acceptable, these assumptions permit Bookkeeper to be used without any
+configuration at all.

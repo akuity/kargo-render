@@ -6,10 +6,10 @@ description: What is Bookkeeper?
 
 # What is Bookkeeper?
 
-Bookkeeper helps Kubernetes users incorporate the rendered branches pattern
-into their CD workflows and [GitOps](https://opengitops.dev/) practice. There
-are numerous benefits to this pattern, which you can read about in detail
-[here](./rendered-branches). If you're already familiar with this pattern and
+Bookkeeper helps Kubernetes users incorporate the environment branches pattern
+into their [GitOps](https://opengitops.dev/) practice. There are numerous
+benefits to this pattern, which you can read about in detail
+[here](./environment-branches). If you're already familiar with this pattern and
 convinced of its benefits, dive right into the next section to get started!
 
 :::caution
@@ -20,33 +20,26 @@ anticipated between pre-GA minor releases.
 ## What you need to know
 
 Bookkeeper does _one thing:_ It uses your preferred configuration management
-tool to render configuration from the default branch of a remote GitOps
-repository into _plain YAML_ that it stores in an environment-specific "target
-branch" of the same repository. You only specify the URL of the repository,
-appropriate credentials, and the name of the target branch. Bookkeeper does the
-rest and you can point your preferred GitOps-enabled CD platform at the target
-branch.
+tool and some simple rules you define to render configuration from the default
+branch (e.g. `main`) of a remote GitOps repository into plain manifests that it
+stores in environment-specific branches of the same repository.
 
-When rendering configuration, Bookkeeper exposes only two options, which may or
-may not be useful to you, depending on your workflows:
-
-* You may specify the ID of a commit from which to render configuration. When
-  unspecified, Bookkeeper defaults to rendering configuration from the head of
-  your GitOps repository's default branch.
-
-* You may specify the name of a new Docker image or a list of image names to
-  replace older images referenced by your configuration.
+When invoking Bookkeeper, you only need to specify the URL of the GitOps
+repository, appropriate credentials, and the name of the environment branch for
+which you wish to render and store manifests. Bookkeeper does the rest and you
+can point applicable configuration of your preferred GitOps-enabled CD platform
+at the environment branch.
 
 ## Getting started
 
-1. Bookkeeper can be integrated into your CD workflows in a variety of ways.
-   Regardless of your entrypoint into its functionality, it relies on you
-   employing a compatible layout in your GitOps repository. Read about that
-   layout [here](./how-to-guides/repository-layout).
+1. Bookkeeper can be integrated into your GitOps practice in a variety of ways.
+   Regardless of your entrypoint into its functionality, it relies on a
+   common bit of configuration -- `Bookfile.yaml`. Read more about that
+   [here](./how-to-guides/configuration).
 
-1. Once you're using a Bookkeeper-compatible repository layout, you have several
-   options for how to utilize Bookkeeper. Skip right to the how-to section that
-   best addresses your use case.
+1. Once you've configured Bookkeeper, you have several options for how to
+   utilize it. Skip right to the how-to section that best addresses your use
+   case.
 
     * [GitHub Actions](./how-to-guides/github-actions): Start here if you want
       to incorporate Bookkeeper into workflows powered by GitHub Actions.
@@ -54,7 +47,7 @@ may not be useful to you, depending on your workflows:
     * [Docker image](./how-to-guides/docker-image): Start here if you want to
       incorporate Bookkeeper into workflows in _any other_ container-enabled
       automation platform. This is also the easiest option for experimenting
-      locally with Bookkeeper!
+      with Bookkeeper locally!
 
     * [Go module](./how-to-guides/go-module): Start here if you want to
       integrate with Bookkeeper programmatically using [Go](https://go.dev/)
