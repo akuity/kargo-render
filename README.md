@@ -1,12 +1,16 @@
-# Bookkeeper -- Rendered Branches Utility
+# Bookkeeper -- Environment Branches Utility
 
 ![CI](https://github.com/akuityio/bookkeeper-prototype/actions/workflows/ci.yaml/badge.svg)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
+<img width="80" align="left" src="logo.png" style="right-margin: 20px"/>
+
 Placeholder
 
-> 🟡&nbsp;&nbsp;Bookkeeper is highly experimental at this time and breaking
-> changes should be anticipated between pre-GA minor releases.
+🟡&nbsp;&nbsp;Bookkeeper is highly experimental at this time and breaking
+changes should be anticipated between pre-GA minor releases.
+
+<br clear="left"/>
 
 ## Getting Started
 
