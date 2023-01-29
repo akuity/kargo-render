@@ -208,7 +208,11 @@ func (s *service) RenderManifests(
 				"commit branch; no further action is required",
 		)
 		res.ActionTaken = ActionTakenNone
-		return res, nil
+		res.CommitID, err = rc.repo.LastCommitID()
+		return res, errors.Wrap(
+			err,
+			"error getting last commit ID from the commit branch",
+		)
 	}
 
 	if rc.target.commit.message, err = buildCommitMessage(rc); err != nil {

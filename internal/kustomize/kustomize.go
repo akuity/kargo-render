@@ -45,6 +45,9 @@ func Render(ctx context.Context, path string, images []string) ([]byte, error) {
 					Images: kustomizeImages,
 				},
 			},
+			KustomizeOptions: &argoappv1.KustomizeOptions{
+				BuildOptions: "--enable-helm",
+			},
 		},
 		true,
 		&git.NoopCredsStore{}, // No need for this
