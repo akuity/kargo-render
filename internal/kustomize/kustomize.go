@@ -20,7 +20,12 @@ import (
 // substituted for older versions of the same image. Because of this capability,
 // this function is used for last-mile rendering, even when a configuration
 // management tool other than Kustomize is used for pre-rendering.
-func Render(ctx context.Context, path string, images []string) ([]byte, error) {
+func Render(
+	ctx context.Context,
+	path string,
+	images []string,
+	enableHelm bool,
+) ([]byte, error) {
 	kustomizeImages := make(argoappv1.KustomizeImages, len(images))
 	for i, image := range images {
 		addr, _, _ := strings.SplitLast(image, ":")
@@ -28,6 +33,12 @@ func Render(ctx context.Context, path string, images []string) ([]byte, error) {
 			argoappv1.KustomizeImage(fmt.Sprintf("%s=%s", addr, image))
 	}
 
+	var opts *argoappv1.KustomizeOptions
+	if enableHelm {
+		opts = &argoappv1.KustomizeOptions{
+			BuildOptions: "--enable-helm",
+		}
+	}
 	res, err := repository.GenerateManifests(
 		ctx,
 		path,
@@ -45,9 +56,7 @@ func Render(ctx context.Context, path string, images []string) ([]byte, error) {
 					Images: kustomizeImages,
 				},
 			},
-			KustomizeOptions: &argoappv1.KustomizeOptions{
-				BuildOptions: "--enable-helm",
-			},
+			KustomizeOptions: opts,
 		},
 		true,
 		&git.NoopCredsStore{}, // No need for this

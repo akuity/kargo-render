@@ -10,6 +10,9 @@ type Config struct {
 	// executed. By convention, if left unspecified, the path is assumed to be
 	// identical to the name of the branch.
 	Path string `json:"path,omitempty"`
+	// EnableHelm specifies whether Kustomize's Helm Chart Inflator should be
+	// enabled. If left unspecified, it defaults to false -- not enabled.
+	EnableHelm bool `json:"enableHelm,omitempty"`
 }
 
 // Expand expands all file/directory paths referenced by this configuration
