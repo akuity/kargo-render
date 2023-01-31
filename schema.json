@@ -120,6 +120,9 @@
 			"properties": {
 				"path": {
 					"$ref": "#/definitions/relativePath"
+				},
+				"enableHelm": {
+					"type": "boolean"
 				}
 			}
 		},

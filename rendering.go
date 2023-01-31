@@ -84,7 +84,12 @@ func preRender(
 				"path":             path,
 			})
 			path = filepath.Join(rc.repo.WorkingDir(), path)
-			manifests[appName], err = kustomize.Render(ctx, path, nil)
+			manifests[appName], err = kustomize.Render(
+				ctx,
+				path,
+				nil,
+				appConfig.ConfigManagement.Kustomize.EnableHelm,
+			)
 		}
 		appLogger.Debug("completed manifest pre-rendering")
 	}
@@ -174,7 +179,7 @@ func renderLastMile(
 			)
 		}
 		if manifests[appName], err =
-			kustomize.Render(ctx, appDir, images); err != nil {
+			kustomize.Render(ctx, appDir, images, false); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
 				"error rendering manifests from %q",
