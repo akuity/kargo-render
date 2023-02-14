@@ -160,15 +160,15 @@ func loadRepoConfig(repoPath string) (*repoConfig, error) {
 		fmt.Sprintf("%s.yaml", baseConfigFilename),
 	)
 	var configPath string
-	if exists, err := file.Exists(jsonConfigPath); err != nil {
+	if jsonExists, err := file.Exists(jsonConfigPath); err != nil {
 		return cfg,
 			errors.Wrap(err, "error checking for existence of JSON config file")
-	} else if exists {
+	} else if jsonExists {
 		configPath = jsonConfigPath
-	} else if exists, err = file.Exists(yamlConfigPath); err != nil {
+	} else if yamlExists, err := file.Exists(yamlConfigPath); err != nil {
 		return cfg,
 			errors.Wrap(err, "error checking for existence of YAML config file")
-	} else if exists {
+	} else if yamlExists {
 		configPath = yamlConfigPath
 	}
 	if configPath == "" {
