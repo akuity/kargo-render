@@ -44,6 +44,7 @@ func Render(
 		// TODO: Don't completely understand this next arg, but @alexmt says this is
 		// right. Something to do with caching?
 		resource.MustParse("0"),
+		nil,
 	)
 	if err != nil {
 		return nil,
