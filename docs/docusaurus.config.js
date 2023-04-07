@@ -75,7 +75,7 @@ const config = {
             position: 'left',
           },
           {
-            href: 'https://github.com/akuity/bookkeeper-prototype',
+            href: 'https://github.com/akuity/bookkeeper',
             label: 'GitHub',
             position: 'right',
           },
