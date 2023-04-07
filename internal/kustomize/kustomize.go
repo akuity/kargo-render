@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/akuityio/bookkeeper/internal/manifests"
-	"github.com/akuityio/bookkeeper/internal/strings"
+	"github.com/akuity/bookkeeper/internal/manifests"
+	"github.com/akuity/bookkeeper/internal/strings"
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
 	"github.com/argoproj/argo-cd/v2/reposerver/repository"

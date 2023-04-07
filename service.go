@@ -10,9 +10,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper/internal/git"
-	"github.com/akuityio/bookkeeper/internal/kustomize"
-	"github.com/akuityio/bookkeeper/internal/manifests"
+	"github.com/akuity/bookkeeper/internal/git"
+	"github.com/akuity/bookkeeper/internal/kustomize"
+	"github.com/akuity/bookkeeper/internal/manifests"
 )
 
 type ServiceOptions struct {

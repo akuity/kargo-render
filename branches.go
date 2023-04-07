@@ -8,7 +8,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 
-	"github.com/akuityio/bookkeeper/internal/file"
+	"github.com/akuity/bookkeeper/internal/file"
 )
 
 // branchMetadata encapsulates details about an environment-specific branch for

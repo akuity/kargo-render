@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/file"
+	"github.com/akuity/bookkeeper/internal/file"
 	"github.com/stretchr/testify/require"
 )
 

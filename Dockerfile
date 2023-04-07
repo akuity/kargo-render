@@ -18,7 +18,7 @@ RUN curl -L -o /usr/local/bin/ytt \
       https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-${TARGETARCH} \
       && chmod 755 /usr/local/bin/ytt
 
-ARG VERSION_PACKAGE=github.com/akuityio/bookkeeper/internal/version
+ARG VERSION_PACKAGE=github.com/akuity/bookkeeper/internal/version
 ARG VERSION
 ARG CGO_ENABLED=0
 

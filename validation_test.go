@@ -37,7 +37,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "missing Password",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 			},
 			assertions: func(req RenderRequest, err error) {
 				require.Error(t, err)
@@ -51,7 +51,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "Commit too short",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -69,7 +69,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "Commit too long",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -87,7 +87,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "Commit contains invalid characters",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -105,7 +105,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "missing TargetBranch",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -119,7 +119,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "invalid TargetBranch",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -134,7 +134,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "empty string image",
 			req: RenderRequest{
-				RepoURL: "https://github.com/akuityio/foobar",
+				RepoURL: "https://github.com/akuity/foobar",
 				RepoCreds: RepoCredentials{
 					Password: "foobar",
 				},
@@ -154,7 +154,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "validation succeeds",
 			req: RenderRequest{
-				RepoURL: "  https://github.com/akuityio/foobar  ",
+				RepoURL: "  https://github.com/akuity/foobar  ",
 				RepoCreds: RepoCredentials{
 					Password: "  foobar  ",
 				},
@@ -164,7 +164,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 			},
 			assertions: func(req RenderRequest, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "https://github.com/akuityio/foobar", req.RepoURL)
+				require.Equal(t, "https://github.com/akuity/foobar", req.RepoURL)
 				require.Equal(t, "foobar", req.RepoCreds.Password)
 				require.Equal(t, "1abcdef2", req.Commit)
 				require.Equal(t, "env/dev", req.TargetBranch)

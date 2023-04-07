@@ -1,7 +1,7 @@
 package bookkeeper
 
 import (
-	"github.com/akuityio/bookkeeper/internal/git"
+	"github.com/akuity/bookkeeper/internal/git"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -8,8 +8,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper"
-	"github.com/akuityio/bookkeeper/internal/version"
+	"github.com/akuity/bookkeeper"
+	"github.com/akuity/bookkeeper/internal/version"
 )
 
 func Run() {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuityio/bookkeeper"
+	"github.com/akuity/bookkeeper"
 )
 
 func TestRequest(t *testing.T) {

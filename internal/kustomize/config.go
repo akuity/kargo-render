@@ -1,6 +1,6 @@
 package kustomize
 
-import "github.com/akuityio/bookkeeper/internal/file"
+import "github.com/akuity/bookkeeper/internal/file"
 
 // Config encapsulates optional Kustomize configuration options.
 type Config struct {

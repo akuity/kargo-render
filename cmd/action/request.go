@@ -3,8 +3,8 @@ package action
 import (
 	"fmt"
 
-	"github.com/akuityio/bookkeeper"
-	libOS "github.com/akuityio/bookkeeper/internal/os"
+	"github.com/akuity/bookkeeper"
+	libOS "github.com/akuity/bookkeeper/internal/os"
 )
 
 func request() (bookkeeper.RenderRequest, error) {

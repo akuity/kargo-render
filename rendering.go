@@ -9,10 +9,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuityio/bookkeeper/internal/helm"
-	"github.com/akuityio/bookkeeper/internal/kustomize"
-	"github.com/akuityio/bookkeeper/internal/strings"
-	"github.com/akuityio/bookkeeper/internal/ytt"
+	"github.com/akuity/bookkeeper/internal/helm"
+	"github.com/akuity/bookkeeper/internal/kustomize"
+	"github.com/akuity/bookkeeper/internal/strings"
+	"github.com/akuity/bookkeeper/internal/ytt"
 )
 
 var lastMileKustomizationBytes = []byte(

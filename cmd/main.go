@@ -4,8 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/akuityio/bookkeeper/cmd/action"
-	"github.com/akuityio/bookkeeper/cmd/cli"
+	"github.com/akuity/bookkeeper/cmd/action"
+	"github.com/akuity/bookkeeper/cmd/cli"
 	log "github.com/sirupsen/logrus"
 )
 

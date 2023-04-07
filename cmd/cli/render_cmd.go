@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/akuityio/bookkeeper"
+	"github.com/akuity/bookkeeper"
 )
 
 func newRenderCommand() (*cobra.Command, error) {
