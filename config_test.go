@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuityio/bookkeeper/internal/helm"
-	"github.com/akuityio/bookkeeper/internal/kustomize"
-	"github.com/akuityio/bookkeeper/internal/ytt"
+	"github.com/akuity/bookkeeper/internal/helm"
+	"github.com/akuity/bookkeeper/internal/kustomize"
+	"github.com/akuity/bookkeeper/internal/ytt"
 	"github.com/stretchr/testify/require"
 )
 

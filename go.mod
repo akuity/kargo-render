@@ -1,4 +1,4 @@
-module github.com/akuityio/bookkeeper
+module github.com/akuity/bookkeeper
 
 go 1.19
 

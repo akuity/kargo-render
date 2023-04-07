@@ -7,8 +7,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/akuityio/bookkeeper/internal/git"
-	"github.com/akuityio/bookkeeper/internal/github"
+	"github.com/akuity/bookkeeper/internal/git"
+	"github.com/akuity/bookkeeper/internal/github"
 )
 
 func openPR(ctx context.Context, rc renderRequestContext) (string, error) {

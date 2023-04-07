@@ -1,6 +1,6 @@
 package helm
 
-import "github.com/akuityio/bookkeeper/internal/file"
+import "github.com/akuity/bookkeeper/internal/file"
 
 // Config encapsulates optional Helm configuration options.
 type Config struct {

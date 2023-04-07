@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	libExec "github.com/akuityio/bookkeeper/internal/exec"
+	libExec "github.com/akuity/bookkeeper/internal/exec"
 )
 
 // RepoCredentials represents the credentials for connecting to a private git

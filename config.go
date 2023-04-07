@@ -13,10 +13,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 
-	"github.com/akuityio/bookkeeper/internal/file"
-	"github.com/akuityio/bookkeeper/internal/helm"
-	"github.com/akuityio/bookkeeper/internal/kustomize"
-	"github.com/akuityio/bookkeeper/internal/ytt"
+	"github.com/akuity/bookkeeper/internal/file"
+	"github.com/akuity/bookkeeper/internal/helm"
+	"github.com/akuity/bookkeeper/internal/kustomize"
+	"github.com/akuity/bookkeeper/internal/ytt"
 )
 
 //go:embed schema.json

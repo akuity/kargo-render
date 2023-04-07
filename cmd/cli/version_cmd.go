@@ -3,7 +3,7 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/akuityio/bookkeeper/internal/version"
+	"github.com/akuity/bookkeeper/internal/version"
 )
 
 func newVersionCommand() *cobra.Command {

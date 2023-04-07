@@ -4,7 +4,7 @@ import (
 	"context"
 	"os/exec"
 
-	libExec "github.com/akuityio/bookkeeper/internal/exec"
+	libExec "github.com/akuity/bookkeeper/internal/exec"
 )
 
 // Render shells out to the ytt binary to render the provided paths into plain
