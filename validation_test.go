@@ -160,7 +160,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 				},
 				Commit:       "  1abcdef2 ",
 				TargetBranch: "  refs/heads/env/dev  ",
-				Images:       []string{" akuityio/some-image "}, // no good
+				Images:       []string{" akuity/some-image "}, // no good
 			},
 			assertions: func(req RenderRequest, err error) {
 				require.NoError(t, err)
@@ -168,7 +168,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 				require.Equal(t, "foobar", req.RepoCreds.Password)
 				require.Equal(t, "1abcdef2", req.Commit)
 				require.Equal(t, "env/dev", req.TargetBranch)
-				require.Equal(t, []string{"akuityio/some-image"}, req.Images)
+				require.Equal(t, []string{"akuity/some-image"}, req.Images)
 			},
 		},
 	}

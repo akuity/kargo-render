@@ -10,14 +10,14 @@ Bookkeeper's functionality is available as a [Go](https://go.dev/) module.
 To add the module to your project:
 
 ```shell
-go get github.com/akuityio/bookkeeper
+go get github.com/akuity/bookkeeper
 ```
 
 Then instantiate an implementation of the `bookkeeper.Service` interface and
 invoke the `RenderManifests()` function:
 
 ```golang
-import "github.com/akuityio/bookkeeper"
+import "github.com/akuity/bookkeeper"
 
 // ...
 

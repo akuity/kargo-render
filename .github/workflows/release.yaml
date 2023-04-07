@@ -28,7 +28,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v4
       with:
-        images: ghcr.io/akuityio/bookkeeper-prototype
+        images: ghcr.io/akuity/bookkeeper-prototype
         flavor: latest=false
         tags: type=semver,pattern={{raw}}
     - name: Build and push

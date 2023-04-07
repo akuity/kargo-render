@@ -1,6 +1,6 @@
 # Bookkeeper -- Environment Branches Utility
 
-![CI](https://github.com/akuityio/bookkeeper-prototype/actions/workflows/ci.yaml/badge.svg)
+![CI](https://github.com/akuity/bookkeeper-prototype/actions/workflows/ci.yaml/badge.svg)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
 <img width="80" align="left" src="logo.png" style="right-margin: 20px"/>
@@ -37,7 +37,7 @@ for more info on how to get started quickly and easily.
 ## Support & Feedback
 
 To report an issue, request a feature, or ask a question, please open an issue
-[here](https://github.com/akuityio/bookkeeper-prototype/issues).
+[here](https://github.com/akuity/bookkeeper-prototype/issues).
 
 ## Code of Conduct
 
