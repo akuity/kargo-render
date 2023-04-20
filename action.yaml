@@ -1,0 +1,13 @@
+name: akuity-bookkeeper
+description: Publish rendered manifests to an environment branch
+inputs:
+  personalAccessToken:
+    description: A personal access token that allows Bookkeeper to write to your repository
+    required: true
+  targetBranch:
+    description: The environment branch for which you want to render manifests
+    required: true
+runs:
+  using: docker
+  image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-alpha.2-rc.14
+  entrypoint: bookkeeper-action

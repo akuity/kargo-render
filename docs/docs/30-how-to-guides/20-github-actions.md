@@ -14,56 +14,6 @@ therefore has guaranteed access to compatible versions of
 Git, Helm, Kustomize, and ytt, which are included on that image.
 :::
 
-## Installing the action
-
-:::info
-As of this writing, GitHub Actions does not have good support for _private_
-actions. This being the case, some extra setup is currently required in order to
-use the Bookkeeper action.
-:::
-
-Paste the following YAML, verbatim into `.github/actions/bookkeeper` in your
-GitOps repository:
-
-```yaml
-name: 'Bookkeeper'
-description: 'Publish rendered manifests to an environment branch'
-inputs:
-  personalAccessToken:
-    description: 'A personal access token that allows Bookkeeper to write to your repository'
-    required: true
-  targetBranch:
-    description: 'The environment branch for which you want to render manifests'
-    required: true
-runs:
-  using: 'docker'
-  image: 'krancour/mystery-image:v0.1.0-alpha.2-rc.8'
-  entrypoint: 'bookkeeper-action'
-```
-
-:::note
-The odd-looking reference to a Docker image named
-`krancour/mystery-image:v0.1.0-alpha.2-rc.8` is not a mistake. As previously
-noted, GitHub support for private actions is very poor. Among other things, this
-means there is no method of authenticating to a Docker registry to pull private
-images. `krancour/mystery-image:v0.1.0-alpha.2-rc.8` is a public copy of the
-official Bookkeeper image. We hope that its obscure name prevents it from
-attracting much notice.
-:::
-
-## Using the action
-
-Because the action definition exists within your own repository (see previous
-section), you must utilize
-[actions/checkout](https://github.com/marketplace/actions/checkout) to ensure
-that definition is available during the execution of your workflow. After doing
-so, the Bookkeeper action is as easy to use as if it had been sourced from the
-GitHub Actions Marketplace.
-
-:::info
-In the future, this step will not be required.
-:::
-
 Example usage:
 
 ```yaml
@@ -72,10 +22,8 @@ jobs:
     name: Render test manifests
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
     - name: Render manifests
-      uses: ./.github/actions/bookkeeper/
+      uses: akuity/akuity-bookkeeper@v0.1.0-alpha.2-rc.14
       with:
         personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
         targetBranch: env/test
@@ -88,6 +36,8 @@ rest.
 
 :::note
 `secrets.GITHUB_TOKEN` is automatically available in every GitHub Actions
-workflow and should have sufficient permissions to both read from and write to
-your repository.
+workflow and, depending on repository settings, may have sufficient permissions
+to both read from and write to your repository. If this is not the case, you can
+update repository settings. You can read more about this
+[here](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token).
 :::
