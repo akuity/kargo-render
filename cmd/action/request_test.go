@@ -28,7 +28,7 @@ func TestRequest(t *testing.T) {
 			Username: "git",
 			Password: "12345", // Like something an idiot would use for their luggage
 		},
-		Commit:       "1234567",
+		Ref:          "1234567",
 		TargetBranch: "env/dev",
 		Images:       []string{testImage1, testImage2},
 	}
@@ -70,7 +70,7 @@ func TestRequest(t *testing.T) {
 		{
 			name: "INPUT_TARGETBRANCH not specified",
 			setup: func() {
-				t.Setenv("GITHUB_SHA", testReq.Commit)
+				t.Setenv("GITHUB_SHA", testReq.Ref)
 			},
 			assertions: func(_ bookkeeper.RenderRequest, err error) {
 				require.Error(t, err)
