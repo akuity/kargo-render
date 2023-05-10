@@ -88,21 +88,23 @@ func (s *service) RenderManifests(
 	defer rc.repo.Close()
 
 	// TODO: Add some logging to this block
-	if rc.request.Commit == "" {
+	if rc.request.Ref == "" {
 		if rc.source.commit, err = rc.repo.LastCommitID(); err != nil {
 			return res, errors.Wrap(err, "error getting last commit ID")
 		}
 	} else {
-		if err = rc.repo.Checkout(rc.request.Commit); err != nil {
-			return res, errors.Wrapf(err, "error checking out %q", rc.request.Commit)
+		if err = rc.repo.Checkout(rc.request.Ref); err != nil {
+			return res, errors.Wrapf(err, "error checking out %q", rc.request.Ref)
 		}
 		if rc.intermediate.branchMetadata, err =
 			loadBranchMetadata(rc.repo.WorkingDir()); err != nil {
 			return res, errors.Wrap(err, "error loading branch metadata")
 		}
 		if rc.intermediate.branchMetadata == nil {
-			// We're not on a target branch. We assume we're on the default branch.
-			rc.source.commit = rc.request.Commit
+			// We're not on a target branch. We're sitting on the source commit.
+			if rc.source.commit, err = rc.repo.LastCommitID(); err != nil {
+				return res, errors.Wrap(err, "error getting last commit ID")
+			}
 		} else {
 			// Follow the branch metadata back to the real source commit
 			if err = rc.repo.Checkout(

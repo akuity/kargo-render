@@ -19,11 +19,11 @@ func newRenderCommand() (*cobra.Command, error) {
 	}
 	cmd.Flags().AddFlagSet(flagSetOutput)
 	cmd.Flags().StringP(
-		flagCommit,
-		"c",
+		flagRef,
+		"R",
 		"",
-		"specify a precise commit to render from; if this is not provided, "+
-			"Bookkeeper renders from the head of the default branch",
+		"specify a branch or a precise commit to render from; if this is not "+
+			"provided, Bookkeeper renders from the head of the default branch",
 	)
 	cmd.Flags().StringP(
 		flagCommitMessage,
@@ -106,7 +106,7 @@ func runRenderCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	req.Commit, err = cmd.Flags().GetString(flagCommit)
+	req.Ref, err = cmd.Flags().GetString(flagRef)
 	if err != nil {
 		return err
 	}

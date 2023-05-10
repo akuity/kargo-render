@@ -33,16 +33,7 @@ func validateAndCanonicalizeRequest(req RenderRequest) (RenderRequest, error) {
 		)
 	}
 
-	req.Commit = strings.TrimSpace(req.Commit)
-	if req.Commit != "" {
-		shaRegex := regexp.MustCompile(`^[a-fA-F0-9]{8,40}$`)
-		if !shaRegex.MatchString(req.Commit) {
-			return req, errors.Errorf(
-				"validation failed: Commit %q does not appear to be a valid commit ID",
-				req.Commit,
-			)
-		}
-	}
+	req.Ref = strings.TrimSpace(req.Ref)
 
 	req.TargetBranch = strings.TrimSpace(req.TargetBranch)
 	if req.TargetBranch == "" {
