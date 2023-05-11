@@ -1,6 +1,7 @@
 # Bookkeeper -- Environment Branches Utility
 
 ![CI](https://github.com/akuity/bookkeeper/actions/workflows/ci.yaml/badge.svg)
+[![codecov](https://codecov.io/gh/akuity/bookkeeper/branch/main/graph/badge.svg?token=MRKMA584M9)](https://codecov.io/gh/akuity/bookkeeper)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/f5d7d99b-ca3a-4477-a10b-67fb7a8328a9/deploy-status)](https://app.netlify.com/sites/docs-bookkeeper-akuity-io/deploys)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
