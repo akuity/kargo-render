@@ -23,7 +23,7 @@ func request() (bookkeeper.RenderRequest, error) {
 		libOS.GetRequiredEnvVar("INPUT_PERSONALACCESSTOKEN"); err != nil {
 		return req, err
 	}
-	if req.Commit, err = libOS.GetRequiredEnvVar("GITHUB_SHA"); err != nil {
+	if req.Ref, err = libOS.GetRequiredEnvVar("GITHUB_SHA"); err != nil {
 		return req, err
 	}
 	req.TargetBranch, err = libOS.GetRequiredEnvVar("INPUT_TARGETBRANCH")
