@@ -19,22 +19,20 @@ RUN curl -L -o /usr/local/bin/ytt \
       && chmod 755 /usr/local/bin/ytt
 
 ARG VERSION_PACKAGE=github.com/akuity/bookkeeper/internal/version
-ARG VERSION
 ARG CGO_ENABLED=0
 
 WORKDIR /bookkeeper
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
-COPY cmd cmd
-COPY internal internal
-COPY *.go .
-COPY schema.json .
+COPY . . 
 
-RUN ls
+ARG VERSION
+ARG GIT_COMMIT
+ARG GIT_TREE_STATE
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
-      -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+      -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -X ${VERSION_PACKAGE}.gitCommit=${GIT_COMMIT} -X ${VERSION_PACKAGE}.gitTreeState=${GIT_TREE_STATE}" \
       -o bin/bookkeeper \
       ./cmd \
     && bin/bookkeeper version \
