@@ -1,3 +1,3 @@
 # Code of conduct
 
-See https://docs-bookkeeper-akuity-io.netlify.app/contributor-guide/code-of-conduct/
+See https://bookkeeper.akuity.io/contributor-guide/code-of-conduct/
