@@ -54,4 +54,8 @@ hack-test-unit: hack-build-dev-tools
 
 .PHONY: hack-build
 hack-build:
-	docker build . -t bookkeeper:dev
+	docker build \
+		--build-arg GIT_COMMIT=$(shell git rev-parse HEAD) \
+		--build-arg GIT_TREE_STATE=$(shell if [ -z "`git status --porcelain`" ]; then echo "clean" ; else echo "dirty"; fi) \
+		--tag bookkeeper:dev \
+		.
