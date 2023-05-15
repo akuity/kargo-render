@@ -3,13 +3,14 @@ package helm
 import (
 	"context"
 
-	"github.com/akuity/bookkeeper/internal/manifests"
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
 	"github.com/argoproj/argo-cd/v2/reposerver/repository"
 	"github.com/argoproj/argo-cd/v2/util/git"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+
+	"github.com/akuity/bookkeeper/internal/manifests"
 )
 
 // Render delegates, in-process to the Argo CD repo server to render plain YAML

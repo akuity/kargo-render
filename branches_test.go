@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuity/bookkeeper/internal/file"
 	"github.com/stretchr/testify/require"
+
+	"github.com/akuity/bookkeeper/internal/file"
 )
 
 func TestLoadBranchMetadata(t *testing.T) {

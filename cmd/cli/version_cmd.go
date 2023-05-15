@@ -18,7 +18,7 @@ func newVersionCommand() *cobra.Command {
 	return cmd
 }
 
-func runVersionCommand(cmd *cobra.Command, args []string) error {
+func runVersionCommand(cmd *cobra.Command, _ []string) error {
 	clientVersion := version.GetVersion()
 
 	outputFormat, err := cmd.Flags().GetString(flagOutput)
