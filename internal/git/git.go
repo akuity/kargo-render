@@ -2,7 +2,6 @@ package git
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -93,7 +92,6 @@ type repo struct {
 // perform any setup that is required for successfully authenticating to the
 // remote repository.
 func Clone(
-	ctx context.Context,
 	url string,
 	repoCreds RepoCredentials,
 ) (Repo, error) {
@@ -110,14 +108,14 @@ func Clone(
 		homeDir: homeDir,
 		dir:     filepath.Join(homeDir, "repo"),
 	}
-	if err = r.setupAuth(ctx, repoCreds); err != nil {
+	if err = r.setupAuth(repoCreds); err != nil {
 		return nil, err
 	}
 	return r, r.clone()
 }
 
 func (r *repo) AddAll() error {
-	_, err := libExec.Exec(r.buildCommand("git", "add", "."))
+	_, err := libExec.Exec(r.buildCommand("add", "."))
 	return errors.Wrap(err, "error staging changes for commit")
 }
 
@@ -129,19 +127,13 @@ func (r *repo) AddAllAndCommit(message string) error {
 }
 
 func (r *repo) Clean() error {
-	_, err := libExec.Exec(r.buildCommand("git", "clean", "-fd"))
+	_, err := libExec.Exec(r.buildCommand("clean", "-fd"))
 	return errors.Wrapf(err, "error cleaning branch %q", r.currentBranch)
 }
 
 func (r *repo) clone() error {
 	r.currentBranch = "HEAD"
-	cmd := r.buildCommand(
-		"git",
-		"clone",
-		"--no-tags",
-		r.url,
-		r.dir,
-	)
+	cmd := r.buildCommand("clone", "--no-tags", r.url, r.dir)
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	_, err := libExec.Exec(cmd)
 	return errors.Wrapf(
@@ -159,7 +151,6 @@ func (r *repo) Close() error {
 func (r *repo) Checkout(branch string) error {
 	r.currentBranch = branch
 	_, err := libExec.Exec(r.buildCommand(
-		"git",
 		"checkout",
 		branch,
 		// The next line makes it crystal clear to git that we're checking out
@@ -176,7 +167,7 @@ func (r *repo) Checkout(branch string) error {
 }
 
 func (r *repo) Commit(message string) error {
-	_, err := libExec.Exec(r.buildCommand("git", "commit", "-m", message))
+	_, err := libExec.Exec(r.buildCommand("commit", "-m", message))
 	return errors.Wrapf(
 		err,
 		"error committing changes to branch %q",
@@ -187,7 +178,6 @@ func (r *repo) Commit(message string) error {
 func (r *repo) CreateChildBranch(branch string) error {
 	r.currentBranch = branch
 	_, err := libExec.Exec(r.buildCommand(
-		"git",
 		"checkout",
 		"-b",
 		branch,
@@ -207,7 +197,6 @@ func (r *repo) CreateChildBranch(branch string) error {
 func (r *repo) CreateOrphanedBranch(branch string) error {
 	r.currentBranch = branch
 	if _, err := libExec.Exec(r.buildCommand(
-		"git",
 		"switch",
 		"--orphan",
 		branch,
@@ -224,20 +213,20 @@ func (r *repo) CreateOrphanedBranch(branch string) error {
 }
 
 func (r *repo) HasDiffs() (bool, error) {
-	resBytes, err := libExec.Exec(r.buildCommand("git", "status", "-s"))
+	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
 	return len(resBytes) > 0,
 		errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
 }
 
 func (r *repo) LastCommitID() (string, error) {
-	shaBytes, err := libExec.Exec(r.buildCommand("git", "rev-parse", "HEAD"))
+	shaBytes, err := libExec.Exec(r.buildCommand("rev-parse", "HEAD"))
 	return strings.TrimSpace(string(shaBytes)),
 		errors.Wrap(err, "error obtaining ID of last commit")
 }
 
 func (r *repo) CommitMessage(id string) (string, error) {
 	msgBytes, err := libExec.Exec(
-		r.buildCommand("git", "log", "-n", "1", "--pretty=format:%s", id),
+		r.buildCommand("log", "-n", "1", "--pretty=format:%s", id),
 	)
 	return string(msgBytes),
 		errors.Wrapf(err, "error obtaining commit message for commit %q", id)
@@ -245,7 +234,6 @@ func (r *repo) CommitMessage(id string) (string, error) {
 
 func (r *repo) CommitMessages(id1, id2 string) ([]string, error) {
 	allMsgBytes, err := libExec.Exec(r.buildCommand(
-		"git",
 		"log",
 		"--pretty=oneline",
 		"--decorate-refs=",
@@ -276,13 +264,12 @@ func (r *repo) CommitMessages(id1, id2 string) ([]string, error) {
 
 func (r *repo) Push() error {
 	_, err :=
-		libExec.Exec(r.buildCommand("git", "push", "origin", r.currentBranch))
+		libExec.Exec(r.buildCommand("push", "origin", r.currentBranch))
 	return errors.Wrapf(err, "error pushing branch %q", r.currentBranch)
 }
 
 func (r *repo) RemoteBranchExists(branch string) (bool, error) {
 	_, err := libExec.Exec(r.buildCommand(
-		"git",
 		"ls-remote",
 		"--heads",
 		"--exit-code", // Return 2 if not found
@@ -311,26 +298,15 @@ func (r *repo) WorkingDir() string {
 
 // SetupAuth configures the git CLI for authentication using either SSH or the
 // "store" (username/password-based) credential helper.
-func (r *repo) setupAuth(ctx context.Context, repoCreds RepoCredentials) error {
+func (r *repo) setupAuth(repoCreds RepoCredentials) error {
 	// Configure the git client
-	cmd := r.buildCommand(
-		"git",
-		"config",
-		"--global",
-		"user.name",
-		"Bookkeeper",
-	)
+	cmd := r.buildCommand("config", "--global", "user.name", "Bookkeeper")
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	if _, err := libExec.Exec(cmd); err != nil {
 		return errors.Wrapf(err, "error configuring git username")
 	}
-	cmd = r.buildCommand(
-		"git",
-		"config",
-		"--global",
-		"user.email",
-		"bookkeeper@akuity.io",
-	)
+	cmd =
+		r.buildCommand("config", "--global", "user.email", "bookkeeper@akuity.io")
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	if _, err := libExec.Exec(cmd); err != nil {
 		return errors.Wrapf(err, "error configuring git user email address")
@@ -360,8 +336,7 @@ func (r *repo) setupAuth(ctx context.Context, repoCreds RepoCredentials) error {
 	// If we get to here, we're authenticating using a password
 
 	// Set up the credential helper
-	cmd =
-		r.buildCommand("git", "config", "--global", "credential.helper", "store")
+	cmd = r.buildCommand("config", "--global", "credential.helper", "store")
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	if _, err := libExec.Exec(cmd); err != nil {
 		return errors.Wrapf(err, "error configuring git credential helper")
@@ -399,8 +374,8 @@ func (r *repo) setupAuth(ctx context.Context, repoCreds RepoCredentials) error {
 	return nil
 }
 
-func (r *repo) buildCommand(name string, arg ...string) *exec.Cmd {
-	cmd := exec.Command(name, arg...)
+func (r *repo) buildCommand(arg ...string) *exec.Cmd {
+	cmd := exec.Command("git", arg...)
 	homeEnvVar := fmt.Sprintf("HOME=%s", r.homeDir)
 	if cmd.Env == nil {
 		cmd.Env = []string{homeEnvVar}

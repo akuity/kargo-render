@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/akuity/bookkeeper/internal/file"
 	"github.com/stretchr/testify/require"
+
+	"github.com/akuity/bookkeeper/internal/file"
 )
 
 func TestWriteAppManifests(t *testing.T) {

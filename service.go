@@ -75,7 +75,6 @@ func (s *service) RenderManifests(
 	}
 
 	if rc.repo, err = git.Clone(
-		ctx,
 		rc.request.RepoURL,
 		git.RepoCredentials{
 			SSHPrivateKey: rc.request.RepoCreds.SSHPrivateKey,

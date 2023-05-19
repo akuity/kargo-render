@@ -1,8 +1,9 @@
 package bookkeeper
 
 import (
-	"github.com/akuity/bookkeeper/internal/git"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/akuity/bookkeeper/internal/git"
 )
 
 type renderRequestContext struct {

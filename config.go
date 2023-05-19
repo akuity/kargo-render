@@ -1,7 +1,6 @@
 package bookkeeper
 
 import (
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -17,6 +16,8 @@ import (
 	"github.com/akuity/bookkeeper/internal/helm"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/ytt"
+
+	_ "embed"
 )
 
 //go:embed schema.json

@@ -4,9 +4,10 @@ import (
 	"os"
 	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/akuity/bookkeeper/cmd/action"
 	"github.com/akuity/bookkeeper/cmd/cli"
-	log "github.com/sirupsen/logrus"
 )
 
 const binaryNameEnvVar = "BOOKKEEPER_BINARY_NAME"

@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/akuity/bookkeeper/internal/helm"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/ytt"
-	"github.com/stretchr/testify/require"
 )
 
 func TestLoadRepoConfig(t *testing.T) {

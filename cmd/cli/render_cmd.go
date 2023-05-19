@@ -87,7 +87,7 @@ func newRenderCommand() (*cobra.Command, error) {
 	return cmd, nil
 }
 
-func runRenderCmd(cmd *cobra.Command, args []string) error {
+func runRenderCmd(cmd *cobra.Command, _ []string) error {
 	req := bookkeeper.RenderRequest{}
 	var err error
 	req.Images, err = cmd.Flags().GetStringArray(flagImage)

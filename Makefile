@@ -13,7 +13,7 @@ SHELL ?= /bin/bash
 
 .PHONY: lint
 lint:
-	golangci-lint run --config golangci.yaml
+	golangci-lint run
 
 .PHONY: test-unit
 test-unit:
