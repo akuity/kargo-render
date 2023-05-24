@@ -57,6 +57,9 @@ type Repo interface {
 	// contains any differences from what's already at the head of the current
 	// branch.
 	HasDiffs() (bool, error)
+	// GetDiffPaths returns a string slice indicating the paths, relative to the
+	// root of the repository, of any new or modified files.
+	GetDiffPaths() ([]string, error)
 	// LastCommitID returns the ID (sha) of the most recent commit to the current
 	// branch.
 	LastCommitID() (string, error)
@@ -216,6 +219,22 @@ func (r *repo) HasDiffs() (bool, error) {
 	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
 	return len(resBytes) > 0,
 		errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
+}
+
+func (r *repo) GetDiffPaths() ([]string, error) {
+	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
+	if err != nil {
+		return nil,
+			errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
+	}
+	diffs := strings.Split(string(resBytes), "\n")
+	diffs = diffs[:len(diffs)-1]
+	paths := make([]string, len(diffs))
+	for i, rawDiff := range diffs {
+		temp := strings.TrimSpace(rawDiff)
+		paths[i] = strings.SplitN(temp, " ", 2)[1]
+	}
+	return paths, nil
 }
 
 func (r *repo) LastCommitID() (string, error) {

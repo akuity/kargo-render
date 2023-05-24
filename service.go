@@ -10,9 +10,9 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/internal/git"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/manifests"
+	"github.com/akuity/bookkeeper/pkg/git"
 )
 
 type ServiceOptions struct {
@@ -198,12 +198,14 @@ func (s *service) RenderManifests(
 	logger.Debug("wrote all manifests")
 
 	// Before committing, check if we actually have any diffs from the head of
-	// this branch. We'd have an error if we tried to commit with no diffs!
-	hasDiffs, err := rc.repo.HasDiffs()
+	// this branch that are NOT just Bookkeeper metadata. We'd have an error if we
+	// tried to commit with no diffs!
+	diffPaths, err := rc.repo.GetDiffPaths()
 	if err != nil {
 		return res, errors.Wrap(err, "error checking for diffs")
 	}
-	if !hasDiffs {
+	if len(diffPaths) == 0 ||
+		(len(diffPaths) == 1 && diffPaths[0] == ".bookkeeper/metadata.yaml") {
 		logger.WithField("commitBranch", rc.target.commit.branch).Debug(
 			"manifests do not differ from the head of the " +
 				"commit branch; no further action is required",
