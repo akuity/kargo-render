@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"net/url"
@@ -227,12 +228,14 @@ func (r *repo) GetDiffPaths() ([]string, error) {
 		return nil,
 			errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
 	}
-	diffs := strings.Split(string(resBytes), "\n")
-	diffs = diffs[:len(diffs)-1]
-	paths := make([]string, len(diffs))
-	for i, rawDiff := range diffs {
-		temp := strings.TrimSpace(rawDiff)
-		paths[i] = strings.SplitN(temp, " ", 2)[1]
+	paths := []string{}
+	scanner := bufio.NewScanner(bytes.NewReader(resBytes))
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		paths = append(
+			paths,
+			strings.SplitN(strings.TrimSpace(scanner.Text()), " ", 2)[1],
+		)
 	}
 	return paths, nil
 }
