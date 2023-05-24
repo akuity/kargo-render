@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
-	"github.com/akuity/bookkeeper/internal/git"
+	"github.com/akuity/bookkeeper/pkg/git"
 )
 
 func OpenPR(

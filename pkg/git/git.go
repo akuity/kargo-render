@@ -1,6 +1,7 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"net/url"
@@ -57,6 +58,9 @@ type Repo interface {
 	// contains any differences from what's already at the head of the current
 	// branch.
 	HasDiffs() (bool, error)
+	// GetDiffPaths returns a string slice indicating the paths, relative to the
+	// root of the repository, of any new or modified files.
+	GetDiffPaths() ([]string, error)
 	// LastCommitID returns the ID (sha) of the most recent commit to the current
 	// branch.
 	LastCommitID() (string, error)
@@ -216,6 +220,24 @@ func (r *repo) HasDiffs() (bool, error) {
 	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
 	return len(resBytes) > 0,
 		errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
+}
+
+func (r *repo) GetDiffPaths() ([]string, error) {
+	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
+	if err != nil {
+		return nil,
+			errors.Wrapf(err, "error checking status of branch %q", r.currentBranch)
+	}
+	paths := []string{}
+	scanner := bufio.NewScanner(bytes.NewReader(resBytes))
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		paths = append(
+			paths,
+			strings.SplitN(strings.TrimSpace(scanner.Text()), " ", 2)[1],
+		)
+	}
+	return paths, nil
 }
 
 func (r *repo) LastCommitID() (string, error) {
