@@ -299,34 +299,38 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 		rc.source.commit,
 	)
 
-	// Find all recent commits
-	var memberCommitMsgs []string
-	if rc.target.oldBranchMetadata.SourceCommit != "" {
-		// Add info about member commits
-		formattedCommitMsg = fmt.Sprintf(
-			"%s\n\nThis includes the following changes (newest to oldest):",
-			formattedCommitMsg,
-		)
-		var err error
-		if memberCommitMsgs, err = rc.repo.CommitMessages(
-			rc.target.oldBranchMetadata.SourceCommit,
-			rc.source.commit,
-		); err != nil {
-			return "", errors.Wrapf(
-				err,
-				"error getting commit messages between commit %q and %q",
-				rc.target.oldBranchMetadata.SourceCommit,
-				rc.source.commit,
-			)
-		}
-		for _, memberCommitMsg := range memberCommitMsgs {
-			formattedCommitMsg = fmt.Sprintf(
-				"%s\n  * %s",
-				formattedCommitMsg,
-				memberCommitMsg,
-			)
-		}
-	}
+	// TODO: Tentatively removing the following because it simply results in too
+	// much noise in the repo history. Leaving it commented for now in case we
+	// decide to bring it back later.
+	//
+	// // Find all recent commits
+	// if rc.target.oldBranchMetadata.SourceCommit != "" {
+	// 	var memberCommitMsgs []string
+	// 	// Add info about member commits
+	// 	formattedCommitMsg = fmt.Sprintf(
+	// 		"%s\n\nThis includes the following changes (newest to oldest):",
+	// 		formattedCommitMsg,
+	// 	)
+	// 	var err error
+	// 	if memberCommitMsgs, err = rc.repo.CommitMessages(
+	// 		rc.target.oldBranchMetadata.SourceCommit,
+	// 		rc.source.commit,
+	// 	); err != nil {
+	// 		return "", errors.Wrapf(
+	// 			err,
+	// 			"error getting commit messages between commit %q and %q",
+	// 			rc.target.oldBranchMetadata.SourceCommit,
+	// 			rc.source.commit,
+	// 		)
+	// 	}
+	// 	for _, memberCommitMsg := range memberCommitMsgs {
+	// 		formattedCommitMsg = fmt.Sprintf(
+	// 			"%s\n  * %s",
+	// 			formattedCommitMsg,
+	// 			memberCommitMsg,
+	// 		)
+	// 	}
+	// }
 
 	if len(rc.target.newBranchMetadata.ImageSubstitutions) != 0 {
 		formattedCommitMsg = fmt.Sprintf(
