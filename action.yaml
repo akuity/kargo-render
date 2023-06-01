@@ -9,5 +9,5 @@ inputs:
     required: true
 runs:
   using: docker
-  image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-alpha.2-rc.17
+  image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-rc.18
   entrypoint: bookkeeper-action
