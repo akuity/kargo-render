@@ -91,9 +91,12 @@ func preRender(
 				appConfig.ConfigManagement.Kustomize.EnableHelm,
 			)
 		}
+		if err != nil {
+			return nil, err
+		}
 		appLogger.Debug("completed manifest pre-rendering")
 	}
-	return manifests, err
+	return manifests, nil
 }
 
 func renderLastMile(
