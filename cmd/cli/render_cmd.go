@@ -81,6 +81,13 @@ func newRenderCommand() (*cobra.Command, error) {
 		"",
 		"the environment-specific branch to render manifests into (required)",
 	)
+	cmd.Flags().Bool(
+		flagAllowEmpty,
+		false,
+		"allow the rendered manifests to be empty; if false this is disallowed as "+
+			"a safeguard against scenarios where a bug of any kind might otherwise "+
+			"cause Bookkeeper to wipe out the contents of the target branch in error",
+	)
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		return nil, err
 	}
@@ -115,6 +122,10 @@ func runRenderCmd(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	req.CommitMessage, err = cmd.Flags().GetString(flagCommitMessage)
+	if err != nil {
+		return err
+	}
+	req.AllowEmpty, err = cmd.Flags().GetBool(flagAllowEmpty)
 	if err != nil {
 		return err
 	}

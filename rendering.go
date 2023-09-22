@@ -9,10 +9,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/internal/helm"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/strings"
-	"github.com/akuity/bookkeeper/internal/ytt"
 )
 
 var lastMileKustomizationBytes = []byte(
@@ -24,9 +22,10 @@ resources:
 `,
 )
 
-func preRender(
+func (s *service) preRender(
 	ctx context.Context,
 	rc renderRequestContext,
+	repoDir string,
 ) (map[string][]byte, error) {
 	logger := rc.logger
 	manifests := map[string][]byte{}
@@ -49,12 +48,12 @@ func preRender(
 				"chartPath":        chartPath,
 				"valuesPaths":      valuesPaths,
 			})
-			chartPath = filepath.Join(rc.repo.WorkingDir(), chartPath)
+			chartPath = filepath.Join(repoDir, chartPath)
 			absValuesPaths := make([]string, len(valuesPaths))
 			for i, valuesPath := range valuesPaths {
-				absValuesPaths[i] = filepath.Join(rc.repo.WorkingDir(), valuesPath)
+				absValuesPaths[i] = filepath.Join(repoDir, valuesPath)
 			}
-			manifests[appName], err = helm.Render(
+			manifests[appName], err = s.helmRenderFn(
 				ctx,
 				appConfig.ConfigManagement.Helm.ReleaseName,
 				chartPath,
@@ -71,9 +70,9 @@ func preRender(
 			})
 			absPaths := make([]string, len(paths))
 			for i, path := range paths {
-				absPaths[i] = filepath.Join(rc.repo.WorkingDir(), path)
+				absPaths[i] = filepath.Join(repoDir, path)
 			}
-			manifests[appName], err = ytt.Render(ctx, absPaths)
+			manifests[appName], err = s.yttRenderFn(ctx, absPaths)
 		} else {
 			path := appConfig.ConfigManagement.Kustomize.Path
 			if path == "" {
@@ -83,8 +82,8 @@ func preRender(
 				"configManagement": "kustomize",
 				"path":             path,
 			})
-			path = filepath.Join(rc.repo.WorkingDir(), path)
-			manifests[appName], err = kustomize.Render(
+			path = filepath.Join(repoDir, path)
+			manifests[appName], err = s.kustomizeRenderFn(
 				ctx,
 				path,
 				nil,
@@ -95,6 +94,19 @@ func preRender(
 			return nil, err
 		}
 		appLogger.Debug("completed manifest pre-rendering")
+	}
+
+	if !rc.request.AllowEmpty {
+		// This is a sanity check. Argo CD does this also.
+		for appName := range rc.target.branchConfig.AppConfigs {
+			if manifests, ok := manifests[appName]; !ok || len(manifests) == 0 {
+				return nil, errors.Errorf(
+					"pre-rendered manifests for app %q contain 0 bytes; this looks "+
+						"like a mistake and allowEmpty is not set; refusing to proceed",
+					appName,
+				)
+			}
+		}
 	}
 	return manifests, nil
 }
