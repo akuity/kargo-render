@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Render manifests
-      uses: akuity/akuity-bookkeeper@v0.1.0-rc.19
+      uses: akuity/akuity-bookkeeper@v0.1.0-rc.21
       with:
         personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
         targetBranch: env/test

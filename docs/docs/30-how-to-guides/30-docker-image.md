@@ -17,7 +17,7 @@ easiest option for experimenting locally with Bookkeeper!
 Example usage:
 
 ```shell
-docker run -it ghcr.io/akuity/bookkeeper:v0.1.0-rc.19 \
+docker run -it ghcr.io/akuity/bookkeeper:v0.1.0-rc.21 \
   bookkeeper render \
   --repo https://github.com/<your GitHub handle>/bookkeeper-demo-deploy \
   --repo-username <your GitHub handle> \
