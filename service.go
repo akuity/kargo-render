@@ -157,6 +157,13 @@ func (s *service) RenderManifests(
 	if err != nil {
 		return res, errors.Wrap(err, "error loading branch metadata")
 	}
+	if oldTargetBranchMetadata == nil {
+		return res, errors.Errorf(
+			"target branch %q already exists, but does not appear to be managed by "+
+				"Bookkeeper; refusing to overwrite branch contents",
+			rc.request.TargetBranch,
+		)
+	}
 	rc.target.oldBranchMetadata = *oldTargetBranchMetadata
 
 	if rc.target.commit.branch, err = switchToCommitBranch(rc); err != nil {
