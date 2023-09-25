@@ -10,8 +10,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/akuity/bookkeeper/internal/helm"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/manifests"
+	"github.com/akuity/bookkeeper/internal/ytt"
 	"github.com/akuity/bookkeeper/pkg/git"
 )
 
@@ -28,6 +30,23 @@ type Service interface {
 
 type service struct {
 	logger *log.Logger
+
+	// These behaviors are overridable for testing purposes
+	helmRenderFn func(
+		ctx context.Context,
+		releaseName string,
+		chartPath string,
+		valuesPaths []string,
+	) ([]byte, error)
+
+	yttRenderFn func(ctx context.Context, paths []string) ([]byte, error)
+
+	kustomizeRenderFn func(
+		ctx context.Context,
+		path string,
+		images []string,
+		enableHelm bool,
+	) ([]byte, error)
 }
 
 // NewService returns an implementation of the Service interface for
@@ -42,7 +61,10 @@ func NewService(opts *ServiceOptions) Service {
 	logger := log.New()
 	logger.SetLevel(log.Level(opts.LogLevel))
 	return &service{
-		logger: logger,
+		logger:            logger,
+		helmRenderFn:      helm.Render,
+		yttRenderFn:       ytt.Render,
+		kustomizeRenderFn: kustomize.Render,
 	}
 }
 
@@ -145,7 +167,8 @@ func (s *service) RenderManifests(
 		}
 	}
 
-	if rc.target.prerenderedManifests, err = preRender(ctx, rc); err != nil {
+	if rc.target.prerenderedManifests, err =
+		s.preRender(ctx, rc, rc.repo.WorkingDir()); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering manifests")
 	}
 

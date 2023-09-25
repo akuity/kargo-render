@@ -11,6 +11,16 @@ import (
 	"github.com/akuity/bookkeeper/internal/file"
 )
 
+func TestNewService(t *testing.T) {
+	s := NewService(nil)
+	svc, ok := s.(*service)
+	require.True(t, ok)
+	require.NotNil(t, svc.logger)
+	require.NotNil(t, svc.helmRenderFn)
+	require.NotNil(t, svc.yttRenderFn)
+	require.NotNil(t, svc.kustomizeRenderFn)
+}
+
 func TestWriteAppManifests(t *testing.T) {
 	testYAMLChunk1 := []byte(`kind: Deployment
 metadata:
