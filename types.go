@@ -46,6 +46,12 @@ type RenderRequest struct {
 	// CommitMessage offers the opportunity to, optionally, override the first
 	// line of the commit message that Bookkeeper would normally generate.
 	CommitMessage string `json:"commitMessage,omitempty"`
+	// AllowEmpty indicates whether or not Bookkeeper should allow the rendered
+	// manifests to be empty. If this is false (the default), Bookkeeper will
+	// return an error if the rendered manifests are empty. This is a safeguard
+	// against scenarios where a bug of any kind might otherwise cause Bookkeeper
+	// to wipe out the contents of the target branch in error.
+	AllowEmpty bool `json:"allowEmpty,omitempty"`
 }
 
 // RepoCredentials represents the credentials for connecting to a private git

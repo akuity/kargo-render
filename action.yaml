@@ -7,6 +7,10 @@ inputs:
   targetBranch:
     description: The environment branch for which you want to render manifests
     required: true
+  allowEmpty:
+    description: Whether to allow rendered manifests to be empty. If false this is disallowed as a safeguard against scenarios where a bug of any kind might otherwise cause Bookkeeper to wipe out the contents of the target branch in error.
+    required: false
+    default: 'false'
 runs:
   using: docker
   image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-rc.21

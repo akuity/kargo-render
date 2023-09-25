@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	flagAllowEmpty    = "allow-empty"
 	flagCommitMessage = "commit-message"
 	flagDebug         = "debug"
 	flagImage         = "image"
