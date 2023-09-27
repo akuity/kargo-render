@@ -8,7 +8,7 @@ RUN curl -L -o /tmp/helm.tar.gz \
       https://get.helm.sh/helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz \
     && tar xvfz /tmp/helm.tar.gz -C /usr/local/bin --strip-components 1
 
-ARG KUSTOMIZE_VERSION=v4.5.5
+ARG KUSTOMIZE_VERSION=v5.1.1
 RUN curl -L -o /tmp/kustomize.tar.gz \
       https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz \
     && tar xvfz /tmp/kustomize.tar.gz -C /usr/local/bin
