@@ -3,17 +3,17 @@ FROM --platform=$BUILDPLATFORM golang:1.20.7-bookworm as builder
 ARG TARGETOS
 ARG TARGETARCH
 
-ARG HELM_VERSION=v3.9.4
+ARG HELM_VERSION=v3.12.3
 RUN curl -L -o /tmp/helm.tar.gz \
       https://get.helm.sh/helm-${HELM_VERSION}-linux-${TARGETARCH}.tar.gz \
     && tar xvfz /tmp/helm.tar.gz -C /usr/local/bin --strip-components 1
 
-ARG KUSTOMIZE_VERSION=v4.5.5
+ARG KUSTOMIZE_VERSION=v5.1.1
 RUN curl -L -o /tmp/kustomize.tar.gz \
       https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz \
     && tar xvfz /tmp/kustomize.tar.gz -C /usr/local/bin
 
-ARG YTT_VERSION=v0.41.1
+ARG YTT_VERSION=v0.46.0
 RUN curl -L -o /usr/local/bin/ytt \
       https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-${TARGETARCH} \
       && chmod 755 /usr/local/bin/ytt
