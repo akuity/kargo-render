@@ -13,7 +13,7 @@ RUN curl -L -o /tmp/kustomize.tar.gz \
       https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz \
     && tar xvfz /tmp/kustomize.tar.gz -C /usr/local/bin
 
-ARG YTT_VERSION=v0.45.6
+ARG YTT_VERSION=v0.46.0
 RUN curl -L -o /usr/local/bin/ytt \
       https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-${TARGETARCH} \
       && chmod 755 /usr/local/bin/ytt
