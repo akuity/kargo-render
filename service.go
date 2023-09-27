@@ -35,6 +35,7 @@ type service struct {
 	helmRenderFn func(
 		ctx context.Context,
 		releaseName string,
+		namespace string,
 		chartPath string,
 		valuesPaths []string,
 	) ([]byte, error)

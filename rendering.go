@@ -45,6 +45,7 @@ func (s *service) preRender(
 			appLogger = appLogger.WithFields(log.Fields{
 				"configManagement": "helm",
 				"releaseName":      appConfig.ConfigManagement.Helm.ReleaseName,
+				"namespace":        appConfig.ConfigManagement.Helm.Namespace,
 				"chartPath":        chartPath,
 				"valuesPaths":      valuesPaths,
 			})
@@ -56,6 +57,7 @@ func (s *service) preRender(
 			manifests[appName], err = s.helmRenderFn(
 				ctx,
 				appConfig.ConfigManagement.Helm.ReleaseName,
+				appConfig.ConfigManagement.Helm.Namespace,
 				chartPath,
 				absValuesPaths,
 			)
