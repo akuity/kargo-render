@@ -13,5 +13,5 @@ inputs:
     default: 'false'
 runs:
   using: docker
-  image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-rc.21
+  image: docker://ghcr.io/akuity/bookkeeper:v0.1.0-rc.22
   entrypoint: bookkeeper-action
