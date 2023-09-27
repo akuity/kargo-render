@@ -102,6 +102,10 @@
 					"type": "string",
 					"pattern": "^\\w[\\w-]*\\w$"
 				},
+				"namespace": {
+					"type": "string",
+					"pattern": "^\\w[\\w-]*\\w$"
+				},
 				"chartPath": {
 					"$ref": "#/definitions/relativePath"
 				},

@@ -42,6 +42,7 @@ func TestPreRender(t *testing.T) {
 					context.Context,
 					string,
 					string,
+					string,
 					[]string,
 				) ([]byte, error) {
 					return nil, errors.New("something went wrong")
@@ -70,6 +71,7 @@ func TestPreRender(t *testing.T) {
 			service: &service{
 				helmRenderFn: func(
 					context.Context,
+					string,
 					string,
 					string,
 					[]string,

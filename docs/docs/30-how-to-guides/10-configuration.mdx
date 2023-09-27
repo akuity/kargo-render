@@ -199,6 +199,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: foo
+          namespace: foo #optional
           chartPath: charts/foo
           valuesPaths:
           - env/test/foo/values.yaml
@@ -207,6 +208,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: bar
+          namespace: bar #optional
           chartPath: charts/bar
           valuesPaths:
           - env/test/bar/values.yaml
@@ -217,6 +219,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: foo
+          namespace: foo #optional
           chartPath: charts/foo
           valuesPaths:
           - env/stage/foo/values.yaml
@@ -225,6 +228,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: bar
+          namespace: bar #optional
           chartPath: charts/bar
           valuesPaths:
           - env/stage/bar/values.yaml
@@ -235,6 +239,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: foo
+          namespace: foo #optional
           chartPath: charts/foo
           valuesPaths:
           - env/prod/foo/values.yaml
@@ -243,6 +248,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: bar
+          namespace: bar #optional
           chartPath: charts/bar
           valuesPaths:
           - env/prod/bar/values.yaml
@@ -332,6 +338,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: foo
+          namespace: foo #optional
           chartPath: charts/foo
           valuesPaths:
           - env/${1}/foo/values.yaml
@@ -340,6 +347,7 @@ branchConfigs:
       configManagement:
         helm:
           releaseName: bar
+          namespace: bar #optional
           chartPath: charts/bar
           valuesPaths:
           - env/${1}/bar/values.yaml

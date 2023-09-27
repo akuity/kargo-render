@@ -17,6 +17,10 @@ type Config struct {
 	// `--values` flag in the `helm template` command. By convention, if left
 	// unspecified, one path will be assumed: <branch name>/values.yaml.
 	ValuesPaths []string `json:"valuesPaths,omitempty"`
+	// Namespace is the Kubernetes namespace in which the Helm chart will be
+	// rendered. This is used as an argument in the `helm template` command. By
+	// convention, if left unspecified, the value `default` is assumed.
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // Expand expands all file/directory paths referenced by this configuration
