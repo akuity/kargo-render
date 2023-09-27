@@ -1,7 +1,7 @@
 # This file is described here: https://help.github.com/en/articles/about-code-owners
 
 # Global owners
-* @alexmt @jessesuen @krancour @rbreeze @devholic @kencochrane
+* @alexmt @jessesuen @krancour @rbreeze @devholic @kencochrane @shelby-moore @evgeny-goldin
 
 # Doc owners
 /docs/ @morey-tech @dhpup
