@@ -18,6 +18,7 @@ import (
 func Render(
 	ctx context.Context,
 	releaseName string,
+	namespace string,
 	chartPath string,
 	valuesPaths []string,
 ) ([]byte, error) {
@@ -31,6 +32,7 @@ func Render(
 		"", // Repo root
 		"", // Revision
 		&apiclient.ManifestRequest{
+			Namespace: namespace,
 			// Both of these fields need to be non-nil
 			Repo: &argoappv1.Repository{},
 			ApplicationSource: &argoappv1.ApplicationSource{
