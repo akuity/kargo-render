@@ -26,6 +26,7 @@ func Render(
 	path string,
 	images []string,
 	enableHelm bool,
+	loadRestrictor string,
 ) ([]byte, error) {
 	kustomizeImages := make(argoappv1.KustomizeImages, len(images))
 	for i, image := range images {
@@ -34,12 +35,6 @@ func Render(
 			argoappv1.KustomizeImage(fmt.Sprintf("%s=%s", addr, image))
 	}
 
-	var opts *argoappv1.KustomizeOptions
-	if enableHelm {
-		opts = &argoappv1.KustomizeOptions{
-			BuildOptions: "--enable-helm",
-		}
-	}
 	res, err := repository.GenerateManifests(
 		ctx,
 		path,
@@ -57,7 +52,7 @@ func Render(
 					Images: kustomizeImages,
 				},
 			},
-			KustomizeOptions: opts,
+			KustomizeOptions: BuildKustomizeOptions(enableHelm, loadRestrictor),
 		},
 		true,
 		&git.NoopCredsStore{}, // No need for this
@@ -79,4 +74,27 @@ func Render(
 
 	// Glue the manifests together
 	return manifests.CombineYAML(yamlManifests), nil
+}
+
+func BuildKustomizeOptions(
+	enableHelm bool,
+	loadRestrictor string,
+) *argoappv1.KustomizeOptions {
+	buildOptions := ""
+
+	if enableHelm {
+		buildOptions += "--enable-helm"
+	}
+
+	if loadRestrictor != "" {
+		if buildOptions != "" {
+			buildOptions += " "
+		}
+
+		buildOptions += fmt.Sprintf("--load-restrictor %s", loadRestrictor)
+	}
+
+	return &argoappv1.KustomizeOptions{
+		BuildOptions: buildOptions,
+	}
 }

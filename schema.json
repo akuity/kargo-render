@@ -127,6 +127,9 @@
 				},
 				"enableHelm": {
 					"type": "boolean"
+				},
+				"loadRestrictor": {
+					"type": "string"
 				}
 			}
 		},

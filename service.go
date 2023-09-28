@@ -47,6 +47,7 @@ type service struct {
 		path string,
 		images []string,
 		enableHelm bool,
+		loadRestrictor string,
 	) ([]byte, error)
 }
 

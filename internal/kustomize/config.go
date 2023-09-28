@@ -13,6 +13,12 @@ type Config struct {
 	// EnableHelm specifies whether Kustomize's Helm Chart Inflator should be
 	// enabled. If left unspecified, it defaults to false -- not enabled.
 	EnableHelm bool `json:"enableHelm,omitempty"`
+	// LoadRestrictor specifies whether the Kustomization may load files from
+	// outside its root. If set to 'LoadRestrictionsNone', the Kustomization
+	// may load files from outside its root. If left unspecified, it defaults
+	// to `LoadRestrictionsRootOnly` - which restricts the Kustomization
+	// to only loading files from inside its root.
+	LoadRestrictor string `json:"loadRestrictor,omitempty"`
 }
 
 // Expand expands all file/directory paths referenced by this configuration
