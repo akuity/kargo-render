@@ -19,7 +19,7 @@ func TestBuildKustomizeOptions(t *testing.T) {
 			enableHelm:     true,
 			loadRestrictor: "",
 			expected: &argoappv1.KustomizeOptions{
-				BuildOptions: "--enable-helm",
+				BuildOptions: "--enable-helm --load-restrictor LoadRestrictionsRootOnly", // nolint:all
 			},
 		},
 		{
@@ -35,7 +35,7 @@ func TestBuildKustomizeOptions(t *testing.T) {
 			enableHelm:     false,
 			loadRestrictor: "",
 			expected: &argoappv1.KustomizeOptions{
-				BuildOptions: "",
+				BuildOptions: "--load-restrictor LoadRestrictionsRootOnly",
 			},
 		},
 		{

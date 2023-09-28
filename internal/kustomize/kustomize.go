@@ -83,15 +83,13 @@ func BuildKustomizeOptions(
 	buildOptions := ""
 
 	if enableHelm {
-		buildOptions += "--enable-helm"
+		buildOptions += "--enable-helm "
 	}
 
 	if loadRestrictor != "" {
-		if buildOptions != "" {
-			buildOptions += " "
-		}
-
 		buildOptions += fmt.Sprintf("--load-restrictor %s", loadRestrictor)
+	} else {
+		buildOptions += "--load-restrictor LoadRestrictionsRootOnly"
 	}
 
 	return &argoappv1.KustomizeOptions{
