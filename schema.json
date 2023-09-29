@@ -127,6 +127,10 @@
 				},
 				"enableHelm": {
 					"type": "boolean"
+				},
+				"loadRestrictor": {
+					"type": "string",
+					"enum": ["LoadRestrictionsRootOnly", "LoadRestrictionsNone"]
 				}
 			}
 		},

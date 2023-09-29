@@ -89,7 +89,7 @@ func (s *service) preRender(
 				ctx,
 				path,
 				nil,
-				appConfig.ConfigManagement.Kustomize.EnableHelm,
+				*appConfig.ConfigManagement.Kustomize,
 			)
 		}
 		if err != nil {
@@ -196,7 +196,7 @@ func renderLastMile(
 			)
 		}
 		if manifests[appName], err =
-			kustomize.Render(ctx, appDir, images, false); err != nil {
+			kustomize.Render(ctx, appDir, images, kustomize.Config{}); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
 				"error rendering manifests from %q",
