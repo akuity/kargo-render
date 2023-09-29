@@ -154,8 +154,7 @@ func TestPreRender(t *testing.T) {
 					context.Context,
 					string,
 					[]string,
-					bool,
-					string,
+					kustomize.Config,
 				) ([]byte, error) {
 					return nil, errors.New("something went wrong")
 				},
@@ -185,8 +184,7 @@ func TestPreRender(t *testing.T) {
 					context.Context,
 					string,
 					[]string,
-					bool,
-					string,
+					kustomize.Config,
 				) ([]byte, error) {
 					return fakeManifest, nil
 				},
@@ -216,8 +214,7 @@ func TestPreRender(t *testing.T) {
 					context.Context,
 					string,
 					[]string,
-					bool,
-					string,
+					kustomize.Config,
 				) ([]byte, error) {
 					return []byte{}, nil // This is probably a mistake!
 				},

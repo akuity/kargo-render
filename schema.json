@@ -129,7 +129,8 @@
 					"type": "boolean"
 				},
 				"loadRestrictor": {
-					"type": "string"
+					"type": "string",
+					"enum": ["LoadRestrictionsRootOnly", "LoadRestrictionsNone"]
 				}
 			}
 		},

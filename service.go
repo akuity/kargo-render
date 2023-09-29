@@ -46,8 +46,7 @@ type service struct {
 		ctx context.Context,
 		path string,
 		images []string,
-		enableHelm bool,
-		loadRestrictor string,
+		cfg kustomize.Config,
 	) ([]byte, error)
 }
 
