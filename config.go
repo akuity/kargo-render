@@ -8,14 +8,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/akuity/bookkeeper/internal/argocd"
+	"github.com/akuity/bookkeeper/internal/file"
+	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
-
-	"github.com/akuity/bookkeeper/internal/file"
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/ytt"
 
 	_ "embed"
 )
@@ -31,7 +29,8 @@ func init() {
 // repoConfig all Bookkeeper configuration options for a repository.
 type repoConfig struct {
 	// BranchConfigs is a list of branch-specific configurations.
-	BranchConfigs []branchConfig `json:"branchConfigs,omitempty"`
+	BranchConfigs     []branchConfig           `json:"branchConfigs,omitempty"`
+	RenderingSettings argocd.RenderingSettings `json:"rendering,omitempty"`
 }
 
 func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
@@ -84,6 +83,7 @@ type appConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch and app.
 	ConfigManagement configManagementConfig `json:"configManagement,omitempty"`
+	K8S              argocd.K8sSettings     `json:"k8s,omitempty"`
 	// OutputPath specifies a path relative to the root of the repository where
 	// rendered manifests for this app will be stored in this branch.
 	OutputPath string `json:"outputPath,omitempty"`
@@ -102,29 +102,23 @@ func (a appConfig) expand(values []string) appConfig {
 // configManagementConfig is a wrapper around more specific configuration for
 // one of three supported configuration management tools: helm, kustomize, or
 // ytt. Only one of its fields may be non-nil.
-type configManagementConfig struct { // nolint: revive
-	// Helm encapsulates optional Helm configuration options.
-	Helm *helm.Config `json:"helm,omitempty"`
-	// Kustomize encapsulates optional Kustomize configuration options.
-	Kustomize *kustomize.Config `json:"kustomize,omitempty"`
-	// Ytt encapsulates optional ytt configuration options.
-	Ytt *ytt.Config `json:"ytt,omitempty"`
-}
+type configManagementConfig v1alpha1.ApplicationSource
 
 func (c configManagementConfig) expand(values []string) configManagementConfig {
 	cfg := c
-	if c.Helm != nil {
-		helmCfg := c.Helm.Expand(values)
-		cfg.Helm = &helmCfg
-	}
-	if c.Kustomize != nil {
-		kustomizeCfg := c.Kustomize.Expand(values)
-		cfg.Kustomize = &kustomizeCfg
-	}
-	if c.Ytt != nil {
-		yttCfg := c.Ytt.Expand(values)
-		cfg.Ytt = &yttCfg
-	}
+	// TODO: implement replacing here
+	//if c.Helm != nil {
+	//	helmCfg := c.Helm.Expand(values)
+	//	cfg.Helm = &helmCfg
+	//}
+	//if c.Kustomize != nil {
+	//	kustomizeCfg := c.Kustomize.Expand(values)
+	//	cfg.Kustomize = &kustomizeCfg
+	//}
+	//if c.Ytt != nil {
+	//	yttCfg := c.Ytt.Expand(values)
+	//	cfg.Ytt = &yttCfg
+	//}
 	return cfg
 }
 

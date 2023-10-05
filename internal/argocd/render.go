@@ -1,30 +1,37 @@
-package helm
+package argocd
 
 import (
 	"context"
 
+	"github.com/akuity/bookkeeper/internal/manifests"
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
 	"github.com/argoproj/argo-cd/v2/reposerver/repository"
 	"github.com/argoproj/argo-cd/v2/util/git"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
-
-	"github.com/akuity/bookkeeper/internal/manifests"
 )
 
-// Render delegates, in-process to the Argo CD repo server to render plain YAML
-// manifests from a Helm chart.
-func Render(
-	ctx context.Context,
-	releaseName string,
-	namespace string,
-	chartPath string,
-	valuesPaths []string,
-) ([]byte, error) {
+type K8sSettings struct {
+	Namespace   string   `json:"namespace,omitempty"`
+	Version     string   `json:"version,omitempty"`
+	ApiVersions []string `json:"apiVersions,omitempty"`
+}
+
+type Settings struct {
+	K8S       K8sSettings       `json:"k8s"`
+	Rendering RenderingSettings `json:"rendering"`
+}
+
+type RenderingSettings struct {
+	KustomizeOptions *argoappv1.KustomizeOptions `json:"kustomize"`
+	HelmOptions      *argoappv1.HelmOptions      `json:"helm"`
+}
+
+func Render(ctx context.Context, path string, src argoappv1.ApplicationSource, settings Settings) ([]byte, error) {
 	res, err := repository.GenerateManifests(
 		ctx,
-		chartPath,
+		path,
 		// Seems ok for these next two arguments to be empty strings. If this is
 		// last mile rendering, we might be doing this in a directory outside of any
 		// repo. And event for regular rendering, we have already checked the
@@ -32,15 +39,14 @@ func Render(
 		"", // Repo root
 		"", // Revision
 		&apiclient.ManifestRequest{
-			Namespace: namespace,
 			// Both of these fields need to be non-nil
-			Repo: &argoappv1.Repository{},
-			ApplicationSource: &argoappv1.ApplicationSource{
-				Helm: &argoappv1.ApplicationSourceHelm{
-					ReleaseName: releaseName,
-					ValueFiles:  valuesPaths,
-				},
-			},
+			Repo:              &argoappv1.Repository{},
+			ApplicationSource: &src,
+			KustomizeOptions:  settings.Rendering.KustomizeOptions,
+			HelmOptions:       settings.Rendering.HelmOptions,
+			ApiVersions:       settings.K8S.ApiVersions,
+			Namespace:         settings.K8S.Namespace,
+			KubeVersion:       settings.K8S.Version,
 		},
 		true,
 		&git.NoopCredsStore{}, // No need for this

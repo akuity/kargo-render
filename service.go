@@ -6,14 +6,13 @@ import (
 	"os"
 	"path/filepath"
 
+	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
+	"github.com/akuity/bookkeeper/internal/argocd"
 	"github.com/akuity/bookkeeper/internal/manifests"
-	"github.com/akuity/bookkeeper/internal/ytt"
 	"github.com/akuity/bookkeeper/pkg/git"
 )
 
@@ -29,25 +28,8 @@ type Service interface {
 }
 
 type service struct {
-	logger *log.Logger
-
-	// These behaviors are overridable for testing purposes
-	helmRenderFn func(
-		ctx context.Context,
-		releaseName string,
-		namespace string,
-		chartPath string,
-		valuesPaths []string,
-	) ([]byte, error)
-
-	yttRenderFn func(ctx context.Context, paths []string) ([]byte, error)
-
-	kustomizeRenderFn func(
-		ctx context.Context,
-		path string,
-		images []string,
-		cfg kustomize.Config,
-	) ([]byte, error)
+	logger   *log.Logger
+	renderFn func(ctx context.Context, path string, src argoappv1.ApplicationSource, settings argocd.Settings) ([]byte, error)
 }
 
 // NewService returns an implementation of the Service interface for
@@ -62,10 +44,8 @@ func NewService(opts *ServiceOptions) Service {
 	logger := log.New()
 	logger.SetLevel(log.Level(opts.LogLevel))
 	return &service{
-		logger:            logger,
-		helmRenderFn:      helm.Render,
-		yttRenderFn:       ytt.Render,
-		kustomizeRenderFn: kustomize.Render,
+		logger:   logger,
+		renderFn: argocd.Render,
 	}
 }
 
@@ -160,16 +140,14 @@ func (s *service) RenderManifests(
 		rc.target.branchConfig.AppConfigs = map[string]appConfig{
 			"app": {
 				ConfigManagement: configManagementConfig{
-					Kustomize: &kustomize.Config{
-						Path: rc.request.TargetBranch,
-					},
+					Path: rc.request.TargetBranch,
 				},
 			},
 		}
 	}
 
 	if rc.target.prerenderedManifests, err =
-		s.preRender(ctx, rc, rc.repo.WorkingDir()); err != nil {
+		s.preRender(ctx, rc, rc.repo.WorkingDir(), repoConfig.RenderingSettings); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering manifests")
 	}
 

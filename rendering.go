@@ -6,11 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
+	"github.com/akuity/bookkeeper/internal/argocd"
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/strings"
+	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/pkg/errors"
 )
 
 var lastMileKustomizationBytes = []byte(
@@ -26,72 +26,19 @@ func (s *service) preRender(
 	ctx context.Context,
 	rc renderRequestContext,
 	repoDir string,
+	settings argocd.RenderingSettings,
 ) (map[string][]byte, error) {
 	logger := rc.logger
 	manifests := map[string][]byte{}
 	var err error
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
 		appLogger := logger.WithField("app", appName)
-		if appConfig.ConfigManagement.Helm != nil {
-			chartPath := appConfig.ConfigManagement.Helm.ChartPath
-			if chartPath == "" {
-				chartPath = "base"
-			}
-			valuesPaths := appConfig.ConfigManagement.Helm.ValuesPaths
-			if len(valuesPaths) == 0 {
-				valuesPaths =
-					[]string{filepath.Join(rc.request.TargetBranch, "values.yaml")}
-			}
-			appLogger = appLogger.WithFields(log.Fields{
-				"configManagement": "helm",
-				"releaseName":      appConfig.ConfigManagement.Helm.ReleaseName,
-				"namespace":        appConfig.ConfigManagement.Helm.Namespace,
-				"chartPath":        chartPath,
-				"valuesPaths":      valuesPaths,
-			})
-			chartPath = filepath.Join(repoDir, chartPath)
-			absValuesPaths := make([]string, len(valuesPaths))
-			for i, valuesPath := range valuesPaths {
-				absValuesPaths[i] = filepath.Join(repoDir, valuesPath)
-			}
-			manifests[appName], err = s.helmRenderFn(
-				ctx,
-				appConfig.ConfigManagement.Helm.ReleaseName,
-				appConfig.ConfigManagement.Helm.Namespace,
-				chartPath,
-				absValuesPaths,
-			)
-		} else if appConfig.ConfigManagement.Ytt != nil {
-			paths := appConfig.ConfigManagement.Ytt.Paths
-			if len(paths) == 0 {
-				paths = []string{"base", rc.request.TargetBranch}
-			}
-			appLogger = appLogger.WithFields(log.Fields{
-				"configManagement": "ytt",
-				"paths":            paths,
-			})
-			absPaths := make([]string, len(paths))
-			for i, path := range paths {
-				absPaths[i] = filepath.Join(repoDir, path)
-			}
-			manifests[appName], err = s.yttRenderFn(ctx, absPaths)
-		} else {
-			path := appConfig.ConfigManagement.Kustomize.Path
-			if path == "" {
-				path = rc.request.TargetBranch
-			}
-			appLogger = appLogger.WithFields(log.Fields{
-				"configManagement": "kustomize",
-				"path":             path,
-			})
-			path = filepath.Join(repoDir, path)
-			manifests[appName], err = s.kustomizeRenderFn(
-				ctx,
-				path,
-				nil,
-				*appConfig.ConfigManagement.Kustomize,
-			)
-		}
+		manifests[appName], err = s.renderFn(
+			ctx,
+			filepath.Join(repoDir, appConfig.ConfigManagement.Path),
+			v1alpha1.ApplicationSource(appConfig.ConfigManagement),
+			argocd.Settings{Rendering: settings, K8S: appConfig.K8S},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -196,7 +143,7 @@ func renderLastMile(
 			)
 		}
 		if manifests[appName], err =
-			kustomize.Render(ctx, appDir, images, kustomize.Config{}); err != nil {
+			kustomize.Render(ctx, appDir, images); err != nil {
 			return nil, nil, errors.Wrapf(
 				err,
 				"error rendering manifests from %q",
