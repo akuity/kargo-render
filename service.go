@@ -139,7 +139,7 @@ func (s *service) RenderManifests(
 	if len(rc.target.branchConfig.AppConfigs) == 0 {
 		rc.target.branchConfig.AppConfigs = map[string]appConfig{
 			"app": {
-				ConfigManagement: configManagementConfig{
+				ConfigManagement: ConfigManagementConfig{
 					Path: rc.request.TargetBranch,
 				},
 			},
@@ -147,7 +147,7 @@ func (s *service) RenderManifests(
 	}
 
 	if rc.target.prerenderedManifests, err =
-		s.preRender(ctx, rc, rc.repo.WorkingDir(), repoConfig.RenderingSettings); err != nil {
+		s.preRender(ctx, rc, rc.repo.WorkingDir()); err != nil {
 		return res, errors.Wrap(err, "error pre-rendering manifests")
 	}
 

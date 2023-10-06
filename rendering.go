@@ -10,6 +10,7 @@ import (
 	"github.com/akuity/bookkeeper/internal/kustomize"
 	"github.com/akuity/bookkeeper/internal/strings"
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/pkg/errors"
 )
 
@@ -26,18 +27,35 @@ func (s *service) preRender(
 	ctx context.Context,
 	rc renderRequestContext,
 	repoDir string,
-	settings argocd.RenderingSettings,
 ) (map[string][]byte, error) {
 	logger := rc.logger
 	manifests := map[string][]byte{}
 	var err error
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
 		appLogger := logger.WithField("app", appName)
+		appSrc := v1alpha1.ApplicationSource{
+			Path:      appConfig.ConfigManagement.Path,
+			Helm:      &appConfig.ConfigManagement.Helm.ApplicationSourceHelm,
+			Kustomize: &appConfig.ConfigManagement.Kustomize.ApplicationSourceKustomize,
+			Directory: appConfig.ConfigManagement.Directory,
+			Plugin:    appConfig.ConfigManagement.Plugin,
+		}
 		manifests[appName], err = s.renderFn(
 			ctx,
 			filepath.Join(repoDir, appConfig.ConfigManagement.Path),
-			v1alpha1.ApplicationSource(appConfig.ConfigManagement),
-			argocd.Settings{Rendering: settings, K8S: appConfig.K8S},
+			appSrc,
+			argocd.Settings{
+				Rendering: argocd.RenderingSettings{
+					KustomizeOptions: &argoappv1.KustomizeOptions{
+						BuildOptions: appConfig.ConfigManagement.Kustomize.BuildOptions,
+					},
+				},
+				K8S: argocd.K8sSettings{
+					Namespace:   appConfig.ConfigManagement.Helm.Namespace,
+					Version:     appConfig.ConfigManagement.Helm.Version,
+					ApiVersions: appConfig.ConfigManagement.Helm.ApiVersions,
+				},
+			},
 		)
 		if err != nil {
 			return nil, err

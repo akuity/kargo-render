@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/akuity/bookkeeper/internal/argocd"
 	"github.com/akuity/bookkeeper/internal/file"
 	"github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/ghodss/yaml"
@@ -29,8 +28,7 @@ func init() {
 // repoConfig all Bookkeeper configuration options for a repository.
 type repoConfig struct {
 	// BranchConfigs is a list of branch-specific configurations.
-	BranchConfigs     []branchConfig           `json:"branchConfigs,omitempty"`
-	RenderingSettings argocd.RenderingSettings `json:"rendering,omitempty"`
+	BranchConfigs []branchConfig `json:"branchConfigs,omitempty"`
 }
 
 func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
@@ -82,8 +80,7 @@ func (b branchConfig) expand(values []string) branchConfig {
 type appConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch and app.
-	ConfigManagement configManagementConfig `json:"configManagement,omitempty"`
-	K8S              argocd.K8sSettings     `json:"k8s,omitempty"`
+	ConfigManagement ConfigManagementConfig `json:"configManagement,omitempty"`
 	// OutputPath specifies a path relative to the root of the repository where
 	// rendered manifests for this app will be stored in this branch.
 	OutputPath string `json:"outputPath,omitempty"`
@@ -99,12 +96,30 @@ func (a appConfig) expand(values []string) appConfig {
 	return cfg
 }
 
-// configManagementConfig is a wrapper around more specific configuration for
-// one of three supported configuration management tools: helm, kustomize, or
-// ytt. Only one of its fields may be non-nil.
-type configManagementConfig v1alpha1.ApplicationSource
+type ConfigManagementConfig struct {
+	Path      string                               `json:"path,omitempty"`
+	Helm      *ApplicationSourceHelm               `json:"helm,omitempty"`
+	Kustomize *ApplicationSourceKustomize          `json:"kustomize,omitempty"`
+	Directory *v1alpha1.ApplicationSourceDirectory `json:"directory,omitempty"`
+	Plugin    *v1alpha1.ApplicationSourcePlugin    `json:"plugin,omitempty"`
+}
 
-func (c configManagementConfig) expand(values []string) configManagementConfig {
+type ApplicationSourceHelm struct {
+	v1alpha1.ApplicationSourceHelm
+
+	Namespace   string   `json:"namespace,omitempty"`
+	Version     string   `json:"version,omitempty"`
+	ApiVersions []string `json:"apiVersions,omitempty"`
+
+	RepoURL string `json:"repoURL,omitempty"`
+	Chart   string `json:"chart,omitempty"`
+}
+type ApplicationSourceKustomize struct {
+	v1alpha1.ApplicationSourceKustomize
+	BuildOptions string `json:"buildOptions,omitempty"`
+}
+
+func (c ConfigManagementConfig) expand(values []string) ConfigManagementConfig {
 	cfg := c
 	// TODO: implement replacing here
 	//if c.Helm != nil {
