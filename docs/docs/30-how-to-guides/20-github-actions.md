@@ -1,15 +1,15 @@
 ---
 title: GitHub Actions
-description: Using Bookkeeper with GitHub Actions
+description: Using Kargo Render with GitHub Actions
 ---
 
-# Using Bookkeeper with GitHub Actions
+# Using Kargo Render with GitHub Actions
 
-If you are integrating Bookkeeper into workflows that are implemented via GitHub
-Actions, Bookkeeper can be run as an action.
+If you are integrating Kargo Render into workflows that are implemented via
+GitHub Actions, Kargo Render can be run as an action.
 
 :::info
-The Bookkeeper action utilizes the official Bookkeeper Docker image and
+The Kargo Render action utilizes the official Kargo Render Docker image and
 therefore has guaranteed access to compatible versions of
 Git, Helm, Kustomize, and ytt, which are included on that image.
 :::
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Render manifests
-      uses: akuity/akuity-bookkeeper@v0.1.0-rc.21
+      uses: akuity/akuity-kargo-render@v0.1.0-rc.25
       with:
         personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
         targetBranch: env/test

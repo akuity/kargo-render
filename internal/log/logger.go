@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 
 func LoggerOrDie() *log.Logger {
 	logLevel := log.InfoLevel
-	logLevelStr := os.Getenv("BOOKKEEPER_LOG_LEVEL")
+	logLevelStr := os.Getenv("KARGO_RENDER_LOG_LEVEL")
 	if logLevelStr != "" {
 		var err error
 		if logLevel, err = log.ParseLevel(logLevelStr); err != nil {

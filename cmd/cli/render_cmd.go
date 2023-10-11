@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/akuity/bookkeeper"
+	render "github.com/akuity/kargo-render"
 )
 
 func newRenderCommand() (*cobra.Command, error) {
@@ -23,7 +23,7 @@ func newRenderCommand() (*cobra.Command, error) {
 		"R",
 		"",
 		"specify a branch or a precise commit to render from; if this is not "+
-			"provided, Bookkeeper renders from the head of the default branch",
+			"provided, Kargo Render renders from the head of the default branch",
 	)
 	cmd.Flags().StringP(
 		flagCommitMessage,
@@ -58,7 +58,7 @@ func newRenderCommand() (*cobra.Command, error) {
 		"p",
 		"",
 		"password or token for reading from and writing to the remote gitops "+
-			"repo (required; can also be set using the BOOKKEEPER_REPO_PASSWORD "+
+			"repo (required; can also be set using the KARGO_RENDER_REPO_PASSWORD "+
 			"environment variable)",
 	)
 	if err := cmd.MarkFlagRequired(flagRepoPassword); err != nil {
@@ -69,7 +69,7 @@ func newRenderCommand() (*cobra.Command, error) {
 		"u",
 		"",
 		"username for reading from and writing to the remote gitops repo "+
-			"(required; can also be set using the BOOKKEEPER_REPO_USERNAME "+
+			"(required; can also be set using the KARGO_RENDER_REPO_USERNAME "+
 			"environment variable)",
 	)
 	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
@@ -86,7 +86,8 @@ func newRenderCommand() (*cobra.Command, error) {
 		false,
 		"allow the rendered manifests to be empty; if false this is disallowed as "+
 			"a safeguard against scenarios where a bug of any kind might otherwise "+
-			"cause Bookkeeper to wipe out the contents of the target branch in error",
+			"cause Kargo Render to wipe out the contents of the target branch in "+
+			"error",
 	)
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		return nil, err
@@ -95,7 +96,7 @@ func newRenderCommand() (*cobra.Command, error) {
 }
 
 func runRenderCmd(cmd *cobra.Command, _ []string) error {
-	req := bookkeeper.RenderRequest{}
+	req := render.Request{}
 	var err error
 	req.Images, err = cmd.Flags().GetStringArray(flagImage)
 	if err != nil {
@@ -130,16 +131,16 @@ func runRenderCmd(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	logLevel := bookkeeper.LogLevelError
+	logLevel := render.LogLevelError
 	var debug bool
 	if debug, err = cmd.Flags().GetBool(flagDebug); err != nil {
 		return err
 	}
 	if debug {
-		logLevel = bookkeeper.LogLevelDebug
+		logLevel = render.LogLevelDebug
 	}
-	svc := bookkeeper.NewService(
-		&bookkeeper.ServiceOptions{
+	svc := render.NewService(
+		&render.ServiceOptions{
 			LogLevel: logLevel,
 		},
 	)
@@ -156,25 +157,25 @@ func runRenderCmd(cmd *cobra.Command, _ []string) error {
 	out := cmd.OutOrStdout()
 	if outputFormat == "" {
 		switch res.ActionTaken {
-		case bookkeeper.ActionTakenNone:
+		case render.ActionTakenNone:
 			fmt.Fprintln(
 				out,
 				"\nThis request would not change any state. No action was taken.",
 			)
-		case bookkeeper.ActionTakenOpenedPR:
+		case render.ActionTakenOpenedPR:
 			fmt.Fprintf(
 				out,
 				"\nOpened PR %s\n",
 				res.PullRequestURL,
 			)
-		case bookkeeper.ActionTakenPushedDirectly:
+		case render.ActionTakenPushedDirectly:
 			fmt.Fprintf(
 				out,
 				"\nCommitted %s to branch %s\n",
 				res.CommitID,
 				req.TargetBranch,
 			)
-		case bookkeeper.ActionTakenUpdatedPR:
+		case render.ActionTakenUpdatedPR:
 
 		}
 	} else {

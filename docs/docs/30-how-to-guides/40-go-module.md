@@ -1,37 +1,37 @@
 ---
 title: Go module
-description: Using Bookkeeper's Go module
+description: Using Kargo Render's Go module
 ---
 
-# Using Bookkeeper's Go module
+# Using Kargo Render's Go module
 
-Bookkeeper's functionality is available as a [Go](https://go.dev/) module.
+Kargo Render's functionality is available as a [Go](https://go.dev/) module.
 
 To add the module to your project:
 
 ```shell
-go get github.com/akuity/bookkeeper
+go get github.com/akuity/kargo-render
 ```
 
-Then instantiate an implementation of the `bookkeeper.Service` interface and
+Then instantiate an implementation of the `render.Service` interface and
 invoke the `RenderManifests()` function:
 
 ```golang
-import "github.com/akuity/bookkeeper"
+import "github.com/akuity/kargo-render"
 
 // ...
 
-svc := bookkeeper.NewService(
-  &bookkeeper.ServiceOptions{
-    LogLevel: bookkeeper.LogLevelDebug,
+svc := render.NewService(
+  &render.ServiceOptions{
+    LogLevel: render.LogLevelDebug,
   },
 )
 
 res, err := svc.RenderManifests(
   context.Background(),
-  bookkeeper.RenderRequest{
+  render.RenderRequest{
     RepoURL: "https://<repo URL>",
-    RepoCreds: bookkeeper.RepoCredentials{
+    RepoCreds: render.RepoCredentials{
       Username: "<username>",
       Password: "<password or personal access token>",
     },
@@ -45,17 +45,18 @@ if err != nil {
 }
 ```
 
-Unless an error occurs, the response (`bookkeeper.RenderResponse`) from the call
-above will contain details of any commit or pull request created by Bookkeeper.
+Unless an error occurs, the response (`render.RenderResponse`) from the call
+above will contain details of any commit or pull request created by Kargo
+Render.
 
 :::tip
-If options are omitted from the call to `bookkeeper.NewService()` (e.g. `nil`
-is passed), the default log level is `bookkeeper.LogLevelError`.
+If options are omitted from the call to `render.NewService()` (e.g. `nil`
+is passed), the default log level is `render.LogLevelError`.
 :::
 
 :::tip
 Compatible binaries for Git, Kustomize, ytt, and Helm must be available when
-using this module. Consider using Bookkeeper's official Docker image as a base
+using this module. Consider using Kargo Render's official Docker image as a base
 image for your own software. This will ensure the availability of compatible
 binaries.
 :::

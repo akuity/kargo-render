@@ -5,7 +5,7 @@ description: What are environment branches?
 
 # What are environment branches?
 
-Understanding the _environment branches_ pattern at the heart of Bookkeeper
+Understanding the _environment branches_ pattern at the heart of Kargo Render
 begins with understanding some common difficulties encountered by
 [GitOps](https://opengitops.dev/) practitioners.
 
@@ -66,7 +66,7 @@ For any application, this pattern:
 
 Despite its many advantages, the environment branches pattern can be onerous
 to implement because it requires new automation to continuously render
-changes to your `main` branch into your environment branches. Bookkeeper's
+changes to your `main` branch into your environment branches. Kargo Render's
 singular goal is to answer those difficulties with an intuitive tool that puts
 the benefits of the environment branches pattern easily within reach for all
 GitOps practitioners.

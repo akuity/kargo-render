@@ -1,3 +1,3 @@
 # Code of conduct
 
-See https://bookkeeper.akuity.io/contributor-guide/code-of-conduct/
+See https://kargo-render.akuity.io/contributor-guide/code-of-conduct/

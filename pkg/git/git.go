@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	libExec "github.com/akuity/bookkeeper/internal/exec"
+	libExec "github.com/akuity/kargo-render/internal/exec"
 )
 
 // RepoCredentials represents the credentials for connecting to a private git
@@ -337,13 +337,13 @@ func (r *repo) WorkingDir() string {
 // "store" (username/password-based) credential helper.
 func (r *repo) setupAuth(repoCreds RepoCredentials) error {
 	// Configure the git client
-	cmd := r.buildCommand("config", "--global", "user.name", "Bookkeeper")
+	cmd := r.buildCommand("config", "--global", "user.name", "Kargo Render")
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	if _, err := libExec.Exec(cmd); err != nil {
 		return errors.Wrapf(err, "error configuring git username")
 	}
 	cmd =
-		r.buildCommand("config", "--global", "user.email", "bookkeeper@akuity.io")
+		r.buildCommand("config", "--global", "user.email", "kargo-render@akuity.io")
 	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
 	if _, err := libExec.Exec(cmd); err != nil {
 		return errors.Wrapf(err, "error configuring git user email address")

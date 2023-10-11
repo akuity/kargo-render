@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/akuity/bookkeeper/internal/github"
-	"github.com/akuity/bookkeeper/pkg/git"
+	"github.com/akuity/kargo-render/internal/github"
+	"github.com/akuity/kargo-render/pkg/git"
 )
 
-func openPR(ctx context.Context, rc renderRequestContext) (string, error) {
+func openPR(ctx context.Context, rc requestContext) (string, error) {
 	commitMsgParts := strings.SplitN(rc.target.commit.message, "\n", 2)
 	var title string
 	if rc.target.branchConfig.PRs.UseUniqueBranchNames {

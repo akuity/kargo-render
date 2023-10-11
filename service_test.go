@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuity/bookkeeper/internal/file"
+	"github.com/akuity/kargo-render/internal/file"
 )
 
 func TestNewService(t *testing.T) {

@@ -1,6 +1,6 @@
 package kustomize
 
-import "github.com/akuity/bookkeeper/internal/file"
+import "github.com/akuity/kargo-render/internal/file"
 
 // Config encapsulates optional Kustomize configuration options.
 type Config struct {

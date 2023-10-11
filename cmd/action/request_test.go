@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuity/bookkeeper"
+	render "github.com/akuity/kargo-render"
 )
 
 func TestRequest(t *testing.T) {
@@ -22,9 +22,9 @@ func TestRequest(t *testing.T) {
 		testImage1 = "krancour/foo:blue"
 		testImage2 = "krancour/foo:green"
 	)
-	testReq := bookkeeper.RenderRequest{
+	testReq := render.Request{
 		RepoURL: fmt.Sprintf("https://github.com/%s", testRepo),
-		RepoCreds: bookkeeper.RepoCredentials{
+		RepoCreds: render.RepoCredentials{
 			Username: "git",
 			Password: "12345", // Like something an idiot would use for their luggage
 		},
@@ -35,11 +35,11 @@ func TestRequest(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func(bookkeeper.RenderRequest, error)
+		assertions func(render.Request, error)
 	}{
 		{
 			name: "GITHUB_REPOSITORY not specified",
-			assertions: func(_ bookkeeper.RenderRequest, err error) {
+			assertions: func(_ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "GITHUB_REPOSITORY")
@@ -50,7 +50,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("GITHUB_REPOSITORY", testRepo)
 			},
-			assertions: func(_ bookkeeper.RenderRequest, err error) {
+			assertions: func(_ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "INPUT_PERSONALACCESSTOKEN")
@@ -61,7 +61,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("INPUT_PERSONALACCESSTOKEN", testReq.RepoCreds.Password)
 			},
-			assertions: func(_ bookkeeper.RenderRequest, err error) {
+			assertions: func(_ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "GITHUB_SHA")
@@ -72,7 +72,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("GITHUB_SHA", testReq.Ref)
 			},
-			assertions: func(_ bookkeeper.RenderRequest, err error) {
+			assertions: func(_ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "INPUT_TARGETBRANCH")
@@ -86,7 +86,7 @@ func TestRequest(t *testing.T) {
 					"INPUT_IMAGES",
 					fmt.Sprintf("%s,%s", testImage1, testImage2))
 			},
-			assertions: func(req bookkeeper.RenderRequest, err error) {
+			assertions: func(req render.Request, err error) {
 				require.NoError(t, err)
 				require.Equal(t, testReq, req)
 			},

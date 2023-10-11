@@ -18,10 +18,10 @@ RUN curl -L -o /usr/local/bin/ytt \
       https://github.com/vmware-tanzu/carvel-ytt/releases/download/${YTT_VERSION}/ytt-linux-${TARGETARCH} \
       && chmod 755 /usr/local/bin/ytt
 
-ARG VERSION_PACKAGE=github.com/akuity/bookkeeper/internal/version
+ARG VERSION_PACKAGE=github.com/akuity/kargo-render/internal/version
 ARG CGO_ENABLED=0
 
-WORKDIR /bookkeeper
+WORKDIR /kargo-render
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
@@ -33,11 +33,11 @@ ARG GIT_TREE_STATE
 
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -X ${VERSION_PACKAGE}.gitCommit=${GIT_COMMIT} -X ${VERSION_PACKAGE}.gitTreeState=${GIT_TREE_STATE}" \
-      -o bin/bookkeeper \
+      -o bin/kargo-render \
       ./cmd \
-    && bin/bookkeeper version \
+    && bin/kargo-render version \
     && cd bin \
-    && ln -s bookkeeper bookkeeper-action
+    && ln -s kargo-render kargo-render-action
 
 FROM alpine:3.15.4 as final
 
@@ -49,8 +49,8 @@ RUN apk update \
 COPY --from=builder /usr/local/bin/helm /usr/local/bin/
 COPY --from=builder /usr/local/bin/kustomize /usr/local/bin/
 COPY --from=builder /usr/local/bin/ytt /usr/local/bin/
-COPY --from=builder /bookkeeper/bin/ /usr/local/bin/
+COPY --from=builder /kargo-render/bin/ /usr/local/bin/
 
 USER nonroot
 
-CMD ["/usr/local/bin/bookkeeper"]
+CMD ["/usr/local/bin/kargo-render"]

@@ -6,11 +6,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/cmd/action"
-	"github.com/akuity/bookkeeper/cmd/cli"
+	"github.com/akuity/kargo-render/cmd/action"
+	"github.com/akuity/kargo-render/cmd/cli"
 )
 
-const binaryNameEnvVar = "BOOKKEEPER_BINARY_NAME"
+// false positive for "G101: Potential hardcoded credentials"
+const binaryNameEnvVar = "KARGO_RENDER_BINARY_NAME" // nolint: gosec
 
 func main() {
 	binaryName := filepath.Base(os.Args[0])
@@ -19,9 +20,9 @@ func main() {
 	}
 
 	switch binaryName {
-	case "bookkeeper":
+	case "kargo-render":
 		cli.Run()
-	case "bookkeeper-action":
+	case "kargo-render-action":
 		action.Run()
 	default:
 		log.Fatalf("unrecognized component name %q", binaryName)

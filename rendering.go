@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/strings"
+	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/strings"
 )
 
 var lastMileKustomizationBytes = []byte(
@@ -24,7 +24,7 @@ resources:
 
 func (s *service) preRender(
 	ctx context.Context,
-	rc renderRequestContext,
+	rc requestContext,
 	repoDir string,
 ) (map[string][]byte, error) {
 	logger := rc.logger
@@ -115,7 +115,7 @@ func (s *service) preRender(
 
 func renderLastMile(
 	ctx context.Context,
-	rc renderRequestContext,
+	rc requestContext,
 ) ([]string, map[string][]byte, error) {
 	logger := rc.logger
 
