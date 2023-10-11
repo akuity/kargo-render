@@ -1,14 +1,14 @@
-package bookkeeper
+package render
 
 import (
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/pkg/git"
+	"github.com/akuity/kargo-render/pkg/git"
 )
 
-type renderRequestContext struct {
+type requestContext struct {
 	logger       *log.Entry
-	request      RenderRequest
+	request      Request
 	repo         git.Repo
 	source       sourceContext
 	intermediate intermediateContext

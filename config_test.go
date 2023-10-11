@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/ytt"
+	"github.com/akuity/kargo-render/internal/helm"
+	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/ytt"
 )
 
 func TestLoadRepoConfig(t *testing.T) {
@@ -25,7 +25,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				dir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
 				err = os.WriteFile(
-					filepath.Join(dir, "Bookfile.json"),
+					filepath.Join(dir, "kargo-render.json"),
 					[]byte("bogus"),
 					0600,
 				)
@@ -37,7 +37,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.Contains(
 					t,
 					err.Error(),
-					"error normalizing and validating Bookkeeper configuration",
+					"error normalizing and validating Kargo Render configuration",
 				)
 			},
 		},
@@ -47,7 +47,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				dir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
 				err = os.WriteFile(
-					filepath.Join(dir, "Bookfile.yaml"),
+					filepath.Join(dir, "kargo-render.yaml"),
 					[]byte("bogus"),
 					0600,
 				)
@@ -59,7 +59,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.Contains(
 					t,
 					err.Error(),
-					"error normalizing and validating Bookkeeper configuration",
+					"error normalizing and validating Kargo Render configuration",
 				)
 			},
 		},
@@ -69,7 +69,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				dir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
 				err = os.WriteFile(
-					filepath.Join(dir, "Bookfile.json"),
+					filepath.Join(dir, "kargo-render.json"),
 					[]byte(`{"configVersion": "v1alpha1"}`),
 					0600,
 				)
@@ -86,7 +86,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				dir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
 				err = os.WriteFile(
-					filepath.Join(dir, "Bookfile.yaml"),
+					filepath.Join(dir, "kargo-render.yaml"),
 					[]byte("configVersion: v1alpha1"),
 					0600,
 				)
