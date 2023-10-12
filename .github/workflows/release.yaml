@@ -9,7 +9,8 @@ jobs:
 
   build-and-push-image:
     permissions:
-      packages: write
+      packages: write # Used to push images to ghcr.io
+      contents: write # Used to upload assets
     runs-on: ubuntu-latest
     steps:
     - name: Set up QEMU
