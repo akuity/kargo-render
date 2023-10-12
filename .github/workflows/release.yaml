@@ -19,10 +19,10 @@ jobs:
     - name: Install Cosign
       uses: sigstore/cosign-installer@v2
     - name: Login to GHCR
-      uses: docker/login-action@v2
+      uses: docker/login-action@v3
       with:
         registry: ghcr.io
-        username: ${{ secrets.GH_USERNAME }}
+        username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     - name: Checkout
       uses: actions/checkout@v3
