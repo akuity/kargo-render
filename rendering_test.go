@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/ytt"
+	"github.com/akuity/kargo-render/internal/helm"
+	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/ytt"
 )
 
 func TestPreRender(t *testing.T) {
@@ -18,13 +18,13 @@ func TestPreRender(t *testing.T) {
 	fakeManifest := []byte("fake-manifest")
 	testCases := []struct {
 		name       string
-		rc         renderRequestContext
+		rc         requestContext
 		service    *service
 		assertions func(manifests map[string][]byte, err error)
 	}{
 		{
 			name: "error pre-rendering with helm",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -55,7 +55,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "success pre-rendering with helm",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -86,7 +86,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "error pre-rendering with ytt",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -111,7 +111,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "success pre-rendering with ytt",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -136,7 +136,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "error pre-rendering with kustomize",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -166,7 +166,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "success pre-rendering with kustomize",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{
@@ -196,7 +196,7 @@ func TestPreRender(t *testing.T) {
 		},
 		{
 			name: "safeguards against empty manifests",
-			rc: renderRequestContext{
+			rc: requestContext{
 				target: targetContext{
 					branchConfig: branchConfig{
 						AppConfigs: map[string]appConfig{

@@ -1,31 +1,31 @@
-package bookkeeper
+package render
 
 // ActionTaken indicates what action, if any was taken in response to a
 // RenderRequest.
 type ActionTaken string
 
 const (
-	// ActionTakenNone represents the case where Bookkeeper responded
+	// ActionTakenNone represents the case where Kargo Render responded
 	// to a RenderRequest by, effectively, doing nothing. This occurs in cases
 	// where the fully rendered manifests that would have been written to the
 	// target branch do not differ from what is already present at the head of
 	// that branch.
 	ActionTakenNone ActionTaken = "NONE"
-	// ActionTakenOpenedPR represents the case where Bookkeeper responded to a
+	// ActionTakenOpenedPR represents the case where Kargo Render responded to a
 	// RenderRequest by opening a new pull request against the target branch.
 	ActionTakenOpenedPR ActionTaken = "OPENED_PR"
-	// ActionTakenPushedDirectly represents the case where Bookkeeper responded
+	// ActionTakenPushedDirectly represents the case where Kargo Render responded
 	// to a RenderRequest by pushing a new commit directly to the target branch.
 	ActionTakenPushedDirectly ActionTaken = "PUSHED_DIRECTLY"
-	// ActionTakenUpdatedPR represents the case where Bookkeeper responded to a
+	// ActionTakenUpdatedPR represents the case where Kargo Render responded to a
 	// RenderRequest by updating an existing PR.
 	ActionTakenUpdatedPR ActionTaken = "UPDATED_PR"
 )
 
-// RenderRequest is a request for Bookkeeper to render environment-specific
+// Request is a request for Kargo Render to render environment-specific
 // manifests from input in the  default branch of the repository specified by
 // RepoURL.
-type RenderRequest struct {
+type Request struct {
 	id string
 	// RepoURL is the URL of a remote GitOps repository.
 	RepoURL string `json:"repoURL,omitempty"`
@@ -44,13 +44,13 @@ type RenderRequest struct {
 	// manifests.
 	Images []string `json:"images,omitempty"`
 	// CommitMessage offers the opportunity to, optionally, override the first
-	// line of the commit message that Bookkeeper would normally generate.
+	// line of the commit message that Kargo Render would normally generate.
 	CommitMessage string `json:"commitMessage,omitempty"`
-	// AllowEmpty indicates whether or not Bookkeeper should allow the rendered
-	// manifests to be empty. If this is false (the default), Bookkeeper will
+	// AllowEmpty indicates whether or not Kargo Render should allow the rendered
+	// manifests to be empty. If this is false (the default), Kargo Render will
 	// return an error if the rendered manifests are empty. This is a safeguard
-	// against scenarios where a bug of any kind might otherwise cause Bookkeeper
-	// to wipe out the contents of the target branch in error.
+	// against scenarios where a bug of any kind might otherwise cause Kargo
+	// Render to wipe out the contents of the target branch in error.
 	AllowEmpty bool `json:"allowEmpty,omitempty"`
 }
 
@@ -70,9 +70,9 @@ type RepoCredentials struct {
 	Password string `json:"password,omitempty"`
 }
 
-// RenderResponse encapsulates details of a successful rendering of some
+// Response encapsulates details of a successful rendering of some
 // environment-specific manifests into an environment-specific branch.
-type RenderResponse struct {
+type Response struct {
 	ActionTaken ActionTaken `json:"actionTaken,omitempty"`
 	// CommitID is the ID (sha) of the commit to the environment-specific branch
 	// containing the rendered manifests. This is only set when the OpenPR field

@@ -37,6 +37,6 @@ issue:
         - ux
         - ci-process
         - release-process
-        # bookkeeper component areas
+        # kargo-render component areas
       multiple: true
       needs: true

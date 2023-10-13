@@ -9,12 +9,12 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var desc = "Bookkeeper renders environment-specific manifests into " +
+var desc = "Kargo Render renders environment-specific manifests into " +
 	"environment-specific branches of your gitops repos"
 
 func newRootCommand() (*cobra.Command, error) {
 	command := &cobra.Command{
-		Use:              "bookkeeper",
+		Use:              "kargo-render",
 		Short:            desc,
 		Long:             desc,
 		PersistentPreRun: persistentPreRun,
@@ -40,7 +40,7 @@ func persistentPreRun(cmd *cobra.Command, _ []string) {
 			case flagRepoPassword, flagRepoUsername:
 				if !flag.Changed {
 					envVarName := fmt.Sprintf(
-						"BOOKKEEPER_%s",
+						"KARGO_RENDER_%s",
 						strings.ReplaceAll(
 							strings.ToUpper(flag.Name),
 							"-",

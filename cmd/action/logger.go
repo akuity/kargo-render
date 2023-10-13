@@ -1,5 +1,5 @@
 package action
 
-import libLog "github.com/akuity/bookkeeper/internal/log"
+import libLog "github.com/akuity/kargo-render/internal/log"
 
 var logger = libLog.LoggerOrDie()

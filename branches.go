@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 
-	"github.com/akuity/bookkeeper/internal/file"
+	"github.com/akuity/kargo-render/internal/file"
 )
 
 // branchMetadata encapsulates details about an environment-specific branch for
-// internal use by Bookkeeper.
+// internal use by Kargo Render.
 type branchMetadata struct {
 	// SourceCommit ia a back-reference to the specific commit in the repository's
 	// default branch (i.e. main or master) from which the manifests stored in
@@ -24,12 +24,12 @@ type branchMetadata struct {
 }
 
 // loadBranchMetadata attempts to load BranchMetadata from a
-// .bookkeeper/metadata.yaml file relative to the specified directory. If no
+// .kargo-render/metadata.yaml file relative to the specified directory. If no
 // such file is found a nil result is returned.
 func loadBranchMetadata(repoPath string) (*branchMetadata, error) {
 	path := filepath.Join(
 		repoPath,
-		".bookkeeper",
+		".kargo-render",
 		"metadata.yaml",
 	)
 	if exists, err := file.Exists(path); err != nil {
@@ -50,9 +50,9 @@ func loadBranchMetadata(repoPath string) (*branchMetadata, error) {
 }
 
 // writeBranchMetadata attempts to marshal the provided BranchMetadata and write
-// it to a .bookkeeper/metadata.yaml file relative to the specified directory.
+// it to a .kargo-render/metadata.yaml file relative to the specified directory.
 func writeBranchMetadata(md branchMetadata, repoPath string) error {
-	bkDir := filepath.Join(repoPath, ".bookkeeper")
+	bkDir := filepath.Join(repoPath, ".kargo-render")
 	// Ensure the existence of the directory
 	if err := os.MkdirAll(bkDir, 0755); err != nil {
 		return errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
@@ -68,7 +68,7 @@ func writeBranchMetadata(md branchMetadata, repoPath string) error {
 	)
 }
 
-func switchToTargetBranch(rc renderRequestContext) error {
+func switchToTargetBranch(rc requestContext) error {
 	logger := rc.logger.WithField("targetBranch", rc.request.TargetBranch)
 
 	// Check if the target branch exists on the remote
@@ -108,7 +108,7 @@ func switchToTargetBranch(rc renderRequestContext) error {
 	return nil
 }
 
-func switchToCommitBranch(rc renderRequestContext) (string, error) {
+func switchToCommitBranch(rc requestContext) (string, error) {
 	logger := rc.logger.WithField("targetBranch", rc.request.TargetBranch)
 
 	var commitBranch string
@@ -119,9 +119,9 @@ func switchToCommitBranch(rc renderRequestContext) (string, error) {
 		)
 	} else {
 		if rc.target.branchConfig.PRs.UseUniqueBranchNames {
-			commitBranch = fmt.Sprintf("prs/bookkeeper/%s", rc.request.id)
+			commitBranch = fmt.Sprintf("prs/kargo-render/%s", rc.request.id)
 		} else {
-			commitBranch = fmt.Sprintf("prs/bookkeeper/%s", rc.request.TargetBranch)
+			commitBranch = fmt.Sprintf("prs/kargo-render/%s", rc.request.TargetBranch)
 		}
 		logger = logger.WithField("commitBranch", commitBranch)
 		logger.Debug("changes will be PR'ed to the target branch")

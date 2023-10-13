@@ -7,8 +7,8 @@ const darkCodeTheme = require('prism-react-renderer/themes/dracula');
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'Bookkeeper Docs',
-  url: 'https://bookkeeper.akuity.io',
+  title: 'Kargo Render Docs',
+  url: 'https://kargo-render.akuity.io',
   baseUrl: '/',
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
@@ -61,9 +61,9 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'Bookkeeper Docs',
+        title: 'Kargo Render Docs',
         logo: {
-          alt: 'Bookkeeper Documentation',
+          alt: 'Kargo Render Documentation',
           src: 'img/akuity.png',
           href: '/',
           target: '_self',
@@ -75,7 +75,7 @@ const config = {
             position: 'left',
           },
           {
-            href: 'https://github.com/akuity/bookkeeper',
+            href: 'https://github.com/akuity/kargo-render',
             label: 'GitHub',
             position: 'right',
           },

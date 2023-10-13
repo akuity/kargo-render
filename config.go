@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"encoding/json"
@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 
-	"github.com/akuity/bookkeeper/internal/file"
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/ytt"
+	"github.com/akuity/kargo-render/internal/file"
+	"github.com/akuity/kargo-render/internal/helm"
+	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/ytt"
 
 	_ "embed"
 )
@@ -28,7 +28,8 @@ func init() {
 	configSchemaJSONLoader = gojsonschema.NewBytesLoader(configSchemaBytes)
 }
 
-// repoConfig all Bookkeeper configuration options for a repository.
+// repoConfig encapsulates all Kargo Render configuration options for a
+// repository.
 type repoConfig struct {
 	// BranchConfigs is a list of branch-specific configurations.
 	BranchConfigs []branchConfig `json:"branchConfigs,omitempty"`
@@ -54,7 +55,7 @@ func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
 	return branchConfig{}, nil
 }
 
-// branchConfig encapsulates branch-specific Bookkeeper configuration.
+// branchConfig encapsulates branch-specific Kargo Render configuration.
 type branchConfig struct {
 	// Name is the name of the environment-specific branch this configuration is
 	// for. This is mutually exclusive with the Pattern field.
@@ -79,7 +80,7 @@ func (b branchConfig) expand(values []string) branchConfig {
 	return cfg
 }
 
-// appConfig encapsulates application-specific Bookkeeper configuration.
+// appConfig encapsulates application-specific Kargo Render configuration.
 type appConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch and app.
@@ -146,12 +147,12 @@ type pullRequestConfig struct {
 	UseUniqueBranchNames bool `json:"useUniqueBranchNames,omitempty"`
 }
 
-// loadRepoConfig attempts to load configuration from a Bookkeeper.json or
-// Bookkeeper.yaml file in the specified directory. If no such file is found,
+// loadRepoConfig attempts to load configuration from a kargo-render.json or
+// kargo-render.yaml file in the specified directory. If no such file is found,
 // default configuration is returned instead.
 func loadRepoConfig(repoPath string) (*repoConfig, error) {
 	cfg := &repoConfig{}
-	const baseConfigFilename = "Bookfile"
+	const baseConfigFilename = "kargo-render"
 	jsonConfigPath := filepath.Join(
 		repoPath,
 		fmt.Sprintf("%s.json", baseConfigFilename),
@@ -177,16 +178,16 @@ func loadRepoConfig(repoPath string) (*repoConfig, error) {
 	}
 	configBytes, err := os.ReadFile(configPath)
 	if err != nil {
-		return cfg, errors.Wrap(err, "error reading Bookkeeper configuration")
+		return cfg, errors.Wrap(err, "error reading Kargo Render configuration")
 	}
 	if configBytes, err = normalizeAndValidate(configBytes); err != nil {
 		return cfg, errors.Wrap(
 			err,
-			"error normalizing and validating Bookkeeper configuration",
+			"error normalizing and validating Kargo Render configuration",
 		)
 	}
 	err = json.Unmarshal(configBytes, cfg)
-	return cfg, errors.Wrap(err, "error unmarshaling Bookkeeper configuration")
+	return cfg, errors.Wrap(err, "error unmarshaling Kargo Render configuration")
 }
 
 func normalizeAndValidate(configBytes []byte) ([]byte, error) {
@@ -195,14 +196,14 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 	var err error
 	if configBytes, err = yaml.YAMLToJSON(configBytes); err != nil {
 		return nil,
-			errors.Wrap(err, "error normalizing Bookkeeper configuration")
+			errors.Wrap(err, "error normalizing Kargo Render configuration")
 	}
 	validationResult, err := gojsonschema.Validate(
 		configSchemaJSONLoader,
 		gojsonschema.NewBytesLoader(configBytes),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error validating Bookkeeper configuration")
+		return nil, errors.Wrap(err, "error validating Kargo Render configuration")
 	}
 	if !validationResult.Valid() {
 		verrStrs := make([]string, len(validationResult.Errors()))
@@ -210,7 +211,7 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 			verrStrs[i] = verr.String()
 		}
 		return nil, errors.Errorf(
-			"error validating Bookkeeper configuration: %s",
+			"error validating Kargo Render configuration: %s",
 			strings.Join(verrStrs, "; "),
 		)
 	}

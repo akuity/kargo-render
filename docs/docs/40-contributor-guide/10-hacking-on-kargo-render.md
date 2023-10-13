@@ -1,22 +1,22 @@
 ---
-description: Hacking on Bookkeeper
+description: Hacking on Kargo Render
 ---
 
-# Hacking on Bookkeeper
+# Hacking on Kargo Render
 
-Bookkeeper is implemented in Go. For maximum productivity in your text editor or
-IDE, it is recommended that you have installed the latest stable releases of Go
-and applicable editor/IDE extensions, however, this is not strictly required to
-be successful.
+Kargo Render is implemented in Go. For maximum productivity in your text editor
+or IDE, it is recommended that you have installed the latest stable releases of
+Go and applicable editor/IDE extensions, however, this is not strictly required
+to be successful.
 
 ## Running tests
 
 In order to minimize the setup required to successfully apply small changes and
 in order to reduce the incidence of “it worked on my machine,” wherein changes
 that pass tests locally do not pass the same tests in CI due to environmental
-differences, Bookkeeper has made it trivial to execute tests within a container
-that is maximally similar to the containers that tests execute in during the
-continuous integration process.
+differences, Kargo Render has made it trivial to execute tests within a
+container that is maximally similar to the containers that tests execute in
+during the continuous integration process.
 
 To take advantage of this, you only need to have
 [Docker](https://docs.docker.com/engine/install/) and `make` installed.
@@ -58,7 +58,7 @@ installed locally.
 
 ## Building the image
 
-To build source into a Docker image that will be tagged as `bookkeeper:dev`,
+To build source into a Docker image that will be tagged as `kargo-render:dev`,
 execute the following:
 
 ```shell
@@ -66,8 +66,8 @@ make hack-build
 ```
 
 :::note
-Because Bookkeeper is dependent on compatible versions of Git, Kustomize, ytt,
+Because Kargo Render is dependent on compatible versions of Git, Kustomize, ytt,
 and Helm binaries, there is seldom, if ever, a reason to build or execute the
-Bookkeeper binaries outside the context of a container that provides those
+Kargo Render binaries outside the context of a container that provides those
 dependencies.
 :::
