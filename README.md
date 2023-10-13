@@ -3,10 +3,11 @@
 # Kargo Render -- Rendered Branches Utility
 
 ![CI](https://github.com/akuity/kargo-render/actions/workflows/ci.yaml/badge.svg)
-[![Discord](https://img.shields.io/discord/1138942074998235187?color=blue&label=Discord&logo=discord&logoColor=white)](http://akuity.community)
 [![codecov](https://codecov.io/gh/akuity/kargo-render/branch/main/graph/badge.svg?token=MRKMA584M9)](https://codecov.io/gh/akuity/kargo-render)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/f5d7d99b-ca3a-4477-a10b-67fb7a8328a9/deploy-status)](https://app.netlify.com/sites/docs-kargo-render-akuity-io/deploys)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![Discord](https://img.shields.io/discord/1138942074998235187?logo=discord&logoColor=ffffff&label=discord
+)](http://akuity.community)
 
 <img width="80" align="left" src="logo.png" style="right-margin: 20px"/>
 
