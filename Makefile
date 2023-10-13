@@ -36,13 +36,13 @@ DOCKER_CMD := docker run \
 	-it \
 	--rm \
 	-v gomodcache:/go/pkg/mod \
-	-v $(dir $(realpath $(firstword $(MAKEFILE_LIST)))):/workspaces/bookkeeper \
-	-w /workspaces/bookkeeper \
-	bookkeeper:dev-tools
+	-v $(dir $(realpath $(firstword $(MAKEFILE_LIST)))):/workspaces/kargo-render \
+	-w /workspaces/kargo-render \
+	kargo-render:dev-tools
 
 .PHONY: hack-build-dev-tools
 hack-build-dev-tools:
-	docker build -f Dockerfile.dev -t bookkeeper:dev-tools .
+	docker build -f Dockerfile.dev -t kargo-render:dev-tools .
 
 .PHONY: hack-lint
 hack-lint: hack-build-dev-tools
@@ -57,5 +57,5 @@ hack-build:
 	docker build \
 		--build-arg GIT_COMMIT=$(shell git rev-parse HEAD) \
 		--build-arg GIT_TREE_STATE=$(shell if [ -z "`git status --porcelain`" ]; then echo "clean" ; else echo "dirty"; fi) \
-		--tag bookkeeper:dev \
+		--tag kargo-render:dev \
 		.

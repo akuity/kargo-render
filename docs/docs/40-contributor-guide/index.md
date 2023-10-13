@@ -6,9 +6,9 @@ description: Contributor guide
 
 This contributor guide is intended as a comprehensive introduction for
 developers who are looking to get involved with contributing directly to the
-Bookkeeper project.
+Kargo Render project.
 
 This guide is decomposed into the following, high-level topics:
 
-* [Hacking on Bookkeeper](./10-hacking-on-bookkeeper.md)
+* [Hacking on Kargo Render](./10-hacking-on-kargo-render.md)
 * [Signing commits](./20-signing-commits.md)

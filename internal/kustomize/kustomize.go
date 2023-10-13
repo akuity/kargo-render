@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/akuity/bookkeeper/internal/manifests"
-	"github.com/akuity/bookkeeper/internal/strings"
+	"github.com/akuity/kargo-render/internal/manifests"
+	"github.com/akuity/kargo-render/internal/strings"
 )
 
 // Render delegates, in-process to the Argo CD repo server to render plain YAML

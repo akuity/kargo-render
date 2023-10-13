@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/akuity/bookkeeper/internal/file"
+	"github.com/akuity/kargo-render/internal/file"
 )
 
 func TestLoadBranchMetadata(t *testing.T) {
@@ -33,7 +33,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 			setup: func() string {
 				repoDir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
-				bkDir := filepath.Join(repoDir, ".bookkeeper")
+				bkDir := filepath.Join(repoDir, ".kargo-render")
 				err = os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
@@ -54,7 +54,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 			setup: func() string {
 				repoDir, err := os.MkdirTemp("", "")
 				require.NoError(t, err)
-				bkDir := filepath.Join(repoDir, ".bookkeeper")
+				bkDir := filepath.Join(repoDir, ".kargo-render")
 				err = os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
@@ -89,7 +89,7 @@ func TestWriteBranchMetadata(t *testing.T) {
 	)
 	require.NoError(t, err)
 	exists, err :=
-		file.Exists(filepath.Join(repoDir, ".bookkeeper", "metadata.yaml"))
+		file.Exists(filepath.Join(repoDir, ".kargo-render", "metadata.yaml"))
 	require.NoError(t, err)
 	require.True(t, exists)
 }

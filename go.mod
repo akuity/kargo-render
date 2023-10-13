@@ -1,4 +1,4 @@
-module github.com/akuity/bookkeeper
+module github.com/akuity/kargo-render
 
 go 1.20
 

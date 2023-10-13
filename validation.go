@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"regexp"
@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func validateAndCanonicalizeRequest(req RenderRequest) (RenderRequest, error) {
+func validateAndCanonicalizeRequest(req Request) (Request, error) {
 	req.RepoURL = strings.TrimSpace(req.RepoURL)
 	if req.RepoURL == "" {
 		return req, errors.New("validation failed: RepoURL is a required field")

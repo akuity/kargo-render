@@ -3,13 +3,13 @@ package action
 import (
 	"fmt"
 
-	"github.com/akuity/bookkeeper"
-	libOS "github.com/akuity/bookkeeper/internal/os"
+	render "github.com/akuity/kargo-render"
+	libOS "github.com/akuity/kargo-render/internal/os"
 )
 
-func request() (bookkeeper.RenderRequest, error) {
-	req := bookkeeper.RenderRequest{
-		RepoCreds: bookkeeper.RepoCredentials{
+func request() (render.Request, error) {
+	req := render.Request{
+		RepoCreds: render.RepoCredentials{
 			Username: "git",
 		},
 		Images: libOS.GetStringSliceFromEnvVar("INPUT_IMAGES", nil),

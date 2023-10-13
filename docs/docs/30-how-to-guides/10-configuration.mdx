@@ -1,18 +1,18 @@
 ---
 title: Configuration
-description: Configuring Bookkeeper
+description: Configuring Kargo Render
 ---
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# Configuring Bookkeeper
+# Configuring Kargo Render
 
-Bookkeeper is configured using a file named `Bookfile.yaml`, which should be
-stored at the root of the default branch of your GitOps repository.
+Kargo Render is configured using a file named `kargo-render.yaml`, which should
+be stored at the root of the default branch of your GitOps repository.
 
-The role of `Bookfile.yaml` is simply to enumerate your environment branches,
-and for each, specify:
+The role of `kargo-render.yaml` is simply to enumerate your environment
+branches, and for each, specify:
 
 * Which configuration management tools to use in rendering that environment
   branch -- and what the inputs to those tools are.
@@ -48,11 +48,11 @@ Understanding these two perspectives is important insofar as it impacts how a
 team is likely to organize their GitOps repositories.
 
 A team with an application-centric approach is likely to use a GitOps repository
-_per application_. Each Bookkeeper-managed environment branch within that
+_per application_. Each Kargo Render-managed environment branch within that
 repository will contain environment-specific manifests for the one application.
 In contrast, a team with an environment-centric approach is likely to include
 configuration for multiple applications in a single GitOps repository. Each
-Bookkeeper-managed environment branch within that repository will contain
+Kargo Render-managed environment branch within that repository will contain
 environment-specific manifests for multiple applications.
 
 Ultimately, the fundamental difference between the two approaches is whether a
@@ -62,7 +62,7 @@ examples that follow will involve _two_ applications -- `foo` and `bar`. When we
 render manifests for an environment branch, we wish to render manifests for
 _both_ apps.
 
-<Tabs groupId="bookfile">
+<Tabs groupId="kargo-render">
 
 <TabItem value="kustomize" label="Kustomize">
 
@@ -270,7 +270,7 @@ environment branch. Paths and other values for each environment were
 consistently a function of the environment's name. This is an obvious
 [DRY violation](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself).
 
-To keep configuration more succinct, Bookkeeper supports matching environment
+To keep configuration more succinct, Kargo Render supports matching environment
 branches with applicable configuration using patterns (i.e. regular
 expressions). Capture groups can be used in those patterns to extract meaningful
 information, such as environment name, and paths that reference those capture
@@ -279,7 +279,7 @@ groups will be expanded accordingly.
 The following examples are equivalent to our initial examples, but are
 considerably more succinct:
 
-<Tabs groupId="dry-bookfile">
+<Tabs groupId="dry-kargo-render">
 
 <TabItem value="kustomize" label="Kustomize">
 
@@ -365,7 +365,7 @@ specific to any configuration management tool.
 
 ### Pull requests
 
-For any environment branch, you can specify that Bookkeeper should open pull
+For any environment branch, you can specify that Kargo Render should open pull
 requests for changes to that branch instead of committing those changes
 directly. (Committing changes directly is the default behavior.) This is an
 effective method of creating opportunities for manifest changes to be reviewed
@@ -431,8 +431,8 @@ branchConfigs:
 ### Combining manifests
 
 For any app configuration within an environment branch, you can specify that
-Bookkeeper should combine all Kubernetes resources into a single manifest file
-(named `all.yaml`). When not enabled (the default) Bookkeeper produces a
+Kargo Render should combine all Kubernetes resources into a single manifest file
+(named `all.yaml`). When not enabled (the default) Kargo Render produces a
 separate manifest file named `<resource name>-<resource type>` for every
 Kubernetes resource. Enabling this or not is strictly a matter of preference.
 
@@ -452,8 +452,8 @@ branchConfigs:
 
 ## Convention over configuration
 
-In the absence of a `Bookfile.yaml` file at the root of the default branch,
-Bookkeeper will assume:
+In the absence of a `kargo-render.yaml` file at the root of the default branch,
+Kargo Render will assume:
 
 * You are using [Kustomize](https://kustomize.io/) for configuration management.
 
@@ -471,5 +471,5 @@ Bookkeeper will assume:
 * Rendered manifests will be stored in the `app/` directory of the environment
   branches.
 
-If deemed acceptable, these assumptions permit Bookkeeper to be used without any
-configuration at all.
+If deemed acceptable, these assumptions permit Kargo Render to be used without
+any configuration at all.

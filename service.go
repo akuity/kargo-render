@@ -1,4 +1,4 @@
-package bookkeeper
+package render
 
 import (
 	"context"
@@ -10,22 +10,22 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/bookkeeper/internal/helm"
-	"github.com/akuity/bookkeeper/internal/kustomize"
-	"github.com/akuity/bookkeeper/internal/manifests"
-	"github.com/akuity/bookkeeper/internal/ytt"
-	"github.com/akuity/bookkeeper/pkg/git"
+	"github.com/akuity/kargo-render/internal/helm"
+	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/manifests"
+	"github.com/akuity/kargo-render/internal/ytt"
+	"github.com/akuity/kargo-render/pkg/git"
 )
 
 type ServiceOptions struct {
 	LogLevel LogLevel
 }
 
-// Service is an interface for components that can handle bookkeeping requests.
+// Service is an interface for components that can handle rendering requests.
 // Implementations of this interface are transport-agnostic.
 type Service interface {
-	// RenderManifests handles a bookkeeping request.
-	RenderManifests(context.Context, RenderRequest) (RenderResponse, error)
+	// RenderManifests handles a rendering request.
+	RenderManifests(context.Context, Request) (Response, error)
 }
 
 type service struct {
@@ -51,7 +51,7 @@ type service struct {
 }
 
 // NewService returns an implementation of the Service interface for
-// handling bookkeeping requests.
+// handling rendering requests.
 func NewService(opts *ServiceOptions) Service {
 	if opts == nil {
 		opts = &ServiceOptions{}
@@ -72,8 +72,8 @@ func NewService(opts *ServiceOptions) Service {
 // nolint: gocyclo
 func (s *service) RenderManifests(
 	ctx context.Context,
-	req RenderRequest,
-) (RenderResponse, error) {
+	req Request,
+) (Response, error) {
 	req.id = uuid.NewV4().String()
 
 	logger := s.logger.WithField("request", req.id)
@@ -84,7 +84,7 @@ func (s *service) RenderManifests(
 
 	startEndLogger.Debug("handling rendering request")
 
-	res := RenderResponse{}
+	res := Response{}
 
 	var err error
 	if req, err = validateAndCanonicalizeRequest(req); err != nil {
@@ -92,7 +92,7 @@ func (s *service) RenderManifests(
 	}
 	startEndLogger.Debug("validated rendering request")
 
-	rc := renderRequestContext{
+	rc := requestContext{
 		logger:  logger,
 		request: req,
 	}
@@ -145,7 +145,7 @@ func (s *service) RenderManifests(
 	repoConfig, err := loadRepoConfig(rc.repo.WorkingDir())
 	if err != nil {
 		return res,
-			errors.Wrap(err, "error loading Bookkeeper configuration from repo")
+			errors.Wrap(err, "error loading Kargo Render configuration from repo")
 	}
 	if rc.target.branchConfig, err =
 		repoConfig.GetBranchConfig(rc.request.TargetBranch); err != nil {
@@ -184,7 +184,7 @@ func (s *service) RenderManifests(
 	if oldTargetBranchMetadata == nil {
 		return res, errors.Errorf(
 			"target branch %q already exists, but does not appear to be managed by "+
-				"Bookkeeper; refusing to overwrite branch contents",
+				"Kargo Render; refusing to overwrite branch contents",
 			rc.request.TargetBranch,
 		)
 	}
@@ -229,14 +229,14 @@ func (s *service) RenderManifests(
 	logger.Debug("wrote all manifests")
 
 	// Before committing, check if we actually have any diffs from the head of
-	// this branch that are NOT just Bookkeeper metadata. We'd have an error if we
-	// tried to commit with no diffs!
+	// this branch that are NOT just Kargo Render metadata. We'd have an error if
+	// we tried to commit with no diffs!
 	diffPaths, err := rc.repo.GetDiffPaths()
 	if err != nil {
 		return res, errors.Wrap(err, "error checking for diffs")
 	}
 	if len(diffPaths) == 0 ||
-		(len(diffPaths) == 1 && diffPaths[0] == ".bookkeeper/metadata.yaml") {
+		(len(diffPaths) == 1 && diffPaths[0] == ".kargo-render/metadata.yaml") {
 		logger.WithField("commitBranch", rc.target.commit.branch).Debug(
 			"manifests do not differ from the head of the " +
 				"commit branch; no further action is required",
@@ -303,11 +303,11 @@ func (s *service) RenderManifests(
 }
 
 // buildCommitMessage builds a commit message for rendered manifests being
-// written to a target branch by using the source commit's own commit message
-// as a starting point. The message is then augmented with details about where
-// Bookkeeper rendered it from (the source commit) and any image substitutions
-// Bookkeeper made per the RenderRequest.
-func buildCommitMessage(rc renderRequestContext) (string, error) {
+// written to a target branch by using the source commit's own commit message as
+// a starting point. The message is then augmented with details about where
+// Kargo Render rendered it from (the source commit) and any image substitutions
+// Kargo Render made per the RenderRequest.
+func buildCommitMessage(rc requestContext) (string, error) {
 	var commitMsg string
 	if rc.request.CommitMessage != "" {
 		commitMsg = rc.request.CommitMessage
@@ -325,7 +325,7 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 
 	// Add the source commit's ID
 	formattedCommitMsg := fmt.Sprintf(
-		"%s\n\nBookkeeper created this commit by rendering manifests from %s",
+		"%s\n\nKargo Render created this commit by rendering manifests from %s",
 		commitMsg,
 		rc.source.commit,
 	)
@@ -365,7 +365,7 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 
 	if len(rc.target.newBranchMetadata.ImageSubstitutions) != 0 {
 		formattedCommitMsg = fmt.Sprintf(
-			"%s\n\nBookkeeper also incorporated the following images into this "+
+			"%s\n\nKargo Render also incorporated the following images into this "+
 				"commit:\n",
 			formattedCommitMsg,
 		)
@@ -381,7 +381,7 @@ func buildCommitMessage(rc renderRequestContext) (string, error) {
 	return formattedCommitMsg, nil
 }
 
-func writeAllManifests(rc renderRequestContext) error {
+func writeAllManifests(rc requestContext) error {
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
 		appLogger := rc.logger.WithField("app", appName)
 		var outputDir string
