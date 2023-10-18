@@ -1,5 +1,3 @@
-![kargo-logo](https://github.com/anevski-stefan/kargo-render/assets/105498279/e6750d98-62aa-4cf2-8164-24b9d26df8a9)
-
 # Kargo Render -- Rendered Branches Utility
 
 ![CI](https://github.com/akuity/kargo-render/actions/workflows/ci.yaml/badge.svg)
@@ -9,7 +7,7 @@
 [![Discord](https://img.shields.io/discord/1138942074998235187?logo=discord&logoColor=ffffff&label=discord
 )](http://akuity.community)
 
-<img width="80" align="left" src="logo.png" style="right-margin: 20px"/>
+<img width="140" align="left" src="kargo-logo.png" style="margin-right: 20px"/>
 
 Placeholder
 
