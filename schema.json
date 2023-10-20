@@ -67,7 +67,64 @@
 		},
 
 		"configManagementConfig": {
-			"type": "object"
+			"type": "object",
+			"oneOf": [{
+				"required": ["path"],
+				"additionalProperties": false,
+				"properties": {
+					"path": {
+						"$ref": "#/definitions/relativePath"
+					},
+					"helm": {
+						"properties": {
+							"namespace": {
+								"type": "string"
+							},
+							"k8sVersion": {
+								"type": "string"
+							},
+							"apiVersions": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						},
+						"allOf": [{
+							"#ref": "argocd-schema.json#/definitions/helm"
+						}]
+					}
+				}
+			}, {
+				"required": ["path"],
+				"additionalProperties": false,
+				"properties": {
+					"path": {
+						"$ref": "#/definitions/relativePath"
+					},
+					"kustomize": {
+						"properties": {
+							"buildOptions": {
+								"type": "string"
+							}
+						},
+						"allOf": [{
+							"#ref": "argocd-schema.json#/definitions/kustomize"
+						}]
+					}
+				}
+			}, {
+				"required": ["path"],
+				"additionalProperties": false,
+				"properties": {
+					"path": {
+						"$ref": "#/definitions/relativePath"
+					},
+					"plugin": {
+						"$ref": "argocd-schema.json#/definitions/plugin"
+					}
+				}
+			}]
 		},
 
 		"pullRequestConfig": {

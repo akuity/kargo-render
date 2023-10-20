@@ -20,10 +20,22 @@ import (
 
 //go:embed schema.json
 var configSchemaBytes []byte
-var configSchemaJSONLoader gojsonschema.JSONLoader
+
+//go:embed argocd-schema.json
+var argocdConfigSchemaBytes []byte
+
+var configSchema *gojsonschema.Schema
 
 func init() {
-	configSchemaJSONLoader = gojsonschema.NewBytesLoader(configSchemaBytes)
+	sl := gojsonschema.NewSchemaLoader()
+	if err := sl.AddSchema("argocd-schema.json", gojsonschema.NewBytesLoader(argocdConfigSchemaBytes)); err != nil {
+		panic(fmt.Sprintf("error adding Argo CD schema: %s", err))
+	}
+
+	var err error
+	if configSchema, err = sl.Compile(gojsonschema.NewBytesLoader(configSchemaBytes)); err != nil {
+		panic(fmt.Sprintf("error compiling schema: %s", err))
+	}
 }
 
 // repoConfig encapsulates all Kargo Render configuration options for a
@@ -190,10 +202,8 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 		return nil,
 			errors.Wrap(err, "error normalizing Kargo Render configuration")
 	}
-	validationResult, err := gojsonschema.Validate(
-		configSchemaJSONLoader,
-		gojsonschema.NewBytesLoader(configBytes),
-	)
+
+	validationResult, err := configSchema.Validate(gojsonschema.NewBytesLoader(configBytes))
 	if err != nil {
 		return nil, errors.Wrap(err, "error validating Kargo Render configuration")
 	}
