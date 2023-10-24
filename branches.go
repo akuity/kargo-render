@@ -144,19 +144,29 @@ func switchToCommitBranch(rc requestContext) (string, error) {
 		}
 	}
 
-	// Clean existing output paths
-	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
-		var outputDir string
-		if appConfig.OutputPath != "" {
-			outputDir = filepath.Join(rc.repo.WorkingDir(), appConfig.OutputPath)
-		} else {
-			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
-		}
-		if err := os.RemoveAll(outputDir); err != nil {
-			return "", errors.Wrapf(err, "error deleting %q", outputDir)
-		}
+	// Clean the branch so we can replace its contents wholesale
+	if err := cleanCommitBranch(rc.repo.WorkingDir()); err != nil {
+		return "", errors.Wrap(err, "error cleaning commit branch")
 	}
 	logger.Debug("cleaned commit branch")
 
 	return commitBranch, nil
+}
+
+// cleanCommitBranch deletes the entire contents of the specified directory
+// EXCEPT for the .git and .kargo-render subdirectories.
+func cleanCommitBranch(dir string) error {
+	dirEntries, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+	for _, dirEntry := range dirEntries {
+		if dirEntry.Name() == ".git" || dirEntry.Name() == ".kargo-render" {
+			continue
+		}
+		if err = os.RemoveAll(filepath.Join(dir, dirEntry.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
 }
