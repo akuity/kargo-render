@@ -40,6 +40,12 @@
 				},
 				"prs": {
 					"$ref": "#/definitions/pullRequestConfig"
+				},
+				"preservedPaths": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/relativePath"
+					}
 				}
 			}
 		},

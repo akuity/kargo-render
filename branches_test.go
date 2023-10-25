@@ -107,7 +107,7 @@ func TestCleanCommitBranch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, dirEntries, subdirCount+fileCount+2)
 	// Delete
-	err = cleanCommitBranch(dir)
+	err = cleanCommitBranch(dir, []string{})
 	require.NoError(t, err)
 	// .git should not have been deleted
 	_, err = os.Stat(filepath.Join(dir, ".git"))
@@ -119,6 +119,107 @@ func TestCleanCommitBranch(t *testing.T) {
 	dirEntries, err = os.ReadDir(dir)
 	require.NoError(t, err)
 	require.Len(t, dirEntries, 2)
+}
+
+func TestNormalizePreservedPaths(t *testing.T) {
+	preservedPaths := []string{
+		"foo/bar",
+		"bat/baz/",
+	}
+	normalizedPreservedPaths :=
+		normalizePreservedPaths("fake-work-dir", preservedPaths)
+	require.Equal(
+		t,
+		[]string{
+			filepath.Join("fake-work-dir", "foo", "bar"),
+			filepath.Join("fake-work-dir", "bat", "baz"),
+		},
+		normalizedPreservedPaths,
+	)
+}
+
+func TestCleanDir(t *testing.T) {
+	dir, err := os.MkdirTemp("", "")
+	defer os.RemoveAll(dir)
+	require.NoError(t, err)
+
+	// This is what the test directory structure will look like:
+	// .
+	// ├── foo            preserved directly
+	// │   └── foo.txt    preserved because foo is
+	// ├── bar            preserved because bar/bar.txt is
+	// │   └── bar.txt    preserved directly
+	// ├── baz            deleted because empty
+	// │   └── baz.txt    deleted
+	// └── keep.txt       preserved directly
+
+	// Create the test directory structure
+	fooDir := filepath.Join(dir, "foo")
+	err = os.Mkdir(fooDir, 0755)
+	require.NoError(t, err)
+	fooFile := filepath.Join(fooDir, "foo.txt")
+	err = os.WriteFile(fooFile, []byte("foo"), 0600)
+	require.NoError(t, err)
+
+	barDir := filepath.Join(dir, "bar")
+	err = os.Mkdir(barDir, 0755)
+	require.NoError(t, err)
+	barFile := filepath.Join(barDir, "bar.txt")
+	err = os.WriteFile(barFile, []byte("bar"), 0600)
+	require.NoError(t, err)
+
+	bazDir := filepath.Join(dir, "baz")
+	err = os.Mkdir(bazDir, 0755)
+	require.NoError(t, err)
+	bazFile := filepath.Join(bazDir, "baz.txt")
+	err = os.WriteFile(bazFile, []byte("baz"), 0600)
+	require.NoError(t, err)
+
+	keepFile := filepath.Join(dir, "keep.txt")
+	err = os.WriteFile(keepFile, []byte("keep"), 0600)
+	require.NoError(t, err)
+
+	preservedPaths := []string{
+		fooDir,
+		barFile,
+		keepFile,
+	}
+
+	isEmpty, err := cleanDir(dir, preservedPaths)
+	require.NoError(t, err)
+	require.False(t, isEmpty)
+
+	// Validate what was deleted and what wasn't
+
+	// All of foo/ remains
+	_, err = os.Stat(fooDir)
+	require.NoError(t, err)
+	_, err = os.Stat(fooFile)
+	require.NoError(t, err)
+
+	// All of bar/ remains
+	_, err = os.Stat(barDir)
+	require.NoError(t, err)
+	_, err = os.Stat(barFile)
+	require.NoError(t, err)
+
+	// All of baz/ is gone
+	_, err = os.Stat(bazDir)
+	require.True(t, os.IsNotExist(err))
+
+	// keep.txt remains
+	_, err = os.Stat(keepFile)
+	require.NoError(t, err)
+}
+
+func TestIsPathPreserved(t *testing.T) {
+	preservedPaths := []string{
+		"/foo/bar",
+		"/foo/bat",
+	}
+	require.True(t, isPathPreserved("/foo/bar", preservedPaths))
+	require.True(t, isPathPreserved("/foo/bat", preservedPaths))
+	require.False(t, isPathPreserved("/foo/baz", preservedPaths))
 }
 
 func createDummyCommitBranchDir(dirCount, fileCount int) (string, error) {
