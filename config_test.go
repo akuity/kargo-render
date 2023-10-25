@@ -136,6 +136,72 @@ func TestNormalizeAndValidate(t *testing.T) {
 				require.NoError(t, err)
 			},
 		},
+		{
+			name: "valid kustomize",
+			assertions: func(err error) {
+				require.NoError(t, err)
+			},
+			config: []byte(`configVersion: v1alpha1
+branchConfigs:
+  - name: env/prod
+    appConfigs:
+      my-proj:
+        configManagement:
+          path: env/prod/my-proj
+          kustomize:
+            buildOptions: "--load-restrictor LoadRestrictionsNone"
+        outputPath: prod/my-proj
+        combineManifests: true`),
+		},
+		{
+			name: "valid helm",
+			assertions: func(err error) {
+				require.NoError(t, err)
+			},
+			config: []byte(`configVersion: v1alpha1
+branchConfigs:
+  - name: env/prod
+    appConfigs:
+      my-proj:
+        configManagement:
+          path: env/prod/my-proj
+          helm:
+            namespace: my-namespace
+        outputPath: prod/my-proj
+        combineManifests: true`),
+		},
+		{
+			name: "valid no config management tool",
+			assertions: func(err error) {
+				require.NoError(t, err)
+			},
+			config: []byte(`configVersion: v1alpha1
+branchConfigs:
+  - name: env/prod
+    appConfigs:
+      my-proj:
+        configManagement:
+          path: env/prod/my-proj
+        outputPath: prod/my-proj
+        combineManifests: true`),
+		},
+		{
+			name: "invalid property",
+			assertions: func(err error) {
+				require.Error(t, err)
+			},
+			config: []byte(`configVersion: v1alpha1
+branchConfigs:
+  - name: env/prod
+    appConfigs:
+      my-proj:
+        configManagement:
+          path: env/prod/my-proj
+          unknown:
+            hello: world
+        outputPath: prod/my-proj
+        combineManifests: true`),
+		},
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {

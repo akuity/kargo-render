@@ -68,13 +68,16 @@
 
 		"configManagementConfig": {
 			"type": "object",
+			"required": ["path"],
+			"properties": {
+				"path": {
+					"$ref": "#/definitions/relativePath"
+				}
+			},
+			"unevaluatedProperties": false,
 			"oneOf": [{
-				"required": ["path"],
-				"additionalProperties": false,
+				"required": ["helm"],
 				"properties": {
-					"path": {
-						"$ref": "#/definitions/relativePath"
-					},
 					"helm": {
 						"properties": {
 							"namespace": {
@@ -96,12 +99,8 @@
 					}
 				}
 			}, {
-				"required": ["path"],
-				"additionalProperties": false,
+				"required": ["kustomize"],
 				"properties": {
-					"path": {
-						"$ref": "#/definitions/relativePath"
-					},
 					"kustomize": {
 						"properties": {
 							"buildOptions": {
@@ -114,15 +113,21 @@
 					}
 				}
 			}, {
-				"required": ["path"],
+				"required": ["plugin"],
+				"properties": {
+					"plugin": {
+						"$ref": "argocd-schema.json#/definitions/plugin"
+					}
+				}
+			}, {
 				"additionalProperties": false,
 				"properties": {
 					"path": {
 						"$ref": "#/definitions/relativePath"
 					},
-					"plugin": {
-						"$ref": "argocd-schema.json#/definitions/plugin"
-					}
+					"helm": false,
+					"kustomize": false,
+					"plugin": false
 				}
 			}]
 		},
