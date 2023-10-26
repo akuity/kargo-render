@@ -11,7 +11,7 @@ GitHub Actions, Kargo Render can be run as an action.
 :::info
 The Kargo Render action utilizes the official Kargo Render Docker image and
 therefore has guaranteed access to compatible versions of
-Git, Helm, Kustomize, and ytt, which are included on that image.
+Git, Helm, and Kustomize, which are included on that image.
 :::
 
 Example usage:

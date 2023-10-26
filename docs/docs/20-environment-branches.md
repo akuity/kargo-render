@@ -13,8 +13,8 @@ begins with understanding some common difficulties encountered by
 
 To keep Kubernetes manifests concise and manageable, most GitOps practitioners
 incorporate some manner of configuration management tooling into their
-deployments. [Kustomize](https://kustomize.io/), [ytt](https://carvel.dev/ytt/),
-and [Helm](https://helm.sh/) are three popular examples of such tools. Although
+deployments. [Kustomize](https://kustomize.io/),
+and [Helm](https://helm.sh/) are two popular examples of such tools. Although
 they may employ widely varied approaches, tools in this class all enable the
 same fundamental capability -- maintaining a common set of "base" configuration
 that can be amended or patched in some way to suit each of the environments to
@@ -22,7 +22,7 @@ which you might deploy your application.
 
 Continuous delivery platforms, like [Argo CD](https://argoproj.github.io/cd/) or
 [Flux](https://fluxcd.io/), commonly integrate with tools such as these. Argo
-CD, for instance, can easily detect the use of Kustomize or Helm (but not ytt)
+CD, for instance, can easily detect the use of Kustomize or Helm
 and utilize embedded versions of those tools to render such configuration into
 plain manifests that are appropriate for a given environment. While, at a
 glance, this may seem convenient, relying on these integrations to perform
