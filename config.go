@@ -69,6 +69,15 @@ type branchConfig struct {
 	// PRs encapsulates details about how to manage any pull requests associated
 	// with this branch.
 	PRs pullRequestConfig `json:"prs,omitempty"`
+	// PreservedPaths specifies paths relative to the root of the repository that
+	// should be exempted from pre-render cleaning (deletion) of
+	// environment-specific branch contents. This is useful for preserving any
+	// environment-specific files that are manually maintained. Typically there
+	// are very few such files, if any at all, with an environment-specific
+	// CODEOWNERS file at the root of the repository being the most emblematic
+	// exception. Paths may be to files or directories. Any path to a directory
+	// will cause that directory's entire contents to be preserved.
+	PreservedPaths []string `json:"preservedPaths,omitempty"`
 }
 
 func (b branchConfig) expand(values []string) branchConfig {
@@ -76,6 +85,9 @@ func (b branchConfig) expand(values []string) branchConfig {
 	cfg.AppConfigs = map[string]appConfig{}
 	for appName, appConfig := range b.AppConfigs {
 		cfg.AppConfigs[appName] = appConfig.expand(values)
+	}
+	for i, path := range b.PreservedPaths {
+		b.PreservedPaths[i] = file.ExpandPath(path, values)
 	}
 	return cfg
 }

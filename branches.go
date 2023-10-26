@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -145,7 +146,10 @@ func switchToCommitBranch(rc requestContext) (string, error) {
 	}
 
 	// Clean the branch so we can replace its contents wholesale
-	if err := cleanCommitBranch(rc.repo.WorkingDir()); err != nil {
+	if err := cleanCommitBranch(
+		rc.repo.WorkingDir(),
+		rc.target.branchConfig.PreservedPaths,
+	); err != nil {
 		return "", errors.Wrap(err, "error cleaning commit branch")
 	}
 	logger.Debug("cleaned commit branch")
@@ -154,19 +158,77 @@ func switchToCommitBranch(rc requestContext) (string, error) {
 }
 
 // cleanCommitBranch deletes the entire contents of the specified directory
-// EXCEPT for the .git and .kargo-render subdirectories.
-func cleanCommitBranch(dir string) error {
-	dirEntries, err := os.ReadDir(dir)
-	if err != nil {
-		return err
+// EXCEPT for the paths specified by preservedPaths.
+func cleanCommitBranch(dir string, preservedPaths []string) error {
+	_, err := cleanDir(
+		dir,
+		normalizePreservedPaths(
+			dir,
+			append(preservedPaths, ".git", ".kargo-render"),
+		),
+	)
+	return err
+}
+
+// normalizePreservedPaths converts the relative paths in the preservedPaths
+// argument to absolute paths relative to the workingDir argument. It also
+// removes any trailing path separators from the paths.
+func normalizePreservedPaths(
+	workingDir string,
+	preservedPaths []string,
+) []string {
+	normalizedPreservedPaths := make([]string, len(preservedPaths))
+	for i, preservedPath := range preservedPaths {
+		if strings.HasSuffix(preservedPath, string(os.PathSeparator)) {
+			preservedPath = preservedPath[:len(preservedPath)-1]
+		}
+		normalizedPreservedPaths[i] = filepath.Join(workingDir, preservedPath)
 	}
-	for _, dirEntry := range dirEntries {
-		if dirEntry.Name() == ".git" || dirEntry.Name() == ".kargo-render" {
+	return normalizedPreservedPaths
+}
+
+// cleanDir recursively deletes the entire contents of the directory specified
+// by the absolute path dir EXCEPT for any paths specified by the preservedPaths
+// argument. The function returns true if dir is left empty afterwards and false
+// otherwise.
+func cleanDir(dir string, preservedPaths []string) (bool, error) {
+	items, err := os.ReadDir(dir)
+	if err != nil {
+		return false, err
+	}
+	for _, item := range items {
+		path := filepath.Join(dir, item.Name())
+		if isPathPreserved(path, preservedPaths) {
 			continue
 		}
-		if err = os.RemoveAll(filepath.Join(dir, dirEntry.Name())); err != nil {
-			return err
+		if item.IsDir() {
+			var isEmpty bool
+			if isEmpty, err = cleanDir(path, preservedPaths); err != nil {
+				return false, err
+			}
+			if isEmpty {
+				if err = os.Remove(path); err != nil {
+					return false, err
+				}
+			}
+		} else if err = os.Remove(path); err != nil {
+			return false, err
 		}
 	}
-	return nil
+	if items, err = os.ReadDir(dir); err != nil {
+		return false, err
+	}
+	return len(items) == 0, nil
+}
+
+// isPathPreserved returns true if the specified path is among those specified
+// by the preservedPaths argument. Both path and preservedPaths MUST be absolute
+// paths. Paths to directories MUST NOT end with a trailing path separator.
+func isPathPreserved(path string, preservedPaths []string) bool {
+	for _, preservedPath := range preservedPaths {
+		if path == preservedPath {
+			return true
+		}
+	}
+	return false
 }
