@@ -36,7 +36,7 @@ not limited to, popular choices such as [CircleCI](https://circleci.com/) or
 :::caution
 The `kargo-render` CLI is not designed to be run anywhere except within a
 container based on the official Kargo Render image. The official Kargo Render
-image provides compatible versions of Kustomize, ytt, and Helm that cannot be
+image provides compatible versions of Kustomize and Helm that cannot be
 guaranteed to exist on other systems.
 :::
 
@@ -44,5 +44,5 @@ guaranteed to exist on other systems.
 If you're using Kargo Render's [Go module](./go-module) to interact
 programmatically with Kargo Render, you might _also_ consider utilizing the
 Kargo Render Docker image as a base image for your own software since it will
-guarantee the existence of compatible versions of Kustomize, ytt, and Helm. 
+guarantee the existence of compatible versions of Kustomize, and Helm. 
 :::

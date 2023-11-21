@@ -40,6 +40,12 @@
 				},
 				"prs": {
 					"$ref": "#/definitions/pullRequestConfig"
+				},
+				"preservedPaths": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/relativePath"
+					}
 				}
 			}
 		},
@@ -62,90 +68,68 @@
 
 		"configManagementConfig": {
 			"type": "object",
-			"oneOf": [
-				{
-					"required": ["helm"],
-					"additionalProperties": false,
-					"properties": {
-						"helm": {
-							"$ref": "#/definitions/helmConfig"
-						}
-					}
-				},
-				{
-					"required": ["kustomize"],
-					"additionalProperties": false,
-					"properties": {
-						"kustomize": {
-							"$ref": "#/definitions/kustomizeConfig"
-						}
-					}
-				},
-				{
-					"required": ["ytt"],
-					"additionalProperties": false,
-					"properties": {
-						"ytt": {
-							"$ref": "#/definitions/yttConfig"
-						}
-					}
-				}
-			]
-		},
-
-		"helmConfig": {
-			"type": "object",
-			"required": ["releaseName"],
-			"additionalProperties": false,
-			"properties": {
-				"releaseName": {
-					"type": "string",
-					"pattern": "^\\w[\\w-]*\\w$"
-				},
-				"namespace": {
-					"type": "string",
-					"pattern": "^\\w[\\w-]*\\w$"
-				},
-				"chartPath": {
-					"$ref": "#/definitions/relativePath"
-				},
-				"valuesPaths": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/relativePath"
-					}
-				}
-			}
-		},
-
-		"kustomizeConfig": {
-			"type": "object",
-			"additionalProperties": false,
+			"required": ["path"],
 			"properties": {
 				"path": {
 					"$ref": "#/definitions/relativePath"
-				},
-				"enableHelm": {
-					"type": "boolean"
-				},
-				"loadRestrictor": {
-					"type": "string",
-					"enum": ["LoadRestrictionsRootOnly", "LoadRestrictionsNone"]
 				}
-			}
-		},
-
-		"yttConfig": {
-			"type": "object",
-			"additionalProperties": false,
-			"properties": {
-				"paths": {
-					"type": "array",
-					"items": {
-						"$ref": "#/definitions/relativePath"
+			},
+			"unevaluatedProperties": false,
+			"oneOf": [{
+				"required": ["helm"],
+				"properties": {
+					"helm": {
+						"properties": {
+							"namespace": {
+								"type": "string"
+							},
+							"k8sVersion": {
+								"type": "string"
+							},
+							"apiVersions": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						},
+						"allOf": [{
+							"#ref": "argocd-schema.json#/definitions/helm"
+						}]
 					}
 				}
-			}
+			}, {
+				"required": ["kustomize"],
+				"properties": {
+					"kustomize": {
+						"properties": {
+							"buildOptions": {
+								"type": "string"
+							}
+						},
+						"allOf": [{
+							"#ref": "argocd-schema.json#/definitions/kustomize"
+						}]
+					}
+				}
+			}, {
+				"required": ["plugin"],
+				"properties": {
+					"plugin": {
+						"$ref": "argocd-schema.json#/definitions/plugin"
+					}
+				}
+			}, {
+				"additionalProperties": false,
+				"properties": {
+					"path": {
+						"$ref": "#/definitions/relativePath"
+					},
+					"helm": false,
+					"kustomize": false,
+					"plugin": false
+				}
+			}]
 		},
 
 		"pullRequestConfig": {

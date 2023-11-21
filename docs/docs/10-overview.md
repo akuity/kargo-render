@@ -31,7 +31,20 @@ which you wish to render and store manifests. Kargo Render does the rest and you
 can point applicable configuration of your preferred GitOps-enabled CD platform
 at the environment branch.
 
+## Kargo Render & Argo CD
+
+Kargo Render is compatible with Argo CD manifest rendering. Behind the scenes, Kargo Render uses
+Argo CD repo server to generate final manifests. That includes the same config management settings as well as features
+like automatic tool detection and
+[git parameter overrides](https://argo-cd.readthedocs.io/en/stable/user-guide/parameters/#store-overrides-in-git).
+This ensures painless back-and-forth switching between native Argo CD manifest generation and Kargo Render. 
+
 ## Getting started
+
+[Kargo](https://kargo.akuity.io/), the application lifecycle platform
+for Kubernetes, leverages Kargo Render to orchestrate manifests changes promotion.
+You can also use Kargo Render as a standalone tool:
+
 
 1. Kargo Render can be integrated into your GitOps practice in a variety of
    ways. Regardless of your entrypoint into its functionality, it relies on a
