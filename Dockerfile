@@ -44,7 +44,7 @@ FROM alpine:3.15.4 as final
 RUN apk update \
     && apk add git openssh-client \
     && addgroup -S -g 65532 nonroot \
-    && adduser -S -D -H -u 65532 -g nonroot -G nonroot nonroot
+    && adduser -S -D -u 65532 -g nonroot -G nonroot nonroot
 
 COPY --from=builder /usr/local/bin/helm /usr/local/bin/
 COPY --from=builder /usr/local/bin/kustomize /usr/local/bin/
