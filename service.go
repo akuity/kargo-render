@@ -140,10 +140,14 @@ func (s *service) RenderManifests(
 	}
 
 	if len(rc.target.branchConfig.AppConfigs) == 0 {
+		refPath := rc.request.TargetBranch
+		if req.RefPath != "" {
+			refPath = req.RefPath
+		}
 		rc.target.branchConfig.AppConfigs = map[string]appConfig{
 			"app": {
 				ConfigManagement: argocd.ConfigManagementConfig{
-					Path: rc.request.TargetBranch,
+					Path: refPath,
 				},
 			},
 		}

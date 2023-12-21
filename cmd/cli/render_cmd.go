@@ -25,6 +25,12 @@ func newRenderCommand() (*cobra.Command, error) {
 		"specify a branch or a precise commit to render from; if this is not "+
 			"provided, Kargo Render renders from the head of the default branch",
 	)
+	cmd.Flags().String(
+		flagRefPath,
+		"",
+		"a path in the ref branch/commit to render from; if unspecified, "+
+			"uses target-branch as the path",
+	)
 	cmd.Flags().StringP(
 		flagCommitMessage,
 		"m",
@@ -115,6 +121,10 @@ func runRenderCmd(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	req.Ref, err = cmd.Flags().GetString(flagRef)
+	if err != nil {
+		return err
+	}
+	req.RefPath, err = cmd.Flags().GetString(flagRefPath)
 	if err != nil {
 		return err
 	}

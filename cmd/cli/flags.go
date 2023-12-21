@@ -15,6 +15,7 @@ const (
 	flagOutputJSON    = "json"
 	flagOutputYAML    = "yaml"
 	flagRef           = "ref"
+	flagRefPath       = "ref-path"
 	flagRepo          = "repo"
 	flagRepoPassword  = "repo-password"
 	flagRepoUsername  = "repo-username"

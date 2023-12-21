@@ -36,6 +36,9 @@ type Request struct {
 	// When this is omitted, the request is assumed to be one to render from the
 	// head of the default branch.
 	Ref string `json:"ref,omitempty"`
+	// RefPath is the path in the Ref branch or commit, to render manifests from.
+	// If omitted, will use TargetBranch as the path.
+	RefPath string `json:"refPath,omitempty"`
 	// TargetBranch is the name of an environment-specific branch in the GitOps
 	// repository referenced by the RepoURL field into which plain YAML should be
 	// rendered.

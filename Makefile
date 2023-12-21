@@ -59,3 +59,10 @@ hack-build:
 		--build-arg GIT_TREE_STATE=$(shell if [ -z "`git status --porcelain`" ]; then echo "clean" ; else echo "dirty"; fi) \
 		--tag kargo-render:dev \
 		.
+
+.PHONY: hack-build-cli
+hack-build-cli:
+	GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+      	-ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$$(date -u +'%Y-%m-%dT%H:%M:%SZ') -X ${VERSION_PACKAGE}.gitCommit=${GIT_COMMIT} -X ${VERSION_PACKAGE}.gitTreeState=${GIT_TREE_STATE}" \
+      	-o bin/kargo-render \
+      	./cmd
