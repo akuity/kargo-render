@@ -66,7 +66,7 @@ make hack-build
 ```
 
 :::note
-Because Kargo Render is dependent on compatible versions of Git, Kustomize, ytt,
+Because Kargo Render is dependent on compatible versions of Git, Kustomize,
 and Helm binaries, there is seldom, if ever, a reason to build or execute the
 Kargo Render binaries outside the context of a container that provides those
 dependencies.

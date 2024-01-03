@@ -39,4 +39,4 @@ issue:
         - release-process
         # kargo-render component areas
       multiple: true
-      needs: true
+      needs: false

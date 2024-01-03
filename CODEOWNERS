@@ -1,7 +1,7 @@
 # This file is described here: https://help.github.com/en/articles/about-code-owners
 
 # Global owners
-* @alexmt @jessesuen @krancour @rbreeze @devholic @kencochrane @shelby-moore @evgeny-goldin
+* @akuity/maintainers
 
 # Doc owners
-/docs/ @morey-tech @dhpup
+/docs/ @akuity/maintainers @akuity/doc-maintainers

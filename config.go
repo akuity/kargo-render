@@ -12,20 +12,30 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 
+	"github.com/akuity/kargo-render/internal/argocd"
 	"github.com/akuity/kargo-render/internal/file"
-	"github.com/akuity/kargo-render/internal/helm"
-	"github.com/akuity/kargo-render/internal/kustomize"
-	"github.com/akuity/kargo-render/internal/ytt"
 
 	_ "embed"
 )
 
 //go:embed schema.json
 var configSchemaBytes []byte
-var configSchemaJSONLoader gojsonschema.JSONLoader
+
+//go:embed argocd-schema.json
+var argocdConfigSchemaBytes []byte
+
+var configSchema *gojsonschema.Schema
 
 func init() {
-	configSchemaJSONLoader = gojsonschema.NewBytesLoader(configSchemaBytes)
+	sl := gojsonschema.NewSchemaLoader()
+	if err := sl.AddSchema("argocd-schema.json", gojsonschema.NewBytesLoader(argocdConfigSchemaBytes)); err != nil {
+		panic(fmt.Sprintf("error adding Argo CD schema: %s", err))
+	}
+
+	var err error
+	if configSchema, err = sl.Compile(gojsonschema.NewBytesLoader(configSchemaBytes)); err != nil {
+		panic(fmt.Sprintf("error compiling schema: %s", err))
+	}
 }
 
 // repoConfig encapsulates all Kargo Render configuration options for a
@@ -48,7 +58,7 @@ func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
 			}
 			submatches := regex.FindStringSubmatch(name)
 			if len(submatches) > 0 {
-				return cfg.expand(submatches), nil
+				return cfg.expand(submatches)
 			}
 		}
 	}
@@ -69,22 +79,42 @@ type branchConfig struct {
 	// PRs encapsulates details about how to manage any pull requests associated
 	// with this branch.
 	PRs pullRequestConfig `json:"prs,omitempty"`
+	// PreservedPaths specifies paths relative to the root of the repository that
+	// should be exempted from pre-render cleaning (deletion) of
+	// environment-specific branch contents. This is useful for preserving any
+	// environment-specific files that are manually maintained. Typically there
+	// are very few such files, if any at all, with an environment-specific
+	// CODEOWNERS file at the root of the repository being the most emblematic
+	// exception. Paths may be to files or directories. Any path to a directory
+	// will cause that directory's entire contents to be preserved.
+	PreservedPaths []string `json:"preservedPaths,omitempty"`
 }
 
-func (b branchConfig) expand(values []string) branchConfig {
+func (b branchConfig) expand(values []string) (branchConfig, error) {
 	cfg := b
 	cfg.AppConfigs = map[string]appConfig{}
 	for appName, appConfig := range b.AppConfigs {
-		cfg.AppConfigs[appName] = appConfig.expand(values)
+		var err error
+		if cfg.AppConfigs[appName], err = appConfig.expand(values); err != nil {
+			return cfg, errors.Wrapf(
+				err,
+				"error expanding app config for app %q",
+				appName,
+			)
+		}
 	}
-	return cfg
+
+	for i, path := range b.PreservedPaths {
+		b.PreservedPaths[i] = file.ExpandPath(path, values)
+	}
+	return cfg, nil
 }
 
 // appConfig encapsulates application-specific Kargo Render configuration.
 type appConfig struct {
 	// ConfigManagement encapsulates configuration management options to be
 	// used with this branch and app.
-	ConfigManagement configManagementConfig `json:"configManagement,omitempty"`
+	ConfigManagement argocd.ConfigManagementConfig `json:"configManagement"`
 	// OutputPath specifies a path relative to the root of the repository where
 	// rendered manifests for this app will be stored in this branch.
 	OutputPath string `json:"outputPath,omitempty"`
@@ -93,40 +123,14 @@ type appConfig struct {
 	CombineManifests bool `json:"combineManifests,omitempty"`
 }
 
-func (a appConfig) expand(values []string) appConfig {
+func (a appConfig) expand(values []string) (appConfig, error) {
 	cfg := a
-	cfg.ConfigManagement = a.ConfigManagement.expand(values)
+	var err error
+	if cfg.ConfigManagement, err = a.ConfigManagement.Expand(values); err != nil {
+		return cfg, errors.Wrap(err, "error expanding config management config")
+	}
 	cfg.OutputPath = file.ExpandPath(a.OutputPath, values)
-	return cfg
-}
-
-// configManagementConfig is a wrapper around more specific configuration for
-// one of three supported configuration management tools: helm, kustomize, or
-// ytt. Only one of its fields may be non-nil.
-type configManagementConfig struct { // nolint: revive
-	// Helm encapsulates optional Helm configuration options.
-	Helm *helm.Config `json:"helm,omitempty"`
-	// Kustomize encapsulates optional Kustomize configuration options.
-	Kustomize *kustomize.Config `json:"kustomize,omitempty"`
-	// Ytt encapsulates optional ytt configuration options.
-	Ytt *ytt.Config `json:"ytt,omitempty"`
-}
-
-func (c configManagementConfig) expand(values []string) configManagementConfig {
-	cfg := c
-	if c.Helm != nil {
-		helmCfg := c.Helm.Expand(values)
-		cfg.Helm = &helmCfg
-	}
-	if c.Kustomize != nil {
-		kustomizeCfg := c.Kustomize.Expand(values)
-		cfg.Kustomize = &kustomizeCfg
-	}
-	if c.Ytt != nil {
-		yttCfg := c.Ytt.Expand(values)
-		cfg.Ytt = &yttCfg
-	}
-	return cfg
+	return cfg, nil
 }
 
 // pullRequestConfig encapsulates details related to PR management for a branch.
@@ -198,10 +202,8 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 		return nil,
 			errors.Wrap(err, "error normalizing Kargo Render configuration")
 	}
-	validationResult, err := gojsonschema.Validate(
-		configSchemaJSONLoader,
-		gojsonschema.NewBytesLoader(configBytes),
-	)
+
+	validationResult, err := configSchema.Validate(gojsonschema.NewBytesLoader(configBytes))
 	if err != nil {
 		return nil, errors.Wrap(err, "error validating Kargo Render configuration")
 	}
