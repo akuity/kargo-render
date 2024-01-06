@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.20.7-bookworm as builder
+FROM --platform=$BUILDPLATFORM golang:1.21.5-bookworm as builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -39,7 +39,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
     && cd bin \
     && ln -s kargo-render kargo-render-action
 
-FROM alpine:3.15.4 as final
+FROM alpine:3.19.0 as final
 
 RUN apk update \
     && apk add git openssh-client \
