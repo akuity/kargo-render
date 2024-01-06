@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Render manifests
-      uses: akuity/akuity-kargo-render@v0.1.0-rc.25
+      uses: akuity/kargo-render-action@v0.1.0-rc.34
       with:
         personalAccessToken: ${{ secrets.GITHUB_TOKEN }}
         targetBranch: env/test
