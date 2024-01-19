@@ -145,7 +145,7 @@ branchConfigs:
         helm:
           releaseName: bar
           namespace: bar #optional
-          valuesFiles:
+          valueFiles:
           - env/test/bar/values.yaml
       outputPath: bar
 - name: env/stage
@@ -156,7 +156,7 @@ branchConfigs:
         helm:
           releaseName: foo
           namespace: foo #optional
-          valuesFiles:
+          valueFiles:
           - env/stage/foo/values.yaml
       outputPath: foo
     bar:
@@ -165,7 +165,7 @@ branchConfigs:
         helm:
           releaseName: bar
           namespace: bar #optional
-          valuesFiles:
+          valueFiles:
           - env/stage/bar/values.yaml
       outputPath: bar
 - name: env/prod
@@ -176,7 +176,7 @@ branchConfigs:
         helm:
           releaseName: foo
           namespace: foo #optional
-          valuesFiles:
+          valueFiles:
           - env/prod/foo/values.yaml
       outputPath: foo
     bar:
@@ -185,7 +185,7 @@ branchConfigs:
         helm:
           releaseName: bar
           namespace: bar #optional
-          valuesFiles:
+          valueFiles:
           - env/prod/bar/values.yaml
       outputPath: bar
 ```
@@ -248,7 +248,7 @@ branchConfigs:
         helm:
           releaseName: foo
           namespace: foo #optional
-          valuesFiles:
+          valueFiles:
           - env/${1}/foo/values.yaml
       outputPath: foo
     bar:
@@ -257,7 +257,7 @@ branchConfigs:
         helm:
           releaseName: bar
           namespace: bar #optional
-          valuesFiles:
+          valueFiles:
           - env/${1}/bar/values.yaml
       outputPath: bar
 ```
