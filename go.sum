@@ -82,8 +82,8 @@ github.com/alicebob/miniredis/v2 v2.30.4 h1:8S4/o1/KoUArAGbGwPxcwf0krlzceva2XVOS
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/antlr/antlr4/runtime/Go/antlr v0.0.0-20210826220005-b48c857c3a0e/go.mod h1:F7bn7fEU90QkQ3tnmaTx3LTKLEDqnwWODIYppRQ5hnY=
-github.com/argoproj/argo-cd/v2 v2.9.3 h1:P3oi9WEzi7NkPoinPhv/RCS6vKJT5vmB1YjgZduK0uw=
-github.com/argoproj/argo-cd/v2 v2.9.3/go.mod h1:+Ve37mJedhW4fpRTpQNbE9VaSmkijET1UgxZOFNi3dI=
+github.com/argoproj/argo-cd/v2 v2.9.4 h1:I048tTKiXsQiJVoJ69TSPvq0Umnsc9TMCNMjL4Ok4P8=
+github.com/argoproj/argo-cd/v2 v2.9.4/go.mod h1:3DQwsQvXosH/lpa7NYI9xBdDl5pdXQijO99ltKuSxQA=
 github.com/argoproj/gitops-engine v0.7.1-0.20230906152414-b0fffe419a0f h1:cb2j6HxYJutMBvvQc/Y3EOSL7pcr5pcnP/4MNmYi4xc=
 github.com/argoproj/gitops-engine v0.7.1-0.20230906152414-b0fffe419a0f/go.mod h1:/GMN0JuoJUUpnKlNLp2Wn/mfK8sglFsdPn+eoxSddmg=
 github.com/argoproj/pkg v0.13.7-0.20230627120311-a4dd357b057e h1:kuLQvJqwwRMQTheT4MFyKVM8Txncu21CHT4yBWUl1Mk=
@@ -1281,8 +1281,8 @@ k8s.io/kube-openapi v0.0.0-20220627174259-011e075b9cb8 h1:yEQKdMCjzAOvGeiTwG4hO/
 k8s.io/kube-openapi v0.0.0-20220627174259-011e075b9cb8/go.mod h1:mbJ+NSUoAhuR14N0S63bPkh8MGVSo3VYSGZtH/mfMe0=
 k8s.io/kubectl v0.24.2 h1:+RfQVhth8akUmIc2Ge8krMl/pt66V7210ka3RE/p0J4=
 k8s.io/kubectl v0.24.2/go.mod h1:+HIFJc0bA6Tzu5O/YcuUt45APAxnNL8LeMuXwoiGsPg=
-k8s.io/kubernetes v1.24.15 h1:FupxlSyYgbz22yjGVZ7dxH+azhuO0OU8MnACdydrBzQ=
-k8s.io/kubernetes v1.24.15/go.mod h1:MlcoxAWSYrfeOwlfRNne7zYyZsHmlT3dlw7v3xzDnDM=
+k8s.io/kubernetes v1.24.17 h1:+4+5VIoxcDv35PnVELouMdDC58AQF/sWs+hjjr4Ra44=
+k8s.io/kubernetes v1.24.17/go.mod h1:LJ66K8sMVLCol0l5oJlWPaj59qXgWCCYZIaHHPm+5s8=
 k8s.io/metrics v0.24.2/go.mod h1:5NWURxZ6Lz5gj8TFU83+vdWIVASx7W8lwPpHYCqopMo=
 k8s.io/utils v0.0.0-20210802155522-efc7438f0176/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=

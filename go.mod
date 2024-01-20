@@ -44,10 +44,10 @@ require (
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/api v0.24.2 // indirect
+	k8s.io/api v0.24.17 // indirect
 	k8s.io/apiextensions-apiserver v0.24.2 // indirect
-	k8s.io/apimachinery v0.24.2
-	k8s.io/client-go v0.24.2 // indirect
+	k8s.io/apimachinery v0.24.17
+	k8s.io/client-go v0.24.17 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220627174259-011e075b9cb8 // indirect
 	k8s.io/kubectl v0.24.2 // indirect
@@ -56,10 +56,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-require k8s.io/apiserver v0.24.2 // indirect
+require k8s.io/apiserver v0.24.17 // indirect
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.9.3
+	github.com/argoproj/argo-cd/v2 v2.9.4
 	github.com/google/go-github/v47 v47.1.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/xeipuuv/gojsonschema v1.2.0
@@ -155,11 +155,11 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/cli-runtime v0.24.2 // indirect
-	k8s.io/component-base v0.24.2 // indirect
-	k8s.io/component-helpers v0.24.2 // indirect
+	k8s.io/cli-runtime v0.24.17 // indirect
+	k8s.io/component-base v0.24.17 // indirect
+	k8s.io/component-helpers v0.24.17 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
-	k8s.io/kubernetes v1.24.15 // indirect
+	k8s.io/kubernetes v1.24.17 // indirect
 	oras.land/oras-go/v2 v2.3.0 // indirect
 	sigs.k8s.io/json v0.0.0-20220525155127-227cbc7cc124 // indirect
 	sigs.k8s.io/kustomize/api v0.11.5 // indirect
