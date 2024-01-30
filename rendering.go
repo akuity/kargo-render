@@ -24,7 +24,7 @@ resources:
 func (s *service) preRender(
 	ctx context.Context,
 	rc requestContext,
-	repoDir string,
+	repoRoot string,
 ) (map[string][]byte, error) {
 	logger := rc.logger
 	manifests := map[string][]byte{}
@@ -33,7 +33,7 @@ func (s *service) preRender(
 		appLogger := logger.WithField("app", appName)
 		manifests[appName], err = s.renderFn(
 			ctx,
-			filepath.Join(repoDir, appConfig.ConfigManagement.Path),
+			repoRoot,
 			appConfig.ConfigManagement,
 		)
 		if err != nil {

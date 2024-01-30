@@ -3,6 +3,7 @@ package argocd
 import (
 	"context"
 	"encoding/json"
+	"path/filepath"
 
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
@@ -88,7 +89,8 @@ func (c ConfigManagementConfig) Expand(
 }
 
 func Render(
-	ctx context.Context, path string,
+	ctx context.Context,
+	repoRoot string,
 	cfg ConfigManagementConfig,
 ) ([]byte, error) {
 	src := argoappv1.ApplicationSource{
@@ -113,13 +115,9 @@ func Render(
 
 	res, err := repository.GenerateManifests(
 		ctx,
-		path,
-		// Seems ok for these next two arguments to be empty strings. If this is
-		// last mile rendering, we might be doing this in a directory outside of any
-		// repo. And event for regular rendering, we have already checked the
-		// revision we want.
-		"", // Repo root
-		"", // Revision
+		filepath.Join(repoRoot, cfg.Path),
+		repoRoot, // Repo root
+		"",       // Revision -- seems ok to be empty string
 		&apiclient.ManifestRequest{
 			// Both of these fields need to be non-nil
 			Repo:              &argoappv1.Repository{},
