@@ -30,7 +30,7 @@ type service struct {
 	logger   *log.Logger
 	renderFn func(
 		ctx context.Context,
-		path string,
+		repoRoot string,
 		cfg argocd.ConfigManagementConfig,
 	) ([]byte, error)
 }
