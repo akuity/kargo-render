@@ -10,10 +10,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/akuity/kargo-render/internal/helm"
-	"github.com/akuity/kargo-render/internal/kustomize"
+	"github.com/akuity/kargo-render/internal/argocd"
 	"github.com/akuity/kargo-render/internal/manifests"
-	"github.com/akuity/kargo-render/internal/ytt"
 	"github.com/akuity/kargo-render/pkg/git"
 )
 
@@ -29,24 +27,11 @@ type Service interface {
 }
 
 type service struct {
-	logger *log.Logger
-
-	// These behaviors are overridable for testing purposes
-	helmRenderFn func(
+	logger   *log.Logger
+	renderFn func(
 		ctx context.Context,
-		releaseName string,
-		namespace string,
-		chartPath string,
-		valuesPaths []string,
-	) ([]byte, error)
-
-	yttRenderFn func(ctx context.Context, paths []string) ([]byte, error)
-
-	kustomizeRenderFn func(
-		ctx context.Context,
-		path string,
-		images []string,
-		cfg kustomize.Config,
+		repoRoot string,
+		cfg argocd.ConfigManagementConfig,
 	) ([]byte, error)
 }
 
@@ -62,10 +47,8 @@ func NewService(opts *ServiceOptions) Service {
 	logger := log.New()
 	logger.SetLevel(log.Level(opts.LogLevel))
 	return &service{
-		logger:            logger,
-		helmRenderFn:      helm.Render,
-		yttRenderFn:       ytt.Render,
-		kustomizeRenderFn: kustomize.Render,
+		logger:   logger,
+		renderFn: argocd.Render,
 	}
 }
 
@@ -159,10 +142,8 @@ func (s *service) RenderManifests(
 	if len(rc.target.branchConfig.AppConfigs) == 0 {
 		rc.target.branchConfig.AppConfigs = map[string]appConfig{
 			"app": {
-				ConfigManagement: configManagementConfig{
-					Kustomize: &kustomize.Config{
-						Path: rc.request.TargetBranch,
-					},
+				ConfigManagement: argocd.ConfigManagementConfig{
+					Path: rc.request.TargetBranch,
 				},
 			},
 		}

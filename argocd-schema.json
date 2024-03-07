@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "argocd-schema.json",
+  "definitions": {
+    "helm": {
+      "description": "Helm holds helm specific options",
+      "properties": {
+        "fileParameters": {
+          "description": "FileParameters are file parameters to the helm template",
+          "items": {
+            "description": "HelmFileParameter is a file parameter that's passed to helm template during manifest generation",
+            "properties": {
+              "name": {
+                "description": "Name is the name of the Helm parameter",
+                "type": "string"
+              },
+              "path": {
+                "description": "Path is the path to the file containing the values for the Helm parameter",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "ignoreMissingValueFiles": {
+          "description": "IgnoreMissingValueFiles prevents helm template from failing when valueFiles do not exist locally by not appending them to helm template --values",
+          "type": "boolean"
+        },
+        "parameters": {
+          "description": "Parameters is a list of Helm parameters which are passed to the helm template command upon manifest generation",
+          "items": {
+            "description": "HelmParameter is a parameter that's passed to helm template during manifest generation",
+            "properties": {
+              "forceString": {
+                "description": "ForceString determines whether to tell Helm to interpret booleans and numbers as strings",
+                "type": "boolean"
+              },
+              "name": {
+                "description": "Name is the name of the Helm parameter",
+                "type": "string"
+              },
+              "value": {
+                "description": "Value is the value for the Helm parameter",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "passCredentials": {
+          "description": "PassCredentials pass credentials to all domains (Helm's --pass-credentials)",
+          "type": "boolean"
+        },
+        "releaseName": {
+          "description": "ReleaseName is the Helm release name to use. If omitted it will use the application name",
+          "type": "string"
+        },
+        "skipCrds": {
+          "description": "SkipCrds skips custom resource definition installation step (Helm's --skip-crds)",
+          "type": "boolean"
+        },
+        "valueFiles": {
+          "description": "ValuesFiles is a list of Helm value files to use when generating a template",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "values": {
+          "description": "Values specifies Helm values to be passed to helm template, typically defined as a block. ValuesObject takes precedence over Values, so use one or the other.",
+          "type": "string"
+        },
+        "valuesObject": {
+          "description": "ValuesObject specifies Helm values to be passed to helm template, defined as a map. This takes precedence over Values.",
+          "type": "object",
+          "x-kubernetes-preserve-unknown-fields": true
+        },
+        "version": {
+          "description": "Version is the Helm version to use for templating (\"3\")",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "kustomize": {
+      "description": "Kustomize holds kustomize specific options",
+      "properties": {
+        "commonAnnotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "CommonAnnotations is a list of additional annotations to add to rendered manifests",
+          "type": "object"
+        },
+        "commonAnnotationsEnvsubst": {
+          "description": "CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values",
+          "type": "boolean"
+        },
+        "commonLabels": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "CommonLabels is a list of additional labels to add to rendered manifests",
+          "type": "object"
+        },
+        "forceCommonAnnotations": {
+          "description": "ForceCommonAnnotations specifies whether to force applying common annotations to resources for Kustomize apps",
+          "type": "boolean"
+        },
+        "forceCommonLabels": {
+          "description": "ForceCommonLabels specifies whether to force applying common labels to resources for Kustomize apps",
+          "type": "boolean"
+        },
+        "images": {
+          "description": "Images is a list of Kustomize image override specifications",
+          "items": {
+            "description": "KustomizeImage represents a Kustomize image definition in the format [old_image_name=]<image_name>:<image_tag>",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "namePrefix": {
+          "description": "NamePrefix is a prefix appended to resources for Kustomize apps",
+          "type": "string"
+        },
+        "nameSuffix": {
+          "description": "NameSuffix is a suffix appended to resources for Kustomize apps",
+          "type": "string"
+        },
+        "namespace": {
+          "description": "Namespace sets the namespace that Kustomize adds to all resources",
+          "type": "string"
+        },
+        "replicas": {
+          "description": "Replicas is a list of Kustomize Replicas override specifications",
+          "items": {
+            "properties": {
+              "count": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "description": "Number of replicas",
+                "x-kubernetes-int-or-string": true
+              },
+              "name": {
+                "description": "Name of Deployment or StatefulSet",
+                "type": "string"
+              }
+            },
+            "required": [
+              "count",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "version": {
+          "description": "Version controls which version of Kustomize to use for rendering manifests",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "plugin": {
+      "description": "Plugin holds config management plugin specific options",
+      "properties": {
+        "env": {
+          "description": "Env is a list of environment variable entries",
+          "items": {
+            "description": "EnvEntry represents an entry in the application's environment",
+            "properties": {
+              "name": {
+                "description": "Name is the name of the variable, usually expressed in uppercase",
+                "type": "string"
+              },
+              "value": {
+                "description": "Value is the value of the variable",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "properties": {
+              "array": {
+                "description": "Array is the value of an array type parameter.",
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "map": {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Map is the value of a map type parameter.",
+                "type": "object"
+              },
+              "name": {
+                "description": "Name is the name identifying a parameter.",
+                "type": "string"
+              },
+              "string": {
+                "description": "String_ is the value of a string type parameter.",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

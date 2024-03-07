@@ -39,7 +39,7 @@ deploying multiple, distinct, monolithic applications that can be deployed
 independently of one another.
 
 With an _environment-centric_ perspective, a team treats their environments as
-"first class." _Applications_ are simply different denizens of an environment.
+"first class." _Applications_ are simply different pieces of an environment.
 This perspective might be adopted by a team that is employing a microsevice
 architecture wherein each "application" is a single component of a larger whole
 that should be deployed as an atomic unit.
@@ -62,6 +62,12 @@ examples that follow will involve _two_ applications -- `foo` and `bar`. When we
 render manifests for an environment branch, we wish to render manifests for
 _both_ apps.
 
+## Config management tool configuration
+
+Behind the scene Kargo Render uses Argo CD Repo Server to render manifests. More
+information about supported settings is available in Argo CD
+[documentation](https://argo-cd.readthedocs.io/en/stable/user-guide/application_sources/).
+
 <Tabs groupId="kargo-render">
 
 <TabItem value="kustomize" label="Kustomize">
@@ -78,108 +84,37 @@ branchConfigs:
   appConfigs:
     foo:
       configManagement:
-        kustomize:
-          path: env/test/foo # test overlay for app "foo"
+        path: env/test/foo # test overlay for app "foo"
       outputPath: foo
     bar:
       configManagement:
-        kustomize:
-          path: env/test/bar # test overlay for app "bar"
+        path: env/test/bar # test overlay for app "bar"
       outputPath: bar
 - name: env/stage
   appConfigs:
     foo:
       configManagement:
-        kustomize:
-          path: env/stage/foo # stage overlay for app "foo"
+        path: env/stage/foo # stage overlay for app "foo"
       outputPath: foo
     bar:
       configManagement:
-        kustomize:
-          path: env/stage/bar # stage overlay for app "bar"
+        path: env/stage/bar # stage overlay for app "bar"
       outputPath: bar
 - name: env/prod
   appConfigs:
     foo:
       configManagement:
-        kustomize:
-          path: env/prod/foo # prod overlay for app "foo"
+        path: env/prod/foo # prod overlay for app "foo"
       outputPath: foo
     bar:
       configManagement:
-        kustomize:
-          path: env/prod/bar # prod overlay for app "bar"
+        path: env/prod/bar # prod overlay for app "bar"
       outputPath: bar
 ```
 
 Refer directly to
 [Kustomize's documentation](https://kubectl.docs.kubernetes.io/references/kustomize/)
 for more information.
-
-</TabItem>
-
-<TabItem value="ytt" label="ytt">
-
-For each environment branch, the configuration below specifies the multiple
-paths that should be used as arguments to the `ytt` command for each
-application. It also specifies where within each environment branch to store the
-rendered manifests for each application.
-
-```yaml
-configVersion: v1alpha1
-branchConfigs:
-- name: env/test
-  appConfigs:
-    foo:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/foo
-          - env/test/foo
-      outputPath: foo
-    bar:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/bar
-          - env/test/bar
-      outputPath: bar
-- name: env/stage
-  appConfigs:
-    foo:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/foo
-          - env/stage/foo
-      outputPath: foo
-    bar:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/bar
-          - env/stage/bar
-      outputPath: bar
-- name: env/prod
-  appConfigs:
-    foo:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/foo
-          - env/prod/foo
-      outputPath: foo
-    bar:
-      configManagement:
-        ytt:
-          paths: # use all of these paths as args to the ytt command
-          - base/bar
-          - env/prod/bar
-      outputPath: bar
-```
-
-Refer directly to [ytt's documentation](https://carvel.dev/ytt/) for more
-information.
 
 </TabItem>
 
@@ -197,60 +132,60 @@ branchConfigs:
   appConfigs:
     foo:
       configManagement:
+        path: charts/foo
         helm:
           releaseName: foo
           namespace: foo #optional
-          chartPath: charts/foo
-          valuesPaths:
+          valueFiles:
           - env/test/foo/values.yaml
       outputPath: foo
     bar:
       configManagement:
+        path: charts/bar
         helm:
           releaseName: bar
           namespace: bar #optional
-          chartPath: charts/bar
-          valuesPaths:
+          valueFiles:
           - env/test/bar/values.yaml
       outputPath: bar
 - name: env/stage
   appConfigs:
     foo:
       configManagement:
+        path: charts/foo
         helm:
           releaseName: foo
           namespace: foo #optional
-          chartPath: charts/foo
-          valuesPaths:
+          valueFiles:
           - env/stage/foo/values.yaml
       outputPath: foo
     bar:
       configManagement:
+        path: charts/bar
         helm:
           releaseName: bar
           namespace: bar #optional
-          chartPath: charts/bar
-          valuesPaths:
+          valueFiles:
           - env/stage/bar/values.yaml
       outputPath: bar
 - name: env/prod
   appConfigs:
     foo:
       configManagement:
+        path: charts/foo
         helm:
           releaseName: foo
           namespace: foo #optional
-          chartPath: charts/foo
-          valuesPaths:
+          valueFiles:
           - env/prod/foo/values.yaml
       outputPath: foo
     bar:
       configManagement:
+        path: charts/bar
         helm:
           releaseName: bar
           namespace: bar #optional
-          chartPath: charts/bar
-          valuesPaths:
+          valueFiles:
           - env/prod/bar/values.yaml
       outputPath: bar
 ```
@@ -290,38 +225,11 @@ branchConfigs:
   appConfigs:
     foo:
       configManagement:
-        kustomize:
-          path: env/${1}/foo
+        path: env/${1}/foo
       outputPath: foo
     bar:
       configManagement:
-        kustomize:
-          path: env/${1}/bar
-      outputPath: bar
-```
-
-</TabItem>
-
-<TabItem value="ytt" label="ytt">
-
-```yaml
-configVersion: v1alpha1
-branchConfigs:
-- pattern: env/(\w+)
-  appConfigs:
-    foo:
-      configManagement:
-        ytt:
-          paths:
-          - base/foo
-          - env/${1}/foo
-      outputPath: foo
-    bar:
-      configManagement:
-        ytt:
-          paths:
-          - base/bar
-          - env/${1}/bar
+        path: env/${1}/bar
       outputPath: bar
 ```
 
@@ -336,20 +244,20 @@ branchConfigs:
   appConfigs:
     foo:
       configManagement:
+        path: charts/foo
         helm:
           releaseName: foo
           namespace: foo #optional
-          chartPath: charts/foo
-          valuesPaths:
+          valueFiles:
           - env/${1}/foo/values.yaml
       outputPath: foo
     bar:
       configManagement:
+        path: charts/bar
         helm:
           releaseName: bar
           namespace: bar #optional
-          chartPath: charts/bar
-          valuesPaths:
+          valueFiles:
           - env/${1}/bar/values.yaml
       outputPath: bar
 ```
