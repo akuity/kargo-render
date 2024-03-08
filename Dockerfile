@@ -53,4 +53,12 @@ COPY --from=builder /kargo-render/bin/ /usr/local/bin/
 
 USER nonroot
 
+# Ensure that the XDG_*_HOME environment variables are set to a directory
+# that is writable by the nonroot user. This is necessary because otherwise
+# Helm fails to write cache files and is unable to download indexes and
+# chart (dependencies).
+ENV XDG_CONFIG_HOME=/tmp/.config
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV XDG_DATA_HOME=/tmp/.local/share
+
 CMD ["/usr/local/bin/kargo-render"]
