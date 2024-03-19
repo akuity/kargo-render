@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	uuid "github.com/satori/go.uuid"
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/akuity/kargo-render/internal/argocd"
@@ -56,7 +56,7 @@ func (s *service) RenderManifests(
 	ctx context.Context,
 	req Request,
 ) (Response, error) {
-	req.id = uuid.NewV4().String()
+	req.id = uuid.NewString()
 
 	logger := s.logger.WithField("request", req.id)
 	startEndLogger := logger.WithFields(log.Fields{
