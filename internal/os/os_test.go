@@ -14,11 +14,11 @@ func TestGetEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(*testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				require.Equal(
 					t,
 					testDefaultVal,
@@ -31,7 +31,7 @@ func TestGetEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "foo")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				require.Equal(t, "foo", GetEnvVar(testEnvVarName, testDefaultVal))
 			},
 		},
@@ -41,7 +41,7 @@ func TestGetEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }
@@ -50,11 +50,11 @@ func TestGetRequiredEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(t *testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				_, err := GetRequiredEnvVar(testEnvVarName)
 				require.Error(t, err)
 			},
@@ -64,7 +64,7 @@ func TestGetRequiredEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "foo")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetRequiredEnvVar(testEnvVarName)
 				require.NoError(t, err)
 				require.Equal(t, "foo", val)
@@ -76,7 +76,7 @@ func TestGetRequiredEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }
@@ -86,11 +86,11 @@ func TestGetStringSliceFromEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(t *testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val := GetStringSliceFromEnvVar(testEnvVarName, testDefaultVal)
 				require.Equal(t, testDefaultVal, val)
 			},
@@ -100,7 +100,7 @@ func TestGetStringSliceFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "a,b,c")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val := GetStringSliceFromEnvVar(testEnvVarName, testDefaultVal)
 				require.Equal(t, []string{"a", "b", "c"}, val)
 			},
@@ -111,7 +111,7 @@ func TestGetStringSliceFromEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }
@@ -121,11 +121,11 @@ func TestGetIntFromEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(t *testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetIntFromEnvVar(testEnvVarName, testDefaultVal)
 				require.NoError(t, err)
 				require.Equal(t, testDefaultVal, val)
@@ -136,7 +136,7 @@ func TestGetIntFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "life, the universe, and everything")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				_, err := GetIntFromEnvVar(testEnvVarName, testDefaultVal)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "was not parsable as an int")
@@ -147,7 +147,7 @@ func TestGetIntFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "42")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetIntFromEnvVar(testEnvVarName, testDefaultVal)
 				require.NoError(t, err)
 				require.Equal(t, 42, val)
@@ -159,7 +159,7 @@ func TestGetIntFromEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }
@@ -168,11 +168,11 @@ func TestGetBoolFromEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(t *testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetBoolFromEnvVar(testEnvVarName, true)
 				require.NoError(t, err)
 				require.True(t, val)
@@ -183,7 +183,7 @@ func TestGetBoolFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "not really")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				_, err := GetBoolFromEnvVar(testEnvVarName, false)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "was not parsable as a bool")
@@ -194,7 +194,7 @@ func TestGetBoolFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "true")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetBoolFromEnvVar(testEnvVarName, false)
 				require.NoError(t, err)
 				require.Equal(t, true, val)
@@ -206,7 +206,7 @@ func TestGetBoolFromEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }
@@ -216,11 +216,11 @@ func TestGetDurationFromEnvVar(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func()
+		assertions func(t *testing.T)
 	}{
 		{
 			name: "env var does not exist",
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetDurationFromEnvVar(testEnvVarName, testDefaultVal)
 				require.NoError(t, err)
 				require.Equal(t, testDefaultVal, val)
@@ -231,7 +231,7 @@ func TestGetDurationFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "life, the universe, and everything")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				_, err := GetDurationFromEnvVar(testEnvVarName, testDefaultVal)
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "was not parsable as a duration")
@@ -242,7 +242,7 @@ func TestGetDurationFromEnvVar(t *testing.T) {
 			setup: func() {
 				t.Setenv(testEnvVarName, "20s")
 			},
-			assertions: func() {
+			assertions: func(t *testing.T) {
 				val, err := GetDurationFromEnvVar(testEnvVarName, testDefaultVal)
 				require.NoError(t, err)
 				require.Equal(t, 20*time.Second, val)
@@ -254,7 +254,7 @@ func TestGetDurationFromEnvVar(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions()
+			testCase.assertions(t)
 		})
 	}
 }

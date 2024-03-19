@@ -15,7 +15,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func() string
-		assertions func(*branchMetadata, error)
+		assertions func(*testing.T, *branchMetadata, error)
 	}{
 		{
 			name: "metadata does not exist",
@@ -24,7 +24,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(md *branchMetadata, err error) {
+			assertions: func(t *testing.T, md *branchMetadata, err error) {
 				require.NoError(t, err)
 				require.Nil(t, md)
 			},
@@ -45,7 +45,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(_ *branchMetadata, err error) {
+			assertions: func(t *testing.T, _ *branchMetadata, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "error unmarshaling branch metadata")
 			},
@@ -66,7 +66,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 				require.NoError(t, err)
 				return repoDir
 			},
-			assertions: func(_ *branchMetadata, err error) {
+			assertions: func(t *testing.T, _ *branchMetadata, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -74,7 +74,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			md, err := loadBranchMetadata(testCase.setup())
-			testCase.assertions(md, err)
+			testCase.assertions(t, md, err)
 		})
 	}
 }
