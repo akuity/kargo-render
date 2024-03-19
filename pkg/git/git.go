@@ -99,19 +99,19 @@ type repo struct {
 // perform any setup that is required for successfully authenticating to the
 // remote repository.
 func Clone(
-	url string,
+	cloneURL string,
 	repoCreds RepoCredentials,
 ) (Repo, error) {
 	homeDir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, fmt.Errorf(
 			"error creating home directory for repo %q: %w",
-			url,
+			cloneURL,
 			err,
 		)
 	}
 	r := &repo{
-		url:     url,
+		url:     cloneURL,
 		homeDir: homeDir,
 		dir:     filepath.Join(homeDir, "repo"),
 	}

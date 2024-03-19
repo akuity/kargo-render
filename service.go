@@ -419,12 +419,12 @@ func writeManifests(dir string, yamlBytes []byte) error {
 	return nil
 }
 
-func writeCombinedManifests(dir string, manifests []byte) error {
+func writeCombinedManifests(dir string, manifestBytes []byte) error {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("error creating directory %q: %w", dir, err)
 	}
 	fileName := filepath.Join(dir, "all.yaml")
-	if err := os.WriteFile(fileName, manifests, 0644); err != nil { // nolint: gosec
+	if err := os.WriteFile(fileName, manifestBytes, 0644); err != nil { // nolint: gosec
 		return fmt.Errorf(
 			"error writing manifests to %q: %w",
 			fileName,

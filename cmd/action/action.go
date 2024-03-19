@@ -13,10 +13,10 @@ import (
 )
 
 func Run() {
-	version := version.GetVersion()
+	ver := version.GetVersion()
 
 	if len(os.Args) > 1 && os.Args[1] == "version" {
-		versionBytes, err := json.MarshalIndent(version, "", "  ")
+		versionBytes, err := json.MarshalIndent(ver, "", "  ")
 		if err != nil {
 			logger.Fatal(err)
 		}
@@ -25,8 +25,8 @@ func Run() {
 	}
 
 	logger.WithFields(log.Fields{
-		"version": version.Version,
-		"commit":  version.GitCommit,
+		"version": ver.Version,
+		"commit":  ver.GitCommit,
 	}).Info("Starting Kargo Render Action")
 
 	req, err := request()

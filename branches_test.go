@@ -247,11 +247,11 @@ func createDummyCommitBranchDir(dirCount, fileCount int) (string, error) {
 	}
 	// Add some dummy files
 	for i := 0; i < fileCount; i++ {
-		file, err := os.Create(filepath.Join(dir, fmt.Sprintf("file-%d", i)))
+		f, err := os.Create(filepath.Join(dir, fmt.Sprintf("file-%d", i)))
 		if err != nil {
 			return dir, err
 		}
-		if err = file.Close(); err != nil {
+		if err = f.Close(); err != nil {
 			return dir, err
 		}
 	}

@@ -45,19 +45,19 @@ type ApplicationSourceKustomize struct {
 	BuildOptions string `json:"buildOptions,omitempty"`
 }
 
-func expand(item map[string]interface{}, values []string) {
+func expand(item map[string]any, values []string) {
 	for k, v := range item {
 		switch value := v.(type) {
 		case string:
 			item[k] = file.ExpandPath(value, values)
-		case map[string]interface{}:
+		case map[string]any:
 			expand(value, values)
-		case []interface{}:
+		case []any:
 			for i, v := range value {
 				switch v := v.(type) {
 				case string:
 					value[i] = file.ExpandPath(v, values)
-				case map[string]interface{}:
+				case map[string]any:
 					expand(v, values)
 				}
 			}
@@ -72,7 +72,7 @@ func (c ConfigManagementConfig) Expand(
 	if err != nil {
 		return c, err
 	}
-	var cfgMap map[string]interface{}
+	var cfgMap map[string]any
 	if err = json.Unmarshal(data, &cfgMap); err != nil {
 		return c, err
 	}

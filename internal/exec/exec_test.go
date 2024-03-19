@@ -18,7 +18,7 @@ func TestExec(t *testing.T) {
 			name: "error",
 			// This command should fail, but ALSO produce some output
 			cmd: exec.Command("expr", "100", "/", "0"),
-			assertions: func(t *testing.T, res []byte, err error) {
+			assertions: func(t *testing.T, _ []byte, err error) {
 				require.Error(t, err)
 				exitErr, ok := err.(*ExitError)
 				require.True(t, ok)

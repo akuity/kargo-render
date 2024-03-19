@@ -15,7 +15,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		{
 			name: "missing RepoURL",
 			req:  Request{},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "RepoURL is a required field")
 			},
@@ -25,7 +25,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 			req: Request{
 				RepoURL: "foobar",
 			},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
@@ -39,7 +39,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 			req: Request{
 				RepoURL: "https://github.com/akuity/foobar",
 			},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
@@ -57,7 +57,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 				},
 				Ref: "1abcdef2",
 			},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "TargetBranch is a required field")
 			},
@@ -72,7 +72,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 				Ref:          "1abcdef2",
 				TargetBranch: "env/dev*", // * is an invalid character
 			},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "is an invalid branch name")
 			},
@@ -88,7 +88,7 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 				TargetBranch: "env/dev",
 				Images:       []string{""}, // no good
 			},
-			assertions: func(t *testing.T, req Request, err error) {
+			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
