@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 
 	"github.com/akuity/kargo-render/internal/file"
 )
@@ -34,20 +33,22 @@ func loadBranchMetadata(repoPath string) (*branchMetadata, error) {
 		"metadata.yaml",
 	)
 	if exists, err := file.Exists(path); err != nil {
-		return nil, errors.Wrap(
+		return nil, fmt.Errorf(
+			"error checking for existence of branch metadata: %w",
 			err,
-			"error checking for existence of branch metadata",
 		)
 	} else if !exists {
 		return nil, nil
 	}
 	bytes, err := os.ReadFile(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading branch metadata")
+		return nil, fmt.Errorf("error reading branch metadata: %w", err)
 	}
 	md := &branchMetadata{}
-	err = yaml.Unmarshal(bytes, md)
-	return md, errors.Wrap(err, "error unmarshaling branch metadata")
+	if err = yaml.Unmarshal(bytes, md); err != nil {
+		return nil, fmt.Errorf("error unmarshaling branch metadata: %w", err)
+	}
+	return md, nil
 }
 
 // writeBranchMetadata attempts to marshal the provided BranchMetadata and write
@@ -56,17 +57,20 @@ func writeBranchMetadata(md branchMetadata, repoPath string) error {
 	bkDir := filepath.Join(repoPath, ".kargo-render")
 	// Ensure the existence of the directory
 	if err := os.MkdirAll(bkDir, 0755); err != nil {
-		return errors.Wrapf(err, "error ensuring existence of directory %q", bkDir)
+		return fmt.Errorf("error ensuring existence of directory %q: %w", bkDir, err)
 	}
 	path := filepath.Join(bkDir, "metadata.yaml")
 	bytes, err := yaml.Marshal(md)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling branch metadata")
+		return fmt.Errorf("error marshaling branch metadata: %w", err)
 	}
-	return errors.Wrap(
-		os.WriteFile(path, bytes, 0644), // nolint: gosec
-		"error writing branch metadata",
-	)
+	if err = os.WriteFile(path, bytes, 0644); err != nil { // nolint: gosec
+		return fmt.Errorf(
+			"error writing branch metadata: %w",
+			err,
+		)
+	}
+	return nil
 }
 
 func switchToTargetBranch(rc requestContext) error {
@@ -75,13 +79,13 @@ func switchToTargetBranch(rc requestContext) error {
 	// Check if the target branch exists on the remote
 	targetBranchExists, err := rc.repo.RemoteBranchExists(rc.request.TargetBranch)
 	if err != nil {
-		return errors.Wrap(err, "error checking for existence of target branch")
+		return fmt.Errorf("error checking for existence of target branch: %w", err)
 	}
 
 	if targetBranchExists {
 		logger.Debug("target branch exists on remote")
 		if err = rc.repo.Checkout(rc.request.TargetBranch); err != nil {
-			return errors.Wrap(err, "error checking out target branch")
+			return fmt.Errorf("error checking out target branch: %w", err)
 		}
 		logger.Debug("checked out target branch")
 		return nil
@@ -89,20 +93,20 @@ func switchToTargetBranch(rc requestContext) error {
 
 	logger.Debug("target branch does not exist on remote")
 	if err = rc.repo.CreateOrphanedBranch(rc.request.TargetBranch); err != nil {
-		return errors.Wrap(err, "error creating new target branch")
+		return fmt.Errorf("error creating new target branch: %w", err)
 	}
 	logger.Debug("created target branch")
 	if err =
 		writeBranchMetadata(branchMetadata{}, rc.repo.WorkingDir()); err != nil {
-		return errors.Wrap(err, "error writing blank target branch metadata")
+		return fmt.Errorf("error writing blank target branch metadata: %w", err)
 	}
 	logger.Debug("wrote blank target branch metadata")
 	if err = rc.repo.AddAllAndCommit("Initial commit"); err != nil {
-		return errors.Wrap(err, "error making initial commit to new target branch")
+		return fmt.Errorf("error making initial commit to new target branch: %w", err)
 	}
 	logger.Debug("made initial commit to new target branch")
 	if err = rc.repo.Push(); err != nil {
-		return errors.Wrap(err, "error pushing new target branch to remote")
+		return fmt.Errorf("error pushing new target branch to remote: %w", err)
 	}
 	logger.Debug("pushed new target branch to remote")
 
@@ -129,17 +133,17 @@ func switchToCommitBranch(rc requestContext) (string, error) {
 		commitBranchExists, err := rc.repo.RemoteBranchExists(commitBranch)
 		if err != nil {
 			return "",
-				errors.Wrap(err, "error checking for existence of commit branch")
+				fmt.Errorf("error checking for existence of commit branch: %w", err)
 		}
 		if commitBranchExists {
 			logger.Debug("commit branch exists on remote")
 			if err = rc.repo.Checkout(commitBranch); err != nil {
-				return "", errors.Wrap(err, "error checking out commit branch")
+				return "", fmt.Errorf("error checking out commit branch: %w", err)
 			}
 			logger.Debug("checked out commit branch")
 		} else {
 			if err := rc.repo.CreateChildBranch(commitBranch); err != nil {
-				return "", errors.Wrap(err, "error creating child of target branch")
+				return "", fmt.Errorf("error creating child of target branch: %w", err)
 			}
 			logger.Debug("created commit branch")
 		}
@@ -150,7 +154,7 @@ func switchToCommitBranch(rc requestContext) (string, error) {
 		rc.repo.WorkingDir(),
 		rc.target.branchConfig.PreservedPaths,
 	); err != nil {
-		return "", errors.Wrap(err, "error cleaning commit branch")
+		return "", fmt.Errorf("error cleaning commit branch: %w", err)
 	}
 	logger.Debug("cleaned commit branch")
 

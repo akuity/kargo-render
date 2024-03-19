@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/akuity/kargo-render/internal/github"
 	"github.com/akuity/kargo-render/pkg/git"
 )
@@ -46,6 +44,9 @@ func openPR(ctx context.Context, rc requestContext) (string, error) {
 	)
 	// TODO: Catch specific errors that have to do with an open PR already being
 	// associated with the target branch
-	return url,
-		errors.Wrap(err, "error opening pull request to the target branch")
+	if err != nil {
+		return "",
+			fmt.Errorf("error opening pull request to the target branch: %w", err)
+	}
+	return url, nil
 }

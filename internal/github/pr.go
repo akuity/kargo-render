@@ -2,11 +2,11 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"regexp"
 	"strings"
 
 	"github.com/google/go-github/v47/github"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 
 	"github.com/akuity/kargo-render/pkg/git"
@@ -52,7 +52,7 @@ func OpenPR(
 			return "", nil
 		}
 		return "",
-			errors.Wrap(err, "error opening pull request to the target branch")
+			fmt.Errorf("error opening pull request to the target branch: %w", err)
 	}
 	return *pr.HTMLURL, nil
 }
@@ -61,7 +61,7 @@ func parseGitHubURL(url string) (string, string, error) {
 	regex := regexp.MustCompile(`^https\://github\.com/([\w-]+)/([\w-]+).*`)
 	parts := regex.FindStringSubmatch(url)
 	if len(parts) != 3 {
-		return "", "", errors.Errorf("error parsing github repository URL %q", url)
+		return "", "", fmt.Errorf("error parsing github repository URL %q", url)
 	}
 	return parts[1], parts[2], nil
 }

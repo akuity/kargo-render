@@ -3,13 +3,13 @@ package argocd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
 	"github.com/argoproj/argo-cd/v2/reposerver/repository"
 	"github.com/argoproj/argo-cd/v2/util/git"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/akuity/kargo-render/internal/file"
@@ -135,7 +135,7 @@ func Render(
 	)
 	if err != nil {
 		return nil,
-			errors.Wrap(err, "error generating manifests using Argo CD repo server")
+			fmt.Errorf("error generating manifests using Argo CD repo server: %w", err)
 	}
 
 	// res.Manifests contains JSON manifests. We want YAML.
