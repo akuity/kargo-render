@@ -35,11 +35,11 @@ func TestRequest(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func()
-		assertions func(render.Request, error)
+		assertions func(*testing.T, render.Request, error)
 	}{
 		{
 			name: "GITHUB_REPOSITORY not specified",
-			assertions: func(_ render.Request, err error) {
+			assertions: func(t *testing.T, _ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "GITHUB_REPOSITORY")
@@ -50,7 +50,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("GITHUB_REPOSITORY", testRepo)
 			},
-			assertions: func(_ render.Request, err error) {
+			assertions: func(t *testing.T, _ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "INPUT_PERSONALACCESSTOKEN")
@@ -61,7 +61,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("INPUT_PERSONALACCESSTOKEN", testReq.RepoCreds.Password)
 			},
-			assertions: func(_ render.Request, err error) {
+			assertions: func(t *testing.T, _ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "GITHUB_SHA")
@@ -72,7 +72,7 @@ func TestRequest(t *testing.T) {
 			setup: func() {
 				t.Setenv("GITHUB_SHA", testReq.Ref)
 			},
-			assertions: func(_ render.Request, err error) {
+			assertions: func(t *testing.T, _ render.Request, err error) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "value not found for")
 				require.Contains(t, err.Error(), "INPUT_TARGETBRANCH")
@@ -86,7 +86,7 @@ func TestRequest(t *testing.T) {
 					"INPUT_IMAGES",
 					fmt.Sprintf("%s,%s", testImage1, testImage2))
 			},
-			assertions: func(req render.Request, err error) {
+			assertions: func(t *testing.T, req render.Request, err error) {
 				require.NoError(t, err)
 				require.Equal(t, testReq, req)
 			},
@@ -97,7 +97,8 @@ func TestRequest(t *testing.T) {
 			if testCase.setup != nil {
 				testCase.setup()
 			}
-			testCase.assertions(request())
+			req, err := request()
+			testCase.assertions(t, req, err)
 		})
 	}
 }

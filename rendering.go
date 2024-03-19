@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pkg/errors"
-
 	"github.com/akuity/kargo-render/internal/kustomize"
 	"github.com/akuity/kargo-render/internal/strings"
 )
@@ -46,7 +44,7 @@ func (s *service) preRender(
 		// This is a sanity check. Argo CD does this also.
 		for appName := range rc.target.branchConfig.AppConfigs {
 			if manifests, ok := manifests[appName]; !ok || len(manifests) == 0 {
-				return nil, errors.Errorf(
+				return nil, fmt.Errorf(
 					"pre-rendered manifests for app %q contain 0 bytes; this looks "+
 						"like a mistake and allowEmpty is not set; refusing to proceed",
 					appName,
@@ -65,10 +63,10 @@ func renderLastMile(
 
 	tempDir, err := os.MkdirTemp("", "")
 	if err != nil {
-		return nil, nil, errors.Wrapf(
-			err,
-			"error creating temporary directory %q for last mile rendering",
+		return nil, nil, fmt.Errorf(
+			"error creating temporary directory %q for last mile rendering: %w",
 			tempDir,
+			err,
 		)
 	}
 	defer os.RemoveAll(tempDir)
@@ -105,11 +103,11 @@ func renderLastMile(
 	for appName := range rc.target.branchConfig.AppConfigs {
 		appDir := filepath.Join(tempDir, appName)
 		if err = os.MkdirAll(appDir, 0755); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error creating directory %q for last mile rendering of app %q",
+			return nil, nil, fmt.Errorf(
+				"error creating directory %q for last mile rendering of app %q: %w",
 				appDir,
 				appName,
+				err,
 			)
 		}
 		// Create kustomization.yaml
@@ -119,10 +117,10 @@ func renderLastMile(
 			lastMileKustomizationBytes,
 			0644,
 		); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error writing last-mile kustomization.yaml to %q",
+			return nil, nil, fmt.Errorf(
+				"error writing last-mile kustomization.yaml to %q: %w",
 				appKustomizationFile,
+				err,
 			)
 		}
 		// Write the pre-rendered manifests to a file
@@ -133,18 +131,18 @@ func renderLastMile(
 			rc.target.prerenderedManifests[appName],
 			0644,
 		); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error writing pre-rendered manifests to %q",
+			return nil, nil, fmt.Errorf(
+				"error writing pre-rendered manifests to %q: %w",
 				preRenderedPath,
+				err,
 			)
 		}
 		if manifests[appName], err =
 			kustomize.Render(ctx, appDir, images); err != nil {
-			return nil, nil, errors.Wrapf(
-				err,
-				"error rendering manifests from %q",
+			return nil, nil, fmt.Errorf(
+				"error rendering manifests from %q: %w",
 				appDir,
+				err,
 			)
 		}
 		logger.WithField("app", appName).

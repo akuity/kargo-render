@@ -13,7 +13,7 @@ jobs:
   test-unit:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.20.7-bookworm
+      image: golang:1.22.1-bookworm
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -33,7 +33,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.20.7-bookworm
+      image: golang:1.22.1-bookworm
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -45,8 +45,10 @@ jobs:
           ${{ runner.os }}-go-
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
+      env:
+        GOFLAGS: -buildvcs=false
       with:
-        version: v1.53.3
+        version: v1.56.2
 
   build-image:
     needs: [test-unit, lint]

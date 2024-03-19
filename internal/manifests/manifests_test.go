@@ -10,14 +10,14 @@ func TestJSONStringsToYAMLBytes(t *testing.T) {
 	testCases := []struct {
 		name           string
 		inputManifests []string
-		assertions     func([][]byte, error)
+		assertions     func(*testing.T, [][]byte, error)
 	}{
 		{
 			name: "invalid JSON",
 			inputManifests: []string{
 				"{",
 			},
-			assertions: func(_ [][]byte, err error) {
+			assertions: func(t *testing.T, _ [][]byte, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
@@ -32,7 +32,7 @@ func TestJSONStringsToYAMLBytes(t *testing.T) {
 				`{ "foo": "bar" }`,
 				`{ "bat": "baz" }`,
 			},
-			assertions: func(manifests [][]byte, err error) {
+			assertions: func(t *testing.T, manifests [][]byte, err error) {
 				require.NoError(t, err)
 				require.Len(t, manifests, 2)
 				require.Equal(t, []byte("foo: bar\n"), manifests[0])
@@ -42,7 +42,8 @@ func TestJSONStringsToYAMLBytes(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			testCase.assertions(JSONStringsToYAMLBytes(testCase.inputManifests))
+			bytes, err := JSONStringsToYAMLBytes(testCase.inputManifests)
+			testCase.assertions(t, bytes, err)
 		})
 	}
 }
@@ -65,12 +66,12 @@ func TestSplitYAML(t *testing.T) {
 	testCases := []struct {
 		name       string
 		manifests  []byte
-		assertions func(map[string][]byte, error)
+		assertions func(*testing.T, map[string][]byte, error)
 	}{
 		{
 			name:      "missing kind field",
 			manifests: []byte("metadata:\n  name: foo\n"),
-			assertions: func(_ map[string][]byte, err error) {
+			assertions: func(t *testing.T, _ map[string][]byte, err error) {
 				require.Error(t, err)
 				require.Equal(t, "resource is missing kind field", err.Error())
 			},
@@ -78,7 +79,7 @@ func TestSplitYAML(t *testing.T) {
 		{
 			name:      "missing metadata.name field",
 			manifests: []byte("kind: foo\n"),
-			assertions: func(_ map[string][]byte, err error) {
+			assertions: func(t *testing.T, _ map[string][]byte, err error) {
 				require.Error(t, err)
 				require.Equal(t, "resource is missing metadata.name field", err.Error())
 			},
@@ -93,7 +94,7 @@ kind: bat
 metadata:
   name: baz
 `),
-			assertions: func(manifests map[string][]byte, err error) {
+			assertions: func(t *testing.T, manifests map[string][]byte, err error) {
 				require.NoError(t, err)
 				require.Len(t, manifests, 2)
 				require.Equal(
@@ -117,7 +118,8 @@ metadata:
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			testCase.assertions(SplitYAML(testCase.manifests))
+			manifests, err := SplitYAML(testCase.manifests)
+			testCase.assertions(t, manifests, err)
 		})
 	}
 }

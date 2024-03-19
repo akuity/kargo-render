@@ -2,11 +2,11 @@ package manifests
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 )
 
 func JSONStringsToYAMLBytes(jsonManifests []string) ([][]byte, error) {
@@ -16,7 +16,7 @@ func JSONStringsToYAMLBytes(jsonManifests []string) ([][]byte, error) {
 		if yamlManifests[i], err =
 			yaml.JSONToYAML([]byte(jsonManifest)); err != nil {
 			return nil,
-				errors.Wrap(err, "error converting JSON manifest to YAML")
+				fmt.Errorf("error converting JSON manifest to YAML: %w", err)
 		}
 	}
 	return yamlManifests, nil
@@ -37,7 +37,7 @@ func SplitYAML(manifest []byte) (map[string][]byte, error) {
 			} `json:"metadata"`
 		}{}
 		if err := yaml.Unmarshal(manifest, &resource); err != nil {
-			return nil, errors.Wrap(err, "error unmarshaling resource")
+			return nil, fmt.Errorf("error unmarshaling resource: %w", err)
 		}
 		if resource.Kind == "" {
 			return nil, errors.New("resource is missing kind field")

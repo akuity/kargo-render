@@ -1,10 +1,10 @@
 package render
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 func validateAndCanonicalizeRequest(req Request) (Request, error) {
@@ -15,7 +15,7 @@ func validateAndCanonicalizeRequest(req Request) (Request, error) {
 	repoURLRegex :=
 		regexp.MustCompile(`^(?:(?:(?:https?://)|(?:git@))[\w:/\-\.\?=@&%]+)$`)
 	if !repoURLRegex.MatchString(req.RepoURL) {
-		return req, errors.Errorf(
+		return req, fmt.Errorf(
 			"validation failed: RepoURL %q does not appear to be a valid git "+
 				"repository URL",
 			req.RepoURL,
@@ -42,7 +42,7 @@ func validateAndCanonicalizeRequest(req Request) (Request, error) {
 	}
 	targetBranchRegex := regexp.MustCompile(`^(?:[\w\.-]+\/?)*\w$`)
 	if !targetBranchRegex.MatchString(req.TargetBranch) {
-		return req, errors.Errorf(
+		return req, fmt.Errorf(
 			"validation failed: TargetBranch %q is an invalid branch name",
 			req.TargetBranch,
 		)
