@@ -21,14 +21,14 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-jsonnet v0.20.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.3.1 // indirect
+	github.com/google/uuid v1.3.1
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/pkg/errors v0.9.1
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/r3labs/diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3
@@ -61,7 +61,6 @@ require k8s.io/apiserver v0.24.17 // indirect
 require (
 	github.com/argoproj/argo-cd/v2 v2.9.9
 	github.com/google/go-github/v47 v47.1.0
-	github.com/satori/go.uuid v1.2.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 )
 
