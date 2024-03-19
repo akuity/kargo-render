@@ -45,6 +45,8 @@ jobs:
           ${{ runner.os }}-go-
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
+      env:
+        GOFLAGS: -buildvcs=false
       with:
         version: v1.56.2
 
