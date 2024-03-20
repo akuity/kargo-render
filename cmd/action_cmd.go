@@ -14,10 +14,14 @@ import (
 	"github.com/akuity/kargo-render/internal/version"
 )
 
-type actionOptions struct{}
+type actionOptions struct {
+	logger *log.Logger
+}
 
 func newActionCommand() *cobra.Command {
-	cmdOpts := &actionOptions{}
+	cmdOpts := &actionOptions{
+		logger: libLog.LoggerOrDie(),
+	}
 
 	return &cobra.Command{
 		Use:    "action",
@@ -31,7 +35,7 @@ func newActionCommand() *cobra.Command {
 
 // run performs manifest rendering in a GitHub Actions-compatible manner.
 func (o *actionOptions) run(_ context.Context, out io.Writer) error {
-	logger := libLog.LoggerOrDie()
+	logger := o.logger
 
 	ver := version.GetVersion()
 	logger.WithFields(log.Fields{
