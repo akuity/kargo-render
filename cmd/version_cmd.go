@@ -39,7 +39,7 @@ func (o *versionOptions) addFlags(cmd *cobra.Command) {
 		flagOutput,
 		"o",
 		"",
-		"specify a format for command output (json or yaml)",
+		"Specify a format for command output (json or yaml).",
 	)
 }
 

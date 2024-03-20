@@ -59,10 +59,8 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		&o.AllowEmpty,
 		flagAllowEmpty,
 		false,
-		"allow the rendered manifests to be empty; if false this is disallowed as "+
-			"a safeguard against scenarios where a bug of any kind might otherwise "+
-			"cause Kargo Render to wipe out the contents of the target branch in "+
-			"error",
+		"Allow the rendered manifests to be empty. If not specified, this is "+
+			"disallowed as a safeguard.",
 	)
 
 	cmd.Flags().StringVarP(
@@ -70,7 +68,7 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagCommitMessage,
 		"m",
 		"",
-		"specify a custom message to be used for the commit to the target branch",
+		"A custom message to be used for the commit to the remote gitops repository.",
 	)
 
 	cmd.Flags().BoolVarP(
@@ -78,7 +76,7 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagDebug,
 		"d",
 		false,
-		"display debug output",
+		"Display debug output.",
 	)
 
 	cmd.Flags().StringArrayVarP(
@@ -86,8 +84,8 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagImage,
 		"i",
 		nil,
-		"specify a new image to apply to the final result (this flag may be "+
-			"used more than once)",
+		"An image to be incorporated into the final result. This flag may be "+
+			"used more than once.",
 	)
 
 	cmd.Flags().StringVarP(
@@ -95,7 +93,7 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagOutput,
 		"o",
 		"",
-		"specify a format for command output (json or yaml)",
+		"Specify a format for command output (json or yaml).",
 	)
 
 	cmd.Flags().StringVarP(
@@ -103,8 +101,8 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagRef,
 		"R",
 		"",
-		"specify a branch or a precise commit to render from; if this is not "+
-			"provided, Kargo Render renders from HEAD",
+		"A branch or a precise commit in the remote gitops repository to use as "+
+			"input. If this is not provided, Kargo Render renders from HEAD.",
 	)
 
 	cmd.Flags().StringVarP(
@@ -112,7 +110,7 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagRepo,
 		"r",
 		"",
-		"the URL of a remote gitops repo (required)",
+		"The URL of a remote gitops repository.",
 	)
 	if err := cmd.MarkFlagRequired(flagRepo); err != nil {
 		panic(fmt.Errorf("could not mark %s flag as required", flagRepo))
@@ -123,9 +121,9 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagRepoPassword,
 		"p",
 		"",
-		"password or token for reading from and writing to the remote gitops "+
-			"repo (required; can also be set using the KARGO_RENDER_REPO_PASSWORD "+
-			"environment variable)",
+		"Password or token for reading from and writing to the remote gitops "+
+			"repository. Can alternatively be specified using the "+
+			"KARGO_RENDER_REPO_PASSWORD environment variable.",
 	)
 	if err := cmd.MarkFlagRequired(flagRepoPassword); err != nil {
 		panic(fmt.Errorf("could not mark %s flag as required", flagRepoPassword))
@@ -136,20 +134,27 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		flagRepoUsername,
 		"u",
 		"",
-		"username for reading from and writing to the remote gitops repo "+
-			"(required; can also be set using the KARGO_RENDER_REPO_USERNAME "+
-			"environment variable)",
+		"Username for reading from and writing to the remote gitops repository. "+
+			"Can alternatively be specified using the KARGO_RENDER_REPO_USERNAME "+
+			"environment variable.",
 	)
 	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
 		panic(fmt.Errorf("could not mark %s flag as required", flagRepoUsername))
 	}
+
+	cmd.Flags().BoolVar(
+		&o.Stdout,
+		flagStdout,
+		false,
+		"Write rendered manifests to stdout instead of the remote gitops repo.",
+	)
 
 	cmd.Flags().StringVarP(
 		&o.TargetBranch,
 		flagTargetBranch,
 		"t",
 		"",
-		"the branch to render manifests into (required)",
+		"The branch of the remote gitops repository to write rendered manifests into.",
 	)
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		panic(fmt.Errorf("could not mark %s flag as required", flagTargetBranch))
