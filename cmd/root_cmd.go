@@ -142,13 +142,6 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		panic(fmt.Errorf("could not mark %s flag as required", flagRepoUsername))
 	}
 
-	cmd.Flags().BoolVar(
-		&o.Stdout,
-		flagStdout,
-		false,
-		"Write rendered manifests to stdout instead of the remote gitops repo.",
-	)
-
 	cmd.Flags().StringVarP(
 		&o.TargetBranch,
 		flagTargetBranch,
