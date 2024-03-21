@@ -1,30 +1,28 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
-	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
-
-	"github.com/akuity/kargo-render/cmd/action"
-	"github.com/akuity/kargo-render/cmd/cli"
 )
 
-// false positive for "G101: Potential hardcoded credentials"
-const binaryNameEnvVar = "KARGO_RENDER_BINARY_NAME" // nolint: gosec
-
 func main() {
-	binaryName := filepath.Base(os.Args[0])
-	if val := os.Getenv(binaryNameEnvVar); val != "" {
-		binaryName = val
+	// These two lines are required to suppress undesired log output from the Argo
+	// CD repo server, which Kargo Render uses as a library. This does NOT
+	// interfere with using the Kargo Render CLI's own --debug flag.
+	if err := os.Setenv("ARGOCD_LOG_LEVEL", "PANIC"); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+	log.SetLevel(log.PanicLevel)
+	// This line makes all log output go to stderr, leaving stdout for actual
+	// program output only. This is important for cases where machine readable
+	// output (e.g. JSON) is requested.
+	log.SetOutput(os.Stderr)
 
-	switch binaryName {
-	case "kargo-render":
-		cli.Run()
-	case "kargo-render-action":
-		action.Run()
-	default:
-		log.Fatalf("unrecognized component name %q", binaryName)
+	if err := newRootCommand().ExecuteContext(context.Background()); err != nil {
+		os.Exit(1)
 	}
 }
