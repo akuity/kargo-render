@@ -8,7 +8,7 @@ import (
 
 type requestContext struct {
 	logger       *log.Entry
-	request      Request
+	request      *Request
 	repo         git.Repo
 	source       sourceContext
 	intermediate intermediateContext
