@@ -316,7 +316,7 @@ func (r *repo) CreateOrphanedBranch(branch string) error {
 
 func (r *repo) HasDiffs() (bool, error) {
 	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
-	if err == nil {
+	if err != nil {
 		return false,
 			fmt.Errorf("error checking status of branch %q: %w", r.currentBranch, err)
 	}
