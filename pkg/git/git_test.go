@@ -1,0 +1,204 @@
+//go:build integration
+// +build integration
+
+package git
+
+import (
+	"fmt"
+	"os"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
+)
+
+// All test cases in this file are integration tests that rely on a remote git
+// repository. They're (for now) disabled by default.
+//
+// Run these against a repository you don't mind being messed with.
+//
+// To use your own repository and credentials, set env vars:
+// - TEST_REPO_URL
+// - TEST_REPO_USERNAME
+// - TEST_REPO_PASSWORD (personal access token)
+
+func TestRepo(t *testing.T) {
+	testRepoURL := os.Getenv("TEST_REPO_URL")
+
+	testRepoCreds := RepoCredentials{
+		Username: os.Getenv("TEST_REPO_USERNAME"),
+		Password: os.Getenv("TEST_REPO_PASSWORD"),
+	}
+
+	rep, err := Clone(testRepoURL, testRepoCreds)
+	require.NoError(t, err)
+	require.NotNil(t, rep)
+	r, ok := rep.(*repo)
+	require.True(t, ok)
+
+	t.Run("can clone", func(t *testing.T) {
+		require.Equal(t, testRepoURL, r.url)
+		require.NotEmpty(t, r.homeDir)
+		var fi os.FileInfo
+		fi, err = os.Stat(r.homeDir)
+		require.NoError(t, err)
+		require.True(t, fi.IsDir())
+		require.NotEmpty(t, r.dir)
+		fi, err = os.Stat(r.dir)
+		require.NoError(t, err)
+		require.True(t, fi.IsDir())
+		require.Equal(t, "HEAD", r.currentBranch)
+	})
+
+	t.Run("can get the repo url", func(t *testing.T) {
+		require.Equal(t, r.url, r.URL())
+	})
+
+	t.Run("can get the home dir", func(t *testing.T) {
+		require.Equal(t, r.homeDir, r.HomeDir())
+	})
+
+	t.Run("can get the working dir", func(t *testing.T) {
+		require.Equal(t, r.dir, r.WorkingDir())
+	})
+
+	t.Run("can list remotes", func(t *testing.T) {
+		var remotes []string
+		remotes, err = r.Remotes()
+		require.NoError(t, err)
+		require.Len(t, remotes, 1)
+		require.Equal(t, "origin", remotes[0])
+	})
+
+	t.Run("can get url of a remote", func(t *testing.T) {
+		var url string
+		url, err = r.RemoteURL("origin")
+		require.NoError(t, err)
+		require.Equal(t, r.url, url)
+	})
+
+	t.Run("can check if remote branch exists -- negative result", func(t *testing.T) {
+		testBranch := fmt.Sprintf("test-branch-%s", uuid.NewString())
+		var exists bool
+		exists, err = r.RemoteBranchExists(testBranch)
+		require.NoError(t, err)
+		require.False(t, exists)
+	})
+
+	t.Run("can check if remote branch exists -- positive result", func(t *testing.T) {
+		var exists bool
+		exists, err = r.RemoteBranchExists("main")
+		require.NoError(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("can fetch", func(t *testing.T) {
+		err = r.Fetch()
+		require.NoError(t, err)
+	})
+
+	t.Run("can pull", func(t *testing.T) {
+		err = r.Pull(r.currentBranch)
+		require.NoError(t, err)
+	})
+
+	t.Run("can create a child branch", func(t *testing.T) {
+		testBranch := fmt.Sprintf("test-branch-%s", uuid.NewString())
+		err = r.CreateChildBranch(testBranch)
+		require.NoError(t, err)
+	})
+
+	testBranch := fmt.Sprintf("test-branch-%s", uuid.NewString())
+	err = r.CreateOrphanedBranch(testBranch)
+
+	t.Run("can create an orphaned branch", func(t *testing.T) {
+		require.NoError(t, err)
+	})
+
+	t.Run("can check for diffs -- negative result", func(t *testing.T) {
+		var hasDiffs bool
+		hasDiffs, err = r.HasDiffs()
+		require.NoError(t, err)
+		require.False(t, hasDiffs)
+	})
+
+	err = os.WriteFile(fmt.Sprintf("%s/%s", r.WorkingDir(), "test.txt"), []byte("foo"), 0600)
+	require.NoError(t, err)
+
+	t.Run("can check for diffs -- positive result", func(t *testing.T) {
+		var hasDiffs bool
+		hasDiffs, err = r.HasDiffs()
+		require.NoError(t, err)
+		require.True(t, hasDiffs)
+	})
+
+	t.Run("can get diff paths", func(t *testing.T) {
+		var paths []string
+		paths, err = r.GetDiffPaths()
+		require.NoError(t, err)
+		require.Len(t, paths, 1)
+	})
+
+	testCommitMessage := fmt.Sprintf("test commit %s", uuid.NewString())
+	err = r.AddAllAndCommit(testCommitMessage)
+	require.NoError(t, err)
+
+	t.Run("can commit", func(t *testing.T) {
+		require.NoError(t, err)
+	})
+
+	lastCommitID, err := r.LastCommitID()
+	require.NoError(t, err)
+
+	t.Run("can get last commit id", func(t *testing.T) {
+		require.NoError(t, err)
+		require.NotEmpty(t, lastCommitID)
+	})
+
+	t.Run("can get commit message by id", func(t *testing.T) {
+		var msg string
+		msg, err = r.CommitMessage(lastCommitID)
+		require.NoError(t, err)
+		require.Equal(t, testCommitMessage, msg)
+	})
+
+	t.Run("can push", func(t *testing.T) {
+		err = r.Push()
+		require.NoError(t, err)
+	})
+
+	err = os.WriteFile(fmt.Sprintf("%s/%s", r.WorkingDir(), "test.txt"), []byte("bar"), 0600)
+	require.NoError(t, err)
+
+	t.Run("can hard reset", func(t *testing.T) {
+		err := r.ResetHard()
+		require.NoError(t, err)
+		hasDiffs, err := r.HasDiffs()
+		require.NoError(t, err)
+		require.False(t, hasDiffs)
+	})
+
+	t.Run("can copy an existing repo", func(t *testing.T) {
+		newRepo, err := CopyRepo(r.WorkingDir(), testRepoCreds)
+		require.NoError(t, err)
+		defer newRepo.Close()
+		require.NotNil(t, newRepo)
+		require.Equal(t, r.URL(), r.URL())
+		require.NotEqual(t, r.HomeDir(), newRepo.HomeDir())
+		fi, err := os.Stat(newRepo.HomeDir())
+		require.NoError(t, err)
+		require.True(t, fi.IsDir())
+		require.NotEqual(t, r.WorkingDir(), newRepo.WorkingDir())
+		fi, err = os.Stat(newRepo.WorkingDir())
+		require.NoError(t, err)
+		require.True(t, fi.IsDir())
+	})
+
+	t.Run("can close repo", func(t *testing.T) {
+		require.NoError(t, r.Close())
+		_, err := os.Stat(r.HomeDir())
+		require.Error(t, err)
+		require.True(t, os.IsNotExist(err))
+	})
+
+}
