@@ -59,4 +59,4 @@ ENV XDG_CONFIG_HOME=/tmp/.config
 ENV XDG_CACHE_HOME=/tmp/.cache
 ENV XDG_DATA_HOME=/tmp/.local/share
 
-CMD ["/usr/local/bin/kargo-render"]
+ENTRYPOINT ["/usr/local/bin/kargo-render"]
