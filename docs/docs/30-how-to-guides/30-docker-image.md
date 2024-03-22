@@ -17,7 +17,9 @@ easiest option for experimenting locally with Kargo Render!
 Example usage:
 
 ```shell
-docker run -it ghcr.io/akuity/kargo-render:v0.1.0-rc.36 \
+docker run -it ghcr.io/akuity/kargo-render:v0.1.0-rc.35 \
+  kargo-render \
+  render \
   --repo https://github.com/<your GitHub handle>/kargo-render-demo-deploy \
   --repo-username <your GitHub handle> \
   --repo-password <a GitHub personal access token> \
