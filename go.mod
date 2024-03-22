@@ -61,6 +61,7 @@ require k8s.io/apiserver v0.24.17 // indirect
 require (
 	github.com/argoproj/argo-cd/v2 v2.9.9
 	github.com/google/go-github/v47 v47.1.0
+	github.com/sosedoff/gitkit v0.4.0
 	github.com/xeipuuv/gojsonschema v1.2.0
 )
 
@@ -95,6 +96,7 @@ require (
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-redis/cache/v9 v9.0.0 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic v0.6.9 // indirect

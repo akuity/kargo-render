@@ -1,7 +1,5 @@
 run:
   go: "1.22"
-  build-tags:
-    - integration
   deadline: 10m
 
 linters:
