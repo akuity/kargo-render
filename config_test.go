@@ -13,7 +13,7 @@ func TestLoadRepoConfig(t *testing.T) {
 	testCases := []struct {
 		name       string
 		setup      func() string
-		assertions func(error)
+		assertions func(*testing.T, error)
 	}{
 		{
 			name: "invalid JSON",
@@ -28,7 +28,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				return dir
 			},
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
@@ -50,7 +50,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				return dir
 			},
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.Error(t, err)
 				require.Contains(
 					t,
@@ -72,7 +72,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				return dir
 			},
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -89,7 +89,7 @@ func TestLoadRepoConfig(t *testing.T) {
 				require.NoError(t, err)
 				return dir
 			},
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
@@ -97,7 +97,7 @@ func TestLoadRepoConfig(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			_, err := loadRepoConfig(testCase.setup())
-			testCase.assertions(err)
+			testCase.assertions(t, err)
 		})
 	}
 }
@@ -106,39 +106,39 @@ func TestNormalizeAndValidate(t *testing.T) {
 	testCases := []struct {
 		name       string
 		config     []byte
-		assertions func(error)
+		assertions func(*testing.T, error)
 	}{
 		{
 			name:   "invalid JSON",
 			config: []byte("{}"),
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.Error(t, err)
 			},
 		},
 		{
 			name:   "invalid YAML",
 			config: []byte(""),
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.Error(t, err)
 			},
 		},
 		{
 			name:   "valid JSON",
 			config: []byte(`{"configVersion": "v1alpha1"}`),
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
 		{
 			name:   "valid YAML",
 			config: []byte("configVersion: v1alpha1"),
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 		},
 		{
 			name: "valid kustomize",
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 			config: []byte(`configVersion: v1alpha1
@@ -155,7 +155,7 @@ branchConfigs:
 		},
 		{
 			name: "valid helm",
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 			config: []byte(`configVersion: v1alpha1
@@ -172,7 +172,7 @@ branchConfigs:
 		},
 		{
 			name: "valid no config management tool",
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.NoError(t, err)
 			},
 			config: []byte(`configVersion: v1alpha1
@@ -187,7 +187,7 @@ branchConfigs:
 		},
 		{
 			name: "invalid property",
-			assertions: func(err error) {
+			assertions: func(t *testing.T, err error) {
 				require.Error(t, err)
 			},
 			config: []byte(`configVersion: v1alpha1
@@ -206,7 +206,7 @@ branchConfigs:
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			configBytes, err := normalizeAndValidate(testCase.config)
-			testCase.assertions(err)
+			testCase.assertions(t, err)
 			// For any validation that doesn't fail, the bytes returned should be
 			// JSON we can unmarshal...
 			if err == nil {

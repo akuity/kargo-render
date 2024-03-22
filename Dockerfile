@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.20.7-bookworm as builder
+FROM --platform=$BUILDPLATFORM golang:1.22.1-bookworm as builder
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -35,11 +35,9 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       -ldflags "-w -X ${VERSION_PACKAGE}.version=${VERSION} -X ${VERSION_PACKAGE}.buildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ') -X ${VERSION_PACKAGE}.gitCommit=${GIT_COMMIT} -X ${VERSION_PACKAGE}.gitTreeState=${GIT_TREE_STATE}" \
       -o bin/kargo-render \
       ./cmd \
-    && bin/kargo-render version \
-    && cd bin \
-    && ln -s kargo-render kargo-render-action
+    && bin/kargo-render version
 
-FROM alpine:3.15.4 as final
+FROM alpine:3.19.1 as final
 
 RUN apk update \
     && apk add git openssh-client \
@@ -52,5 +50,13 @@ COPY --from=builder /usr/local/bin/ytt /usr/local/bin/
 COPY --from=builder /kargo-render/bin/ /usr/local/bin/
 
 USER nonroot
+
+# Ensure that the XDG_*_HOME environment variables are set to a directory
+# that is writable by the nonroot user. This is necessary because otherwise
+# Helm fails to write cache files and is unable to download indexes and
+# chart (dependencies).
+ENV XDG_CONFIG_HOME=/tmp/.config
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV XDG_DATA_HOME=/tmp/.local/share
 
 CMD ["/usr/local/bin/kargo-render"]

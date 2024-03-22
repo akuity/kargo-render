@@ -3,13 +3,13 @@ package argocd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 
 	argoappv1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/argo-cd/v2/reposerver/apiclient"
 	"github.com/argoproj/argo-cd/v2/reposerver/repository"
 	"github.com/argoproj/argo-cd/v2/util/git"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/akuity/kargo-render/internal/file"
@@ -45,19 +45,19 @@ type ApplicationSourceKustomize struct {
 	BuildOptions string `json:"buildOptions,omitempty"`
 }
 
-func expand(item map[string]interface{}, values []string) {
+func expand(item map[string]any, values []string) {
 	for k, v := range item {
 		switch value := v.(type) {
 		case string:
 			item[k] = file.ExpandPath(value, values)
-		case map[string]interface{}:
+		case map[string]any:
 			expand(value, values)
-		case []interface{}:
+		case []any:
 			for i, v := range value {
 				switch v := v.(type) {
 				case string:
 					value[i] = file.ExpandPath(v, values)
-				case map[string]interface{}:
+				case map[string]any:
 					expand(v, values)
 				}
 			}
@@ -72,7 +72,7 @@ func (c ConfigManagementConfig) Expand(
 	if err != nil {
 		return c, err
 	}
-	var cfgMap map[string]interface{}
+	var cfgMap map[string]any
 	if err = json.Unmarshal(data, &cfgMap); err != nil {
 		return c, err
 	}
@@ -135,7 +135,7 @@ func Render(
 	)
 	if err != nil {
 		return nil,
-			errors.Wrap(err, "error generating manifests using Argo CD repo server")
+			fmt.Errorf("error generating manifests using Argo CD repo server: %w", err)
 	}
 
 	// res.Manifests contains JSON manifests. We want YAML.

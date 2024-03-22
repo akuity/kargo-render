@@ -1,12 +1,11 @@
 package os
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // GetEnvVar retrieves the value of an environment variable having the specified
@@ -25,7 +24,7 @@ func GetEnvVar(name, defaultValue string) string {
 func GetRequiredEnvVar(name string) (string, error) {
 	val := os.Getenv(name)
 	if val == "" {
-		return "", errors.Errorf(
+		return "", fmt.Errorf(
 			"value not found for required environment variable %s",
 			name,
 		)
@@ -53,7 +52,7 @@ func GetIntFromEnvVar(name string, defaultValue int) (int, error) {
 	}
 	val, err := strconv.Atoi(valStr)
 	if err != nil {
-		return 0, errors.Errorf(
+		return 0, fmt.Errorf(
 			"value %q for environment variable %s was not parsable as an int",
 			valStr,
 			name,
@@ -72,7 +71,7 @@ func GetBoolFromEnvVar(name string, defaultValue bool) (bool, error) {
 	}
 	val, err := strconv.ParseBool(valStr)
 	if err != nil {
-		return false, errors.Errorf(
+		return false, fmt.Errorf(
 			"value %q for environment variable %s was not parsable as a bool",
 			valStr,
 			name,
@@ -94,7 +93,7 @@ func GetDurationFromEnvVar(
 	}
 	val, err := time.ParseDuration(valStr)
 	if err != nil {
-		return 0, errors.Errorf(
+		return 0, fmt.Errorf(
 			"value %q for environment variable %s was not parsable as a duration",
 			valStr,
 			name,

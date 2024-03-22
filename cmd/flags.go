@@ -1,10 +1,4 @@
-package cli
-
-import (
-	"flag"
-
-	"github.com/spf13/pflag"
-)
+package main
 
 const (
 	flagAllowEmpty    = "allow-empty"
@@ -20,18 +14,3 @@ const (
 	flagRepoUsername  = "repo-username"
 	flagTargetBranch  = "target-branch"
 )
-
-var flagSetOutput *pflag.FlagSet
-
-func init() {
-	flagSetOutput = pflag.NewFlagSet(
-		"output",
-		pflag.ErrorHandling(flag.ExitOnError),
-	)
-	flagSetOutput.StringP(
-		flagOutput,
-		"o",
-		"",
-		"specify a format for command output (json or yaml)",
-	)
-}

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/akuity/kargo-render/internal/argocd"
@@ -54,7 +53,7 @@ func (r *repoConfig) GetBranchConfig(name string) (branchConfig, error) {
 			regex, err := regexp.Compile(cfg.Pattern)
 			if err != nil {
 				return branchConfig{},
-					errors.Errorf("error compiling regular expression /%s/", cfg.Pattern)
+					fmt.Errorf("error compiling regular expression /%s/", cfg.Pattern)
 			}
 			submatches := regex.FindStringSubmatch(name)
 			if len(submatches) > 0 {
@@ -96,10 +95,10 @@ func (b branchConfig) expand(values []string) (branchConfig, error) {
 	for appName, appConfig := range b.AppConfigs {
 		var err error
 		if cfg.AppConfigs[appName], err = appConfig.expand(values); err != nil {
-			return cfg, errors.Wrapf(
-				err,
-				"error expanding app config for app %q",
+			return cfg, fmt.Errorf(
+				"error expanding app config for app %q: %w",
 				appName,
+				err,
 			)
 		}
 	}
@@ -127,7 +126,7 @@ func (a appConfig) expand(values []string) (appConfig, error) {
 	cfg := a
 	var err error
 	if cfg.ConfigManagement, err = a.ConfigManagement.Expand(values); err != nil {
-		return cfg, errors.Wrap(err, "error expanding config management config")
+		return cfg, fmt.Errorf("error expanding config management config: %w", err)
 	}
 	cfg.OutputPath = file.ExpandPath(a.OutputPath, values)
 	return cfg, nil
@@ -168,12 +167,12 @@ func loadRepoConfig(repoPath string) (*repoConfig, error) {
 	var configPath string
 	if jsonExists, err := file.Exists(jsonConfigPath); err != nil {
 		return cfg,
-			errors.Wrap(err, "error checking for existence of JSON config file")
+			fmt.Errorf("error checking for existence of JSON config file: %w", err)
 	} else if jsonExists {
 		configPath = jsonConfigPath
 	} else if yamlExists, err := file.Exists(yamlConfigPath); err != nil {
 		return cfg,
-			errors.Wrap(err, "error checking for existence of YAML config file")
+			fmt.Errorf("error checking for existence of YAML config file: %w", err)
 	} else if yamlExists {
 		configPath = yamlConfigPath
 	}
@@ -182,16 +181,18 @@ func loadRepoConfig(repoPath string) (*repoConfig, error) {
 	}
 	configBytes, err := os.ReadFile(configPath)
 	if err != nil {
-		return cfg, errors.Wrap(err, "error reading Kargo Render configuration")
+		return cfg, fmt.Errorf("error reading Kargo Render configuration: %w", err)
 	}
 	if configBytes, err = normalizeAndValidate(configBytes); err != nil {
-		return cfg, errors.Wrap(
+		return cfg, fmt.Errorf(
+			"error normalizing and validating Kargo Render configuration: %w",
 			err,
-			"error normalizing and validating Kargo Render configuration",
 		)
 	}
-	err = json.Unmarshal(configBytes, cfg)
-	return cfg, errors.Wrap(err, "error unmarshaling Kargo Render configuration")
+	if err = json.Unmarshal(configBytes, cfg); err != nil {
+		return cfg, fmt.Errorf("error unmarshaling Kargo Render configuration: %w", err)
+	}
+	return cfg, nil
 }
 
 func normalizeAndValidate(configBytes []byte) ([]byte, error) {
@@ -200,19 +201,19 @@ func normalizeAndValidate(configBytes []byte) ([]byte, error) {
 	var err error
 	if configBytes, err = yaml.YAMLToJSON(configBytes); err != nil {
 		return nil,
-			errors.Wrap(err, "error normalizing Kargo Render configuration")
+			fmt.Errorf("error normalizing Kargo Render configuration: %w", err)
 	}
 
 	validationResult, err := configSchema.Validate(gojsonschema.NewBytesLoader(configBytes))
 	if err != nil {
-		return nil, errors.Wrap(err, "error validating Kargo Render configuration")
+		return nil, fmt.Errorf("error validating Kargo Render configuration: %w", err)
 	}
 	if !validationResult.Valid() {
 		verrStrs := make([]string, len(validationResult.Errors()))
 		for i, verr := range validationResult.Errors() {
 			verrStrs[i] = verr.String()
 		}
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"error validating Kargo Render configuration: %s",
 			strings.Join(verrStrs, "; "),
 		)

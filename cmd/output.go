@@ -1,4 +1,4 @@
-package cli
+package main
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 )
 
 func output(obj any, out io.Writer, format string) error {
@@ -19,7 +18,7 @@ func output(obj any, out io.Writer, format string) error {
 	case flagOutputYAML:
 		bytes, err = yaml.Marshal(obj)
 	default:
-		return errors.Errorf("unsupported output format %q", format)
+		return fmt.Errorf("unsupported output format %q", format)
 	}
 	if err != nil {
 		return err
