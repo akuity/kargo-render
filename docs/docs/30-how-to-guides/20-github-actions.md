@@ -17,6 +17,10 @@ Git, Helm, and Kustomize, which are included on that image.
 Example usage:
 
 ```yaml
+permissions: 
+  contents: write
+  pull-requests: write
+
 jobs:
   render-test-manifests:
     name: Render test manifests
@@ -36,8 +40,8 @@ rest.
 
 :::note
 `secrets.GITHUB_TOKEN` is automatically available in every GitHub Actions
-workflow and, depending on repository settings, may have sufficient permissions
-to both read from and write to your repository. If this is not the case, you can
-update repository settings. You can read more about this
-[here](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token).
+workflow and, depending on your workflow and repository settings, may have
+sufficient permissions to both read from and write to your repository. If
+this is not the case, you can update repository settings. You can read more
+about this [here](https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token).
 :::
