@@ -13,6 +13,8 @@ import (
 	libExec "github.com/akuity/kargo-render/internal/exec"
 )
 
+const RemoteOrigin = "origin"
+
 // RepoCredentials represents the credentials for connecting to a private git
 // repository.
 type RepoCredentials struct {
@@ -68,11 +70,20 @@ type Repo interface {
 	// CommitMessages returns a slice of commit messages starting with id1 and
 	// ending with id2. The results exclude id1, but include id2.
 	CommitMessages(id1, id2 string) ([]string, error)
+	// Fetch fetches from the remote repository.
+	Fetch() error
+	// Pull fetches from the remote repository and merges the changes into the
+	// current branch.
+	Pull(branch string) error
 	// Push pushes from the current branch to a remote branch by the same name.
 	Push() error
 	// RemoteBranchExists returns a bool indicating if the specified branch exists
 	// in the remote repository.
 	RemoteBranchExists(branch string) (bool, error)
+	// Remotes returns a slice of strings representing the names of the remotes.
+	Remotes() ([]string, error)
+	// RemoteURL returns the URL of the the specified remote.
+	RemoteURL(name string) (string, error)
 	// ResetHard performs a hard reset.
 	ResetHard() error
 	// URL returns the remote URL of the repository.
@@ -119,6 +130,79 @@ func Clone(
 		return nil, err
 	}
 	return r, r.clone()
+}
+
+// CopyRepo copies a git repository from the specified path to a temporary
+// location. Repository credentials are required in order to authenticate to the
+// remote repository, if any.
+func CopyRepo(path string, repoCreds RepoCredentials) (Repo, error) {
+	// Validate path is absolute
+	if !filepath.IsAbs(path) {
+		return nil, fmt.Errorf("path %s is not absolute", path)
+	}
+
+	// Validate path exists and is a directory
+	if fi, err := os.Stat(path); err != nil {
+		return nil, fmt.Errorf("error checking if path %s exists: %w", path, err)
+	} else if !fi.IsDir() {
+		return nil, fmt.Errorf("path %s is not a directory", path)
+	}
+
+	// Validate path is a git repository
+	cmd := exec.Command("git", "rev-parse", "--is-inside-work-tree")
+	cmd.Dir = path
+	if _, err := libExec.Exec(cmd); err != nil {
+		return nil, fmt.Errorf("path %s is not a git repository: %w", path, err)
+	}
+
+	homeDir, err := os.MkdirTemp("", "")
+	if err != nil {
+		return nil, fmt.Errorf(
+			"error creating directory for copy of repo at %s: %w",
+			path,
+			err,
+		)
+	}
+
+	r := &repo{
+		homeDir: homeDir,
+		dir:     filepath.Join(homeDir, "repo"),
+	}
+
+	// Copy from path to r.dir. Note: This obviously only works on *nix systems,
+	// but we already advise that Kargo Render not be run outside of a Linux
+	// container since its dependent on compatible versions of git, helm, and
+	// kustomize binaries.
+	// nolint: gosec
+	if _, err = libExec.Exec(exec.Command("cp", "-r", path, r.dir)); err != nil {
+		return nil, fmt.Errorf(
+			"error copying repo from %s to %s: %w",
+			path,
+			r.dir,
+			err,
+		)
+	}
+
+	remotes, err := r.Remotes()
+	if err != nil {
+		return nil, err
+	}
+	if len(remotes) != 1 {
+		return nil, fmt.Errorf(
+			"expected exactly one remote in source repository; found %d",
+			len(remotes),
+		)
+	}
+	r.url, err = r.RemoteURL(remotes[0])
+	if err != nil {
+		return nil, err
+	}
+
+	if err = r.setupAuth(repoCreds); err != nil {
+		return nil, err
+	}
+
+	return r, nil
 }
 
 func (r *repo) AddAll() error {
@@ -234,7 +318,7 @@ func (r *repo) CreateOrphanedBranch(branch string) error {
 
 func (r *repo) HasDiffs() (bool, error) {
 	resBytes, err := libExec.Exec(r.buildCommand("status", "-s"))
-	if err == nil {
+	if err != nil {
 		return false,
 			fmt.Errorf("error checking status of branch %q: %w", r.currentBranch, err)
 	}
@@ -308,9 +392,29 @@ func (r *repo) CommitMessages(id1, id2 string) ([]string, error) {
 	return msgs, nil
 }
 
+func (r *repo) Fetch() error {
+	if _, err := libExec.Exec(r.buildCommand("fetch", RemoteOrigin)); err != nil {
+		return fmt.Errorf("error fetching from remote repo %q: %w", r.url, err)
+	}
+	return nil
+}
+
+func (r *repo) Pull(branch string) error {
+	if _, err :=
+		libExec.Exec(r.buildCommand("pull", RemoteOrigin, branch)); err != nil {
+		return fmt.Errorf(
+			"error pulling branch %q from remote repo %q: %w",
+			branch,
+			r.url,
+			err,
+		)
+	}
+	return nil
+}
+
 func (r *repo) Push() error {
 	if _, err :=
-		libExec.Exec(r.buildCommand("push", "origin", r.currentBranch)); err != nil {
+		libExec.Exec(r.buildCommand("push", RemoteOrigin, r.currentBranch)); err != nil {
 		return fmt.Errorf("error pushing branch %q: %w", r.currentBranch, err)
 	}
 	return nil
@@ -321,7 +425,7 @@ func (r *repo) RemoteBranchExists(branch string) (bool, error) {
 		"ls-remote",
 		"--heads",
 		"--exit-code", // Return 2 if not found
-		r.url,
+		RemoteOrigin,
 		branch,
 	)); err != nil {
 		if exitErr, ok := err.(*libExec.ExitError); ok && exitErr.ExitCode == 2 {
@@ -336,6 +440,27 @@ func (r *repo) RemoteBranchExists(branch string) (bool, error) {
 		)
 	}
 	return true, nil
+}
+
+func (r *repo) Remotes() ([]string, error) {
+	resBytes, err := libExec.Exec(r.buildCommand("remote"))
+	if err != nil {
+		return nil, fmt.Errorf("error listing remotes for repo %q: %w", r.url, err)
+	}
+	return strings.Fields(string(resBytes)), nil
+}
+
+func (r *repo) RemoteURL(name string) (string, error) {
+	resBytes, err := libExec.Exec(r.buildCommand("remote", "get-url", name))
+	if err != nil {
+		return "", fmt.Errorf(
+			"error obtaining URL for remote %q of repo %q: %w",
+			name,
+			r.url,
+			err,
+		)
+	}
+	return strings.TrimSpace(string(resBytes)), nil
 }
 
 func (r *repo) ResetHard() error {
@@ -395,7 +520,10 @@ func (r *repo) setupAuth(repoCreds RepoCredentials) error {
 		return nil // We're done
 	}
 
-	// If we get to here, we're authenticating using a password
+	// If no password is specified, we don't need to authenticate at all.
+	if repoCreds.Password == "" {
+		return nil
+	}
 
 	// Set up the credential helper
 	cmd = r.buildCommand("config", "--global", "credential.helper", "store")

@@ -2,6 +2,7 @@ package render
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,7 +23,7 @@ type ServiceOptions struct {
 // Implementations of this interface are transport-agnostic.
 type Service interface {
 	// RenderManifests handles a rendering request.
-	RenderManifests(context.Context, Request) (Response, error)
+	RenderManifests(context.Context, *Request) (Response, error)
 }
 
 type service struct {
@@ -54,7 +55,7 @@ func NewService(opts *ServiceOptions) Service {
 // nolint: gocyclo
 func (s *service) RenderManifests(
 	ctx context.Context,
-	req Request,
+	req *Request,
 ) (Response, error) {
 	req.id = uuid.NewString()
 
@@ -69,7 +70,7 @@ func (s *service) RenderManifests(
 	res := Response{}
 
 	var err error
-	if req, err = validateAndCanonicalizeRequest(req); err != nil {
+	if err = req.canonicalizeAndValidate(); err != nil {
 		return res, err
 	}
 	startEndLogger.Debug("validated rendering request")
@@ -79,20 +80,63 @@ func (s *service) RenderManifests(
 		request: req,
 	}
 
-	if rc.repo, err = git.Clone(
-		rc.request.RepoURL,
-		git.RepoCredentials{
-			SSHPrivateKey: rc.request.RepoCreds.SSHPrivateKey,
-			Username:      rc.request.RepoCreds.Username,
-			Password:      rc.request.RepoCreds.Password,
-		},
-	); err != nil {
-		return res, fmt.Errorf("error cloning remote repository: %w", err)
+	if rc.request.LocalInPath != "" {
+
+		// We'll be taking our input from a local directory which is presumably
+		// a git repository with the desired source commit already checked out.
+		//
+		// This is mainly useful when Kargo proper wishes to handle the reading and
+		// writing to/from remote repositories itself, leaving Kargo Render to
+		// handle rendering only.
+
+		if rc.repo, err = git.CopyRepo(
+			rc.request.LocalInPath,
+			git.RepoCredentials(rc.request.RepoCreds),
+		); err != nil {
+			return res, fmt.Errorf("error copying local repository: %w", err)
+		}
+		// Check if the working tree is dirty
+		var isDirty bool
+		if isDirty, err = rc.repo.HasDiffs(); err != nil {
+			return res, fmt.Errorf("error checking for diffs: %w", err)
+		}
+		if isDirty {
+			return res, errors.New("working tree is dirty; refusing to proceed")
+		}
+		// Check that there is exactly one remote and it's named "origin"
+		var remotes []string
+		if remotes, err = rc.repo.Remotes(); err != nil {
+			return res, fmt.Errorf("error getting remotes: %w", err)
+		}
+		if len(remotes) != 1 || remotes[0] != git.RemoteOrigin {
+			return res, errors.New(
+				"local repository must have exactly one remote, which must be " +
+					"named \"origin\"; refusing to proceed",
+			)
+		}
+
+	} else {
+
+		// Clone the remote repository ourselves
+
+		if rc.repo, err = git.Clone(
+			rc.request.RepoURL,
+			git.RepoCredentials{
+				SSHPrivateKey: rc.request.RepoCreds.SSHPrivateKey,
+				Username:      rc.request.RepoCreds.Username,
+				Password:      rc.request.RepoCreds.Password,
+			},
+		); err != nil {
+			return res, fmt.Errorf("error cloning remote repository: %w", err)
+		}
+
 	}
 	defer rc.repo.Close()
 
 	// TODO: Add some logging to this block
-	if rc.request.Ref == "" {
+	if rc.request.LocalInPath != "" || rc.request.Ref == "" {
+		// For either of these mutually exclusive cases, we don't know the source
+		// commit yet
 		if rc.source.commit, err = rc.repo.LastCommitID(); err != nil {
 			return res, fmt.Errorf("error getting last commit ID: %w", err)
 		}
@@ -192,21 +236,60 @@ func (s *service) RenderManifests(
 		return res, fmt.Errorf("error in last-mile manifest rendering: %w", err)
 	}
 
+	// If we're writing to stdout, we're done
+	if rc.request.Stdout {
+		res.ActionTaken = ActionTakenNone
+		res.Manifests = rc.target.renderedManifests
+		return res, nil
+	}
+
+	// Figure out where we're writing to
+	outputDir := rc.repo.WorkingDir()
+	if rc.request.LocalOutPath != "" {
+		outputDir = rc.request.LocalOutPath
+		// Create a directory for the output
+		if err = os.MkdirAll(outputDir, 0755); err != nil {
+			return res, fmt.Errorf(
+				"error creating local output directory %q: %w",
+				outputDir,
+				err,
+			)
+		}
+		defer func() {
+			if err != nil {
+				if rmErr := os.RemoveAll(outputDir); rmErr != nil {
+					logger.WithError(err).Error(
+						"error cleaning up local output directory",
+					)
+				}
+			}
+		}()
+	}
+
 	// Write branch metadata
 	if err = writeBranchMetadata(
 		rc.target.newBranchMetadata,
-		rc.repo.WorkingDir(),
+		outputDir,
 	); err != nil {
 		return res, fmt.Errorf("error writing branch metadata: %w", err)
 	}
 	logger.WithField("sourceCommit", rc.source.commit).
 		Debug("wrote branch metadata")
 
-	// Write the new fully-rendered manifests to the root of the repo
-	if err = writeAllManifests(rc); err != nil {
+	// Write the fully-rendered manifests to the root of the repo
+	if err = writeAllManifests(rc, outputDir); err != nil {
 		return res, err
 	}
 	logger.Debug("wrote all manifests")
+
+	// If we're writing to a local directory, we're done
+	if rc.request.LocalOutPath != "" {
+		res.ActionTaken = ActionTakenWroteToLocalPath
+		res.LocalPath = outputDir
+		return res, nil
+	}
+
+	// If we get to here, we're writing to the remote repository
 
 	// Before committing, check if we actually have any diffs from the head of
 	// this branch that are NOT just Kargo Render metadata. We'd have an error if
@@ -363,30 +446,30 @@ func buildCommitMessage(rc requestContext) (string, error) {
 	return formattedCommitMsg, nil
 }
 
-func writeAllManifests(rc requestContext) error {
+func writeAllManifests(rc requestContext, outputDir string) error {
 	for appName, appConfig := range rc.target.branchConfig.AppConfigs {
 		appLogger := rc.logger.WithField("app", appName)
-		var outputDir string
+		var appOutputDir string
 		if appConfig.OutputPath != "" {
-			outputDir = filepath.Join(rc.repo.WorkingDir(), appConfig.OutputPath)
+			appOutputDir = filepath.Join(outputDir, appConfig.OutputPath)
 		} else {
-			outputDir = filepath.Join(rc.repo.WorkingDir(), appName)
+			appOutputDir = filepath.Join(outputDir, appName)
 		}
 		var err error
 		if appConfig.CombineManifests {
 			appLogger.Debug("manifests will be combined into a single file")
 			err =
-				writeCombinedManifests(outputDir, rc.target.renderedManifests[appName])
+				writeCombinedManifests(appOutputDir, rc.target.renderedManifests[appName])
 		} else {
 			appLogger.Debug("manifests will NOT be combined into a single file")
-			err = writeManifests(outputDir, rc.target.renderedManifests[appName])
+			err = writeManifests(appOutputDir, rc.target.renderedManifests[appName])
 		}
 		appLogger.Debug("wrote manifests")
 		if err != nil {
 			return fmt.Errorf(
 				"error writing manifests for app %q to %q: %w",
 				appName,
-				outputDir,
+				appOutputDir,
 				err,
 			)
 		}

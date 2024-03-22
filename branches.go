@@ -84,10 +84,18 @@ func switchToTargetBranch(rc requestContext) error {
 
 	if targetBranchExists {
 		logger.Debug("target branch exists on remote")
+		if err = rc.repo.Fetch(); err != nil {
+			return fmt.Errorf("error fetching from remote: %w", err)
+		}
+		logger.Debug("fetched from remote")
 		if err = rc.repo.Checkout(rc.request.TargetBranch); err != nil {
 			return fmt.Errorf("error checking out target branch: %w", err)
 		}
 		logger.Debug("checked out target branch")
+		if err = rc.repo.Pull(rc.request.TargetBranch); err != nil {
+			return fmt.Errorf("error pulling from remote: %w", err)
+		}
+		logger.Debug("pulled from remote")
 		return nil
 	}
 

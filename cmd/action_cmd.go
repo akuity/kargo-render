@@ -87,8 +87,8 @@ func (o *actionOptions) run(_ context.Context, out io.Writer) error {
 	return nil
 }
 
-func request() (render.Request, error) {
-	req := render.Request{
+func request() (*render.Request, error) {
+	req := &render.Request{
 		RepoCreds: render.RepoCredentials{
 			Username: "git",
 		},
@@ -96,15 +96,15 @@ func request() (render.Request, error) {
 	}
 	repo, err := libOS.GetRequiredEnvVar("GITHUB_REPOSITORY")
 	if err != nil {
-		return req, err
+		return nil, err
 	}
 	req.RepoURL = fmt.Sprintf("https://github.com/%s", repo)
 	if req.RepoCreds.Password, err =
 		libOS.GetRequiredEnvVar("INPUT_PERSONALACCESSTOKEN"); err != nil {
-		return req, err
+		return nil, err
 	}
 	if req.Ref, err = libOS.GetRequiredEnvVar("GITHUB_SHA"); err != nil {
-		return req, err
+		return nil, err
 	}
 	req.TargetBranch, err = libOS.GetRequiredEnvVar("INPUT_TARGETBRANCH")
 	return req, err

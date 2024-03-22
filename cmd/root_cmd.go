@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -15,14 +15,16 @@ import (
 )
 
 type rootOptions struct {
-	render.Request
+	*render.Request
 	commitMessage string
 	debug         bool
 	outputFormat  string
 }
 
 func newRootCommand() *cobra.Command {
-	cmdOpts := &rootOptions{}
+	cmdOpts := &rootOptions{
+		Request: &render.Request{},
+	}
 
 	cmd := &cobra.Command{
 		Use: "kargo-render",
@@ -36,9 +38,6 @@ func newRootCommand() *cobra.Command {
 		Args:   cobra.NoArgs,
 		PreRun: cmdOpts.preRun,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if err := cmdOpts.validate(); err != nil {
-				return err
-			}
 			return cmdOpts.run(cmd.Context(), cmd.OutOrStdout())
 		},
 	}
@@ -88,6 +87,21 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 			"used more than once.",
 	)
 
+	cmd.Flags().StringVar(
+		&o.LocalInPath,
+		flagLocalInPath,
+		"",
+		"Read input from the specified path instead of the remote gitops repository.",
+	)
+
+	cmd.Flags().StringVar(
+		&o.LocalOutPath,
+		flagLocalOutPath,
+		"",
+		"Write rendered manifests to the specified path instead of the remote "+
+			"gitops repository. The path must NOT already exist.",
+	)
+
 	cmd.Flags().StringVarP(
 		&o.outputFormat,
 		flagOutput,
@@ -112,9 +126,6 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 		"",
 		"The URL of a remote gitops repository.",
 	)
-	if err := cmd.MarkFlagRequired(flagRepo); err != nil {
-		panic(fmt.Errorf("could not mark %s flag as required", flagRepo))
-	}
 
 	cmd.Flags().StringVarP(
 		&o.RepoCreds.Password,
@@ -125,9 +136,6 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 			"repository. Can alternatively be specified using the "+
 			"KARGO_RENDER_REPO_PASSWORD environment variable.",
 	)
-	if err := cmd.MarkFlagRequired(flagRepoPassword); err != nil {
-		panic(fmt.Errorf("could not mark %s flag as required", flagRepoPassword))
-	}
 
 	cmd.Flags().StringVarP(
 		&o.RepoCreds.Username,
@@ -138,9 +146,13 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 			"Can alternatively be specified using the KARGO_RENDER_REPO_USERNAME "+
 			"environment variable.",
 	)
-	if err := cmd.MarkFlagRequired(flagRepoUsername); err != nil {
-		panic(fmt.Errorf("could not mark %s flag as required", flagRepoUsername))
-	}
+
+	cmd.Flags().BoolVar(
+		&o.Stdout,
+		flagStdout,
+		false,
+		"Write rendered manifests to stdout instead of the remote gitops repo.",
+	)
 
 	cmd.Flags().StringVarP(
 		&o.TargetBranch,
@@ -152,28 +164,15 @@ func (o *rootOptions) addFlags(cmd *cobra.Command) {
 	if err := cmd.MarkFlagRequired(flagTargetBranch); err != nil {
 		panic(fmt.Errorf("could not mark %s flag as required", flagTargetBranch))
 	}
-}
 
-// validate performs validation of the options. If the options are invalid, an
-// error is returned.
-func (o *rootOptions) validate() error {
-	var errs []error
-	// While these flags are marked as required, a user could still provide an
-	// empty string for any of them. This is a check to ensure that required flags
-	// are not empty.
-	if o.RepoURL == "" {
-		errs = append(errs, fmt.Errorf("the --%s flag is required", flagRepo))
-	}
-	if o.RepoCreds.Password == "" {
-		errs = append(errs, fmt.Errorf("the --%s flag is required", flagRepoPassword))
-	}
-	if o.RepoCreds.Username == "" {
-		errs = append(errs, fmt.Errorf("the --%s flag is required", flagRepoUsername))
-	}
-	if o.TargetBranch == "" {
-		errs = append(errs, fmt.Errorf("the --%s flag is required", flagTargetBranch))
-	}
-	return errors.Join(errs...)
+	// Make sure input source is specified and unambiguous.
+	cmd.MarkFlagsOneRequired(flagRepo, flagLocalInPath)
+	cmd.MarkFlagsMutuallyExclusive(flagRepo, flagLocalInPath)
+	// And the ref flag cannot be combined with the local input path..
+	cmd.MarkFlagsMutuallyExclusive(flagRef, flagLocalInPath)
+
+	// Make sure output destination is unambiguous.
+	cmd.MarkFlagsMutuallyExclusive(flagCommitMessage, flagLocalOutPath, flagStdout)
 }
 
 func (o *rootOptions) preRun(cmd *cobra.Command, _ []string) {
@@ -224,6 +223,9 @@ func (o *rootOptions) run(ctx context.Context, out io.Writer) error {
 	if o.outputFormat == "" {
 		switch res.ActionTaken {
 		case render.ActionTakenNone:
+			if o.Stdout {
+				return manifestsToStdout(res.Manifests, out)
+			}
 			fmt.Fprintln(
 				out,
 				"\nThis request would not change any state. No action was taken.",
@@ -242,7 +244,17 @@ func (o *rootOptions) run(ctx context.Context, out io.Writer) error {
 				o.TargetBranch,
 			)
 		case render.ActionTakenUpdatedPR:
-
+			fmt.Fprintf(
+				out,
+				"\nUpdated PR %s\n",
+				res.PullRequestURL,
+			)
+		case render.ActionTakenWroteToLocalPath:
+			fmt.Fprintf(
+				out,
+				"\nWrote rendered manifests to %s\n",
+				o.LocalOutPath,
+			)
 		}
 	} else {
 		if err := output(res, out, o.outputFormat); err != nil {
@@ -250,5 +262,21 @@ func (o *rootOptions) run(ctx context.Context, out io.Writer) error {
 		}
 	}
 
+	return nil
+}
+
+func manifestsToStdout(manifests map[string][]byte, out io.Writer) error {
+	apps := make([]string, 0, len(manifests))
+	for k := range manifests {
+		apps = append(apps, k)
+	}
+	sort.StringSlice(apps).Sort()
+	for _, app := range apps {
+		const sep = "--------------------------------------------------"
+		fmt.Fprintln(out, sep)
+		fmt.Fprintf(out, "App: %s\n", app)
+		fmt.Fprintln(out, sep)
+		fmt.Fprintln(out, string(manifests[app]))
+	}
 	return nil
 }
