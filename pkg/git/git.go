@@ -13,6 +13,8 @@ import (
 	libExec "github.com/akuity/kargo-render/internal/exec"
 )
 
+const RemoteOrigin = "origin"
+
 // RepoCredentials represents the credentials for connecting to a private git
 // repository.
 type RepoCredentials struct {
@@ -391,7 +393,7 @@ func (r *repo) CommitMessages(id1, id2 string) ([]string, error) {
 }
 
 func (r *repo) Fetch() error {
-	if _, err := libExec.Exec(r.buildCommand("fetch", "origin")); err != nil {
+	if _, err := libExec.Exec(r.buildCommand("fetch", RemoteOrigin)); err != nil {
 		return fmt.Errorf("error fetching from remote repo %q: %w", r.url, err)
 	}
 	return nil
@@ -399,7 +401,7 @@ func (r *repo) Fetch() error {
 
 func (r *repo) Pull(branch string) error {
 	if _, err :=
-		libExec.Exec(r.buildCommand("pull", "origin", branch)); err != nil {
+		libExec.Exec(r.buildCommand("pull", RemoteOrigin, branch)); err != nil {
 		return fmt.Errorf(
 			"error pulling branch %q from remote repo %q: %w",
 			branch,
@@ -412,7 +414,7 @@ func (r *repo) Pull(branch string) error {
 
 func (r *repo) Push() error {
 	if _, err :=
-		libExec.Exec(r.buildCommand("push", "origin", r.currentBranch)); err != nil {
+		libExec.Exec(r.buildCommand("push", RemoteOrigin, r.currentBranch)); err != nil {
 		return fmt.Errorf("error pushing branch %q: %w", r.currentBranch, err)
 	}
 	return nil
@@ -423,7 +425,7 @@ func (r *repo) RemoteBranchExists(branch string) (bool, error) {
 		"ls-remote",
 		"--heads",
 		"--exit-code", // Return 2 if not found
-		"origin",
+		RemoteOrigin,
 		branch,
 	)); err != nil {
 		if exitErr, ok := err.(*libExec.ExitError); ok && exitErr.ExitCode == 2 {

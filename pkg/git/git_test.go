@@ -78,12 +78,12 @@ func TestRepo(t *testing.T) {
 		remotes, err = r.Remotes()
 		require.NoError(t, err)
 		require.Len(t, remotes, 1)
-		require.Equal(t, "origin", remotes[0])
+		require.Equal(t, RemoteOrigin, remotes[0])
 	})
 
 	t.Run("can get url of a remote", func(t *testing.T) {
 		var url string
-		url, err = r.RemoteURL("origin")
+		url, err = r.RemoteURL(RemoteOrigin)
 		require.NoError(t, err)
 		require.Equal(t, r.url, url)
 	})

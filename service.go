@@ -108,7 +108,7 @@ func (s *service) RenderManifests(
 		if remotes, err = rc.repo.Remotes(); err != nil {
 			return res, fmt.Errorf("error getting remotes: %w", err)
 		}
-		if len(remotes) != 1 || remotes[0] != "origin" {
+		if len(remotes) != 1 || remotes[0] != git.RemoteOrigin {
 			return res, errors.New(
 				"local repository must have exactly one remote, which must be " +
 					"named \"origin\"; refusing to proceed",
