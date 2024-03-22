@@ -3,64 +3,163 @@ package render
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
-func validateAndCanonicalizeRequest(req Request) (Request, error) {
-	req.RepoURL = strings.TrimSpace(req.RepoURL)
-	if req.RepoURL == "" {
-		return req, errors.New("validation failed: RepoURL is a required field")
+var (
+	repoURLRegex      = regexp.MustCompile(`^(?:(?:(?:https?://)|(?:git@))[\w:/\-\.\?=@&%]+)$`)
+	targetBranchRegex = regexp.MustCompile(`^(?:[\w\.-]+\/?)*\w$`)
+)
+
+func (r *Request) canonicalizeAndValidate() error {
+	var errs []error
+
+	// First, canonicalize the input...
+
+	r.RepoURL = strings.TrimSpace(r.RepoURL)
+	r.RepoCreds.Username = strings.TrimSpace(r.RepoCreds.Username)
+	r.RepoCreds.Password = strings.TrimSpace(r.RepoCreds.Password)
+	r.Ref = strings.TrimSpace(r.Ref)
+	r.TargetBranch = strings.TrimSpace(r.TargetBranch)
+	r.TargetBranch = strings.TrimPrefix(r.TargetBranch, "refs/heads/")
+	for i := range r.Images {
+		r.Images[i] = strings.TrimSpace(r.Images[i])
 	}
-	repoURLRegex :=
-		regexp.MustCompile(`^(?:(?:(?:https?://)|(?:git@))[\w:/\-\.\?=@&%]+)$`)
-	if !repoURLRegex.MatchString(req.RepoURL) {
-		return req, fmt.Errorf(
-			"validation failed: RepoURL %q does not appear to be a valid git "+
-				"repository URL",
-			req.RepoURL,
+	r.CommitMessage = strings.TrimSpace(r.CommitMessage)
+	r.LocalInPath = strings.TrimSpace(r.LocalInPath)
+	if r.LocalInPath != "" {
+		r.LocalInPath = strings.TrimSuffix(r.LocalInPath, "/")
+		var err error
+		if r.LocalInPath, err = filepath.Abs(r.LocalInPath); err != nil {
+			errs = append(
+				errs,
+				fmt.Errorf("error canonicalizing path %s: %w", r.LocalInPath, err),
+			)
+		}
+	}
+
+	r.LocalOutPath = strings.TrimSpace(r.LocalOutPath)
+	if r.LocalOutPath != "" {
+		r.LocalOutPath = strings.TrimSuffix(r.LocalOutPath, "/")
+		var err error
+		if r.LocalOutPath, err = filepath.Abs(r.LocalOutPath); err != nil {
+			errs = append(
+				errs,
+				fmt.Errorf("error canonicalizing path %s: %w", r.LocalOutPath, err),
+			)
+		}
+	}
+
+	// Check for invalid combinations of input...
+
+	// Input comes from the remote repository or from a local path, but not both.
+	if r.RepoURL == "" && r.LocalInPath == "" {
+		errs = append(
+			errs,
+			errors.New(
+				"no input source specified: at least one of RepoURL or LocalInPath is required ",
+			),
+		)
+	}
+	if r.RepoURL != "" && r.LocalInPath != "" {
+		errs = append(
+			errs,
+			errors.New(
+				"input source is ambiguous: RepoURL and LocalInPath are mutually exclusive",
+			),
+		)
+	}
+	if r.LocalInPath != "" && r.Ref != "" {
+		errs = append(errs, errors.New("LocalInPath and Ref are mutually exclusive"))
+	}
+
+	var count int
+	if r.CommitMessage != "" {
+		count++
+	}
+	if r.LocalOutPath != "" {
+		count++
+	}
+	if r.Stdout {
+		count++
+	}
+	if count > 1 {
+		errs = append(
+			errs,
+			errors.New(
+				"output destination is ambiguous: CommitMessage, LocalOutPath, and "+
+					"Stdout are mutually exclusive",
+			),
 		)
 	}
 
-	// TODO: Should this be required? I think some git providers don't require
-	// this if the password is a bearer token -- e.g. such as in the case of a
-	// GitHub personal access token.
-	req.RepoCreds.Username = strings.TrimSpace(req.RepoCreds.Username)
-	req.RepoCreds.Password = strings.TrimSpace(req.RepoCreds.Password)
-	if req.RepoCreds.Password == "" {
-		return req, errors.New(
-			"validation failed: RepoCreds.Password is a required field",
+	// Now validate individual fields...
+
+	if r.RepoURL != "" && !repoURLRegex.MatchString(r.RepoURL) {
+		errs = append(
+			errs,
+			fmt.Errorf(
+				"RepoURL %q does not appear to be a valid git repository URL",
+				r.RepoURL,
+			),
 		)
 	}
 
-	req.Ref = strings.TrimSpace(req.Ref)
-
-	req.TargetBranch = strings.TrimSpace(req.TargetBranch)
-	if req.TargetBranch == "" {
-		return req,
-			errors.New("validation failed: TargetBranch is a required field")
+	if r.TargetBranch == "" {
+		errs = append(errs, errors.New("TargetBranch is a required field"))
 	}
-	targetBranchRegex := regexp.MustCompile(`^(?:[\w\.-]+\/?)*\w$`)
-	if !targetBranchRegex.MatchString(req.TargetBranch) {
-		return req, fmt.Errorf(
-			"validation failed: TargetBranch %q is an invalid branch name",
-			req.TargetBranch,
+	if !targetBranchRegex.MatchString(r.TargetBranch) {
+		errs = append(
+			errs,
+			fmt.Errorf("TargetBranch %q is an invalid branch name", r.TargetBranch),
 		)
 	}
-	req.TargetBranch = strings.TrimPrefix(req.TargetBranch, "refs/heads/")
 
-	if len(req.Images) > 0 {
-		for i := range req.Images {
-			req.Images[i] = strings.TrimSpace(req.Images[i])
-			if req.Images[i] == "" {
-				return req, errors.New(
-					"validation failed: Images must not contain any empty strings",
-				)
+	if len(r.Images) > 0 {
+		for i := range r.Images {
+			r.Images[i] = strings.TrimSpace(r.Images[i])
+			if r.Images[i] == "" {
+				errs = append(errs, errors.New("Images must not contain any empty strings"))
+				break
 			}
 		}
 	}
 
-	req.CommitMessage = strings.TrimSpace(req.CommitMessage)
+	if r.LocalInPath != "" {
+		if fi, err := os.Stat(r.LocalInPath); err != nil {
+			if os.IsNotExist(err) {
+				errs = append(
+					errs,
+					fmt.Errorf("path %s does not exist", r.LocalInPath),
+				)
+			} else {
+				errs = append(
+					errs,
+					fmt.Errorf("error checking if path %s exists: %w", r.LocalInPath, err),
+				)
+			}
+		} else if !fi.IsDir() {
+			errs = append(errs, fmt.Errorf("path %s is not a directory", r.LocalInPath))
+		}
+	}
 
-	return req, nil
+	if r.LocalOutPath != "" {
+		if _, err := os.Stat(r.LocalOutPath); err != nil && !os.IsNotExist(err) {
+			errs = append(
+				errs,
+				fmt.Errorf("error checking if path %s exists: %w", r.LocalOutPath, err),
+			)
+		} else if err == nil {
+			// path exists
+			errs = append(
+				errs,
+				fmt.Errorf("path %q already exists; refusing to overwrite", r.LocalOutPath),
+			)
+		}
+	}
+
+	return errors.Join(errs...)
 }

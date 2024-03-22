@@ -13,17 +13,54 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 		assertions func(*testing.T, Request, error)
 	}{
 		{
-			name: "missing RepoURL",
+			name: "no input source specified",
 			req:  Request{},
 			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
-				require.Contains(t, err.Error(), "RepoURL is a required field")
+				require.Contains(t, err.Error(), "no input source specified")
+			},
+		},
+		{
+			name: "input source is ambiguous",
+			req: Request{
+				RepoURL:     "fake-url",
+				LocalInPath: "/some/path",
+			},
+			assertions: func(t *testing.T, _ Request, err error) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "input source is ambiguous")
+			},
+		},
+		{
+			name: "local input path and git ref incorrectly used together",
+			req: Request{
+				LocalInPath: "/some/path",
+				Ref:         "1abcdef2",
+			},
+			assertions: func(t *testing.T, _ Request, err error) {
+				require.Error(t, err)
+				require.Contains(
+					t,
+					err.Error(),
+					"LocalInPath and Ref are mutually exclusive",
+				)
+			},
+		},
+		{
+			name: "output destination is ambiguous",
+			req: Request{
+				LocalOutPath: "/some/path",
+				Stdout:       true,
+			},
+			assertions: func(t *testing.T, _ Request, err error) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "output destination is ambiguous")
 			},
 		},
 		{
 			name: "invalid RepoURL",
 			req: Request{
-				RepoURL: "foobar",
+				RepoURL: "fake-url",
 			},
 			assertions: func(t *testing.T, _ Request, err error) {
 				require.Error(t, err)
@@ -31,20 +68,6 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 					t,
 					err.Error(),
 					"does not appear to be a valid git repository URL",
-				)
-			},
-		},
-		{
-			name: "missing Password",
-			req: Request{
-				RepoURL: "https://github.com/akuity/foobar",
-			},
-			assertions: func(t *testing.T, _ Request, err error) {
-				require.Error(t, err)
-				require.Contains(
-					t,
-					err.Error(),
-					"RepoCreds.Password is a required field",
 				)
 			},
 		},
@@ -98,6 +121,26 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "LocalInPath does not exist",
+			req: Request{
+				LocalInPath: "/some/path/that/does/not/exist",
+			},
+			assertions: func(t *testing.T, _ Request, err error) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "does not exist")
+			},
+		},
+		{
+			name: "LocalOutPath exists",
+			req: Request{
+				LocalOutPath: t.TempDir(),
+			},
+			assertions: func(t *testing.T, _ Request, err error) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "already exists; refusing to overwrite")
+			},
+		},
+		{
 			name: "validation succeeds",
 			req: Request{
 				RepoURL: "  https://github.com/akuity/foobar  ",
@@ -120,8 +163,8 @@ func TestValidateAndCanonicalizeRequest(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			req, err := validateAndCanonicalizeRequest(testCase.req)
-			testCase.assertions(t, req, err)
+			err := testCase.req.canonicalizeAndValidate()
+			testCase.assertions(t, testCase.req, err)
 		})
 	}
 }

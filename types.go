@@ -20,6 +20,10 @@ const (
 	// ActionTakenUpdatedPR represents the case where Kargo Render responded to a
 	// RenderRequest by updating an existing PR.
 	ActionTakenUpdatedPR ActionTaken = "UPDATED_PR"
+	// ActionTakenWroteToLocalPath represents the case where Kargo Render
+	// responded to a RenderRequest by writing the rendered manifests to a local
+	// path.
+	ActionTakenWroteToLocalPath ActionTaken = "WROTE_TO_LOCAL_PATH"
 )
 
 // Request is a request for Kargo Render to render environment-specific
@@ -27,7 +31,8 @@ const (
 // RepoURL.
 type Request struct {
 	id string
-	// RepoURL is the URL of a remote GitOps repository.
+	// RepoURL is the URL of a remote GitOps repository. This field is mutually
+	// exclusive with the LocalInPath field.
 	RepoURL string `json:"repoURL,omitempty"`
 	// RepoCreds encapsulates read/write credentials for the remote GitOps
 	// repository referenced by the RepoURL field.
@@ -52,6 +57,20 @@ type Request struct {
 	// against scenarios where a bug of any kind might otherwise cause Kargo
 	// Render to wipe out the contents of the target branch in error.
 	AllowEmpty bool `json:"allowEmpty,omitempty"`
+	// LocalInPath specifies a path to the repository's working tree with the
+	// desired source commit already checked out. The contents at this path will
+	// not be modified. This field is mutually exclusive with the Ref field.
+	LocalInPath string `json:"localInPath,omitempty"`
+	// LocalOutPath specifies a path where the rendered manifests should be
+	// written. The specified path must NOT exist already. When specified, the
+	// rendered manifests will not be written to the target branch of the
+	// repository specified by the RepoURL field. This field is mutually exclusive
+	// with the Stdout field.
+	LocalOutPath string `json:"localOutPath,omitempty"`
+	// Stdout specifies whether rendered manifests should be written to stdout
+	// instead of to the target branch of the repository specified by the RepoURL
+	// field. This field is mutually exclusive with the LocalOutPath field.
+	Stdout bool `json:"stdout,omitempty"`
 }
 
 // RepoCredentials represents the credentials for connecting to a private git
@@ -82,4 +101,11 @@ type Response struct {
 	// manifests. This is only set when the OpenPR field of the corresponding
 	// RenderRequest was true.
 	PullRequestURL string `json:"pullRequestURL,omitempty"`
+	// LocalPath is the path to the directory where the rendered manifests
+	// were written. This is only set when the LocalOutPath field of the
+	// corresponding RenderRequest was non-empty.
+	LocalPath string `json:"localPath,omitempty"`
+	// Manifests is the rendered environment-specific manifests. This is only set
+	// when the Stdout field of the corresponding RenderRequest was true.
+	Manifests map[string][]byte `json:"manifests,omitempty"`
 }
