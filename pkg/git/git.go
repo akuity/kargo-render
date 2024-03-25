@@ -13,7 +13,11 @@ import (
 	libExec "github.com/akuity/kargo-render/internal/exec"
 )
 
-const RemoteOrigin = "origin"
+const (
+	RemoteOrigin = "origin"
+
+	tmpPrefix = "repo-"
+)
 
 // RepoCredentials represents the credentials for connecting to a private git
 // repository.
@@ -113,7 +117,7 @@ func Clone(
 	cloneURL string,
 	repoCreds RepoCredentials,
 ) (Repo, error) {
-	homeDir, err := os.MkdirTemp("", "")
+	homeDir, err := os.MkdirTemp("", tmpPrefix)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"error creating home directory for repo %q: %w",
@@ -155,7 +159,7 @@ func CopyRepo(path string, repoCreds RepoCredentials) (Repo, error) {
 		return nil, fmt.Errorf("path %s is not a git repository: %w", path, err)
 	}
 
-	homeDir, err := os.MkdirTemp("", "")
+	homeDir, err := os.MkdirTemp("", tmpPrefix)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"error creating directory for copy of repo at %s: %w",

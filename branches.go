@@ -3,11 +3,13 @@ package render
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/ghodss/yaml"
 
+	libExec "github.com/akuity/kargo-render/internal/exec"
 	"github.com/akuity/kargo-render/internal/file"
 	"github.com/akuity/kargo-render/pkg/git"
 )
@@ -181,6 +183,18 @@ func cleanCommitBranch(dir string, preservedPaths []string) error {
 		),
 	)
 	return err
+}
+
+// copyBranchContents copies the entire contents of the source directory to the
+// destination directory, except for .git.
+func copyBranchContents(srcDir, dstDir string) error {
+	// nolint: gosec
+	if _, err := libExec.Exec(
+		exec.Command("cp", "-r", srcDir, dstDir),
+	); err != nil {
+		return err
+	}
+	return os.RemoveAll(filepath.Join(dstDir, ".git"))
 }
 
 // normalizePreservedPaths converts the relative paths in the preservedPaths
