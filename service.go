@@ -258,10 +258,9 @@ func (s *service) RenderManifests(
 	outputDir := rc.repo.WorkingDir()
 	if rc.request.LocalOutPath != "" {
 		outputDir = rc.request.LocalOutPath
-		// Create a directory for the output
-		if err = os.MkdirAll(outputDir, 0755); err != nil {
+		if err = copyBranchContents(rc.repo.WorkingDir(), outputDir); err != nil {
 			return res, fmt.Errorf(
-				"error creating local output directory %q: %w",
+				"error copying branch contents to local output directory %q: %w",
 				outputDir,
 				err,
 			)
