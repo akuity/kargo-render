@@ -9,6 +9,7 @@ import (
 	"github.com/ghodss/yaml"
 
 	"github.com/akuity/kargo-render/internal/file"
+	"github.com/akuity/kargo-render/pkg/git"
 )
 
 // branchMetadata encapsulates details about an environment-specific branch for
@@ -104,12 +105,12 @@ func switchToTargetBranch(rc requestContext) error {
 		return fmt.Errorf("error creating new target branch: %w", err)
 	}
 	logger.Debug("created target branch")
-	if err =
-		writeBranchMetadata(branchMetadata{}, rc.repo.WorkingDir()); err != nil {
-		return fmt.Errorf("error writing blank target branch metadata: %w", err)
-	}
-	logger.Debug("wrote blank target branch metadata")
-	if err = rc.repo.AddAllAndCommit("Initial commit"); err != nil {
+	if err = rc.repo.Commit(
+		"Initial commit",
+		&git.CommitOptions{
+			AllowEmpty: true,
+		},
+	); err != nil {
 		return fmt.Errorf("error making initial commit to new target branch: %w", err)
 	}
 	logger.Debug("made initial commit to new target branch")

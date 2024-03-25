@@ -206,13 +206,24 @@ func (s *service) RenderManifests(
 		return res, fmt.Errorf("error loading branch metadata: %w", err)
 	}
 	if oldTargetBranchMetadata == nil {
-		return res, fmt.Errorf(
-			"target branch %q already exists, but does not appear to be managed by "+
-				"Kargo Render; refusing to overwrite branch contents",
-			rc.request.TargetBranch,
-		)
+		// The target branch doesn't appear to already be managed by Kargo Render.
+		// We'll let this slide if the branch is 100% empty, but we'll refuse to
+		// proceed otherwise.
+		var fileInfos []os.DirEntry
+		if fileInfos, err = os.ReadDir(rc.repo.WorkingDir()); err != nil {
+			return res, fmt.Errorf("error reading directory contents: %w", err)
+		}
+		if len(fileInfos) != 1 && fileInfos[0].Name() != ".git" {
+			return res, fmt.Errorf(
+				"target branch %q already exists, but does not appear to be managed by "+
+					"Kargo Render; refusing to overwrite branch contents",
+				rc.request.TargetBranch,
+			)
+		}
+		rc.target.oldBranchMetadata = branchMetadata{}
+	} else {
+		rc.target.oldBranchMetadata = *oldTargetBranchMetadata
 	}
-	rc.target.oldBranchMetadata = *oldTargetBranchMetadata
 
 	if rc.target.commit.branch, err = switchToCommitBranch(rc); err != nil {
 		return res, fmt.Errorf("error switching to commit branch: %w", err)
