@@ -47,7 +47,7 @@ type Repo interface {
 	// Checkout checks out the specified branch.
 	Checkout(branch string) error
 	// Commit commits staged changes to the current branch.
-	Commit(message string) error
+	Commit(message string, opts *CommitOptions) error
 	// CreateChildBranch creates a new branch that is a child of the current
 	// branch.
 	CreateChildBranch(branch string) error
@@ -216,7 +216,7 @@ func (r *repo) AddAllAndCommit(message string) error {
 	if err := r.AddAll(); err != nil {
 		return err
 	}
-	return r.Commit(message)
+	return r.Commit(message, nil)
 }
 
 func (r *repo) Clean() error {
@@ -266,8 +266,19 @@ func (r *repo) Checkout(branch string) error {
 	return nil
 }
 
-func (r *repo) Commit(message string) error {
-	if _, err := libExec.Exec(r.buildCommand("commit", "-m", message)); err != nil {
+type CommitOptions struct {
+	AllowEmpty bool
+}
+
+func (r *repo) Commit(message string, opts *CommitOptions) error {
+	if opts == nil {
+		opts = &CommitOptions{}
+	}
+	cmdTokens := []string{"commit", "-m", message}
+	if opts.AllowEmpty {
+		cmdTokens = append(cmdTokens, "--allow-empty")
+	}
+	if _, err := libExec.Exec(r.buildCommand(cmdTokens...)); err != nil {
 		return fmt.Errorf(
 			"error committing changes to branch %q: %w",
 			r.currentBranch,
