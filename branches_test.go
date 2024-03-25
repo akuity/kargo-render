@@ -20,9 +20,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "metadata does not exist",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				return repoDir
+				return t.TempDir()
 			},
 			assertions: func(t *testing.T, md *branchMetadata, err error) {
 				require.NoError(t, err)
@@ -32,10 +30,9 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "invalid YAML",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
+				repoDir := t.TempDir()
 				bkDir := filepath.Join(repoDir, ".kargo-render")
-				err = os.Mkdir(bkDir, 0755)
+				err := os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(bkDir, "metadata.yaml"),
@@ -53,10 +50,9 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "valid YAML",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
+				repoDir := t.TempDir()
 				bkDir := filepath.Join(repoDir, ".kargo-render")
-				err = os.Mkdir(bkDir, 0755)
+				err := os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(bkDir, "metadata.yaml"),
@@ -80,9 +76,8 @@ func TestLoadBranchMetadata(t *testing.T) {
 }
 
 func TestWriteBranchMetadata(t *testing.T) {
-	repoDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	err = writeBranchMetadata(
+	repoDir := t.TempDir()
+	err := writeBranchMetadata(
 		branchMetadata{
 			SourceCommit: "1234567",
 		},
@@ -162,9 +157,7 @@ func TestNormalizePreservedPaths(t *testing.T) {
 }
 
 func TestCleanDir(t *testing.T) {
-	dir, err := os.MkdirTemp("", "")
-	defer os.RemoveAll(dir)
-	require.NoError(t, err)
+	dir := t.TempDir()
 
 	// This is what the test directory structure will look like:
 	// .
@@ -178,7 +171,7 @@ func TestCleanDir(t *testing.T) {
 
 	// Create the test directory structure
 	fooDir := filepath.Join(dir, "foo")
-	err = os.Mkdir(fooDir, 0755)
+	err := os.Mkdir(fooDir, 0755)
 	require.NoError(t, err)
 	fooFile := filepath.Join(fooDir, "foo.txt")
 	err = os.WriteFile(fooFile, []byte("foo"), 0600)
