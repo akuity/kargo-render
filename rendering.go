@@ -61,7 +61,7 @@ func renderLastMile(
 ) ([]string, map[string][]byte, error) {
 	logger := rc.logger
 
-	tempDir, err := os.MkdirTemp("", "")
+	tempDir, err := os.MkdirTemp("", "repo-scrap-")
 	if err != nil {
 		return nil, nil, fmt.Errorf(
 			"error creating temporary directory %q for last mile rendering: %w",

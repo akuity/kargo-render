@@ -18,9 +18,8 @@ func TestLoadRepoConfig(t *testing.T) {
 		{
 			name: "invalid JSON",
 			setup: func() string {
-				dir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				err = os.WriteFile(
+				dir := t.TempDir()
+				err := os.WriteFile(
 					filepath.Join(dir, "kargo-render.json"),
 					[]byte("bogus"),
 					0600,
@@ -40,9 +39,8 @@ func TestLoadRepoConfig(t *testing.T) {
 		{
 			name: "invalid YAML",
 			setup: func() string {
-				dir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				err = os.WriteFile(
+				dir := t.TempDir()
+				err := os.WriteFile(
 					filepath.Join(dir, "kargo-render.yaml"),
 					[]byte("bogus"),
 					0600,
@@ -62,9 +60,8 @@ func TestLoadRepoConfig(t *testing.T) {
 		{
 			name: "valid JSON",
 			setup: func() string {
-				dir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				err = os.WriteFile(
+				dir := t.TempDir()
+				err := os.WriteFile(
 					filepath.Join(dir, "kargo-render.json"),
 					[]byte(`{"configVersion": "v1alpha1"}`),
 					0600,
@@ -79,9 +76,8 @@ func TestLoadRepoConfig(t *testing.T) {
 		{
 			name: "valid YAML",
 			setup: func() string {
-				dir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				err = os.WriteFile(
+				dir := t.TempDir()
+				err := os.WriteFile(
 					filepath.Join(dir, "kargo-render.yaml"),
 					[]byte("configVersion: v1alpha1"),
 					0600,

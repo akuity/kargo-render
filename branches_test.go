@@ -20,9 +20,7 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "metadata does not exist",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
-				return repoDir
+				return t.TempDir()
 			},
 			assertions: func(t *testing.T, md *branchMetadata, err error) {
 				require.NoError(t, err)
@@ -32,10 +30,9 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "invalid YAML",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
+				repoDir := t.TempDir()
 				bkDir := filepath.Join(repoDir, ".kargo-render")
-				err = os.Mkdir(bkDir, 0755)
+				err := os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(bkDir, "metadata.yaml"),
@@ -53,10 +50,9 @@ func TestLoadBranchMetadata(t *testing.T) {
 		{
 			name: "valid YAML",
 			setup: func() string {
-				repoDir, err := os.MkdirTemp("", "")
-				require.NoError(t, err)
+				repoDir := t.TempDir()
 				bkDir := filepath.Join(repoDir, ".kargo-render")
-				err = os.Mkdir(bkDir, 0755)
+				err := os.Mkdir(bkDir, 0755)
 				require.NoError(t, err)
 				err = os.WriteFile(
 					filepath.Join(bkDir, "metadata.yaml"),
@@ -80,9 +76,8 @@ func TestLoadBranchMetadata(t *testing.T) {
 }
 
 func TestWriteBranchMetadata(t *testing.T) {
-	repoDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	err = writeBranchMetadata(
+	repoDir := t.TempDir()
+	err := writeBranchMetadata(
 		branchMetadata{
 			SourceCommit: "1234567",
 		},
@@ -99,8 +94,7 @@ func TestCleanCommitBranch(t *testing.T) {
 	const subdirCount = 50
 	const fileCount = 50
 	// Create dummy repo dir
-	dir, err := createDummyCommitBranchDir(subdirCount, fileCount)
-	defer os.RemoveAll(dir)
+	dir, err := createDummyCommitBranchDir(t, subdirCount, fileCount)
 	require.NoError(t, err)
 	// Double-check the setup
 	dirEntries, err := os.ReadDir(dir)
@@ -121,6 +115,30 @@ func TestCleanCommitBranch(t *testing.T) {
 	require.Len(t, dirEntries, 2)
 }
 
+func TestCopyBranchContents(t *testing.T) {
+	const subdirCount = 50
+	const fileCount = 50
+	// Create dummy repo srcDir
+	srcDir, err := createDummyCommitBranchDir(t, subdirCount, fileCount)
+	require.NoError(t, err)
+	// Double-check the setup
+	dirEntries, err := os.ReadDir(srcDir)
+	require.NoError(t, err)
+	require.Len(t, dirEntries, subdirCount+fileCount+2)
+	dstDir := filepath.Join(t.TempDir(), "dst")
+	// Copy
+	err = copyBranchContents(srcDir, dstDir)
+	require.NoError(t, err)
+	// .git should not have been included
+	_, err = os.Stat(filepath.Join(dstDir, ".git"))
+	require.Error(t, err)
+	require.True(t, os.IsNotExist(err))
+	// Everything else should have been copied
+	dirEntries, err = os.ReadDir(dstDir)
+	require.NoError(t, err)
+	require.Len(t, dirEntries, subdirCount+fileCount+1)
+}
+
 func TestNormalizePreservedPaths(t *testing.T) {
 	preservedPaths := []string{
 		"foo/bar",
@@ -139,9 +157,7 @@ func TestNormalizePreservedPaths(t *testing.T) {
 }
 
 func TestCleanDir(t *testing.T) {
-	dir, err := os.MkdirTemp("", "")
-	defer os.RemoveAll(dir)
-	require.NoError(t, err)
+	dir := t.TempDir()
 
 	// This is what the test directory structure will look like:
 	// .
@@ -155,7 +171,7 @@ func TestCleanDir(t *testing.T) {
 
 	// Create the test directory structure
 	fooDir := filepath.Join(dir, "foo")
-	err = os.Mkdir(fooDir, 0755)
+	err := os.Mkdir(fooDir, 0755)
 	require.NoError(t, err)
 	fooFile := filepath.Join(fooDir, "foo.txt")
 	err = os.WriteFile(fooFile, []byte("foo"), 0600)
@@ -222,23 +238,20 @@ func TestIsPathPreserved(t *testing.T) {
 	require.False(t, isPathPreserved("/foo/baz", preservedPaths))
 }
 
-func createDummyCommitBranchDir(dirCount, fileCount int) (string, error) {
+func createDummyCommitBranchDir(t *testing.T, dirCount, fileCount int) (string, error) {
 	// Create a directory
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		return dir, err
-	}
+	dir := t.TempDir()
 	// Add a dummy .git/ subdir
-	if err = os.Mkdir(filepath.Join(dir, ".git"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(dir, ".git"), 0755); err != nil {
 		return dir, err
 	}
 	// Add a dummy .kargo-render/ subdir
-	if err = os.Mkdir(filepath.Join(dir, ".kargo-render"), 0755); err != nil {
+	if err := os.Mkdir(filepath.Join(dir, ".kargo-render"), 0755); err != nil {
 		return dir, err
 	}
 	// Add some other dummy dirs
 	for i := 0; i < dirCount; i++ {
-		if err = os.Mkdir(
+		if err := os.Mkdir(
 			filepath.Join(dir, fmt.Sprintf("dir-%d", i)),
 			0755,
 		); err != nil {

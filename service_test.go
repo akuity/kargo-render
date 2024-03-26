@@ -35,10 +35,8 @@ metadata:
 		},
 		[]byte("---\n"),
 	)
-	testDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(testDir)
-	err = writeManifests(testDir, testYAMLBytes)
+	testDir := t.TempDir()
+	err := writeManifests(testDir, testYAMLBytes)
 	require.NoError(t, err)
 	filename := filepath.Join(testDir, "foobar-deployment.yaml")
 	exists, err := file.Exists(filename)
