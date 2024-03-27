@@ -168,10 +168,26 @@ func TestRepo(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	testBranch := fmt.Sprintf("test-branch-%s", uuid.NewString())
+	err = r.CreateChildBranch(testBranch)
+	require.NoError(t, err)
+
 	t.Run("can create a child branch", func(t *testing.T) {
-		testBranch := fmt.Sprintf("test-branch-%s", uuid.NewString())
-		err = r.CreateChildBranch(testBranch)
 		require.NoError(t, err)
+	})
+
+	t.Run("can check if local branch exists -- negative result", func(t *testing.T) {
+		var exists bool
+		exists, err = r.LocalBranchExists("branch-that-does-not-exist")
+		require.NoError(t, err)
+		require.False(t, exists)
+	})
+
+	t.Run("can check if local branch exists -- positive result", func(t *testing.T) {
+		var exists bool
+		exists, err = r.LocalBranchExists(testBranch)
+		require.NoError(t, err)
+		require.True(t, exists)
 	})
 
 	err = os.WriteFile(fmt.Sprintf("%s/%s", r.WorkingDir(), "test.txt"), []byte("bar"), 0600)
