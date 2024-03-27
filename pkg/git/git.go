@@ -68,6 +68,8 @@ type Repo interface {
 	// LastCommitID returns the ID (sha) of the most recent commit to the current
 	// branch.
 	LastCommitID() (string, error)
+	// LocalBranchExists returns a bool indicating if the specified branch exists.
+	LocalBranchExists(branch string) (bool, error)
 	// CommitMessage returns the text of the most recent commit message associated
 	// with the specified commit ID.
 	CommitMessage(id string) (string, error)
@@ -364,6 +366,21 @@ func (r *repo) LastCommitID() (string, error) {
 		return "", fmt.Errorf("error obtaining ID of last commit: %w", err)
 	}
 	return strings.TrimSpace(string(shaBytes)), nil
+}
+
+func (r *repo) LocalBranchExists(branch string) (bool, error) {
+	resBytes, err := libExec.Exec(r.buildCommand(
+		"branch",
+		"--list",
+		branch,
+	))
+	if err != nil {
+		return false,
+			fmt.Errorf("error checking for existence of local branch %q: %w", branch, err)
+	}
+	return strings.TrimSpace(
+		strings.Replace(string(resBytes), "*", "", 1),
+	) == branch, nil
 }
 
 func (r *repo) CommitMessage(id string) (string, error) {

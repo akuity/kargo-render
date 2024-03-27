@@ -80,12 +80,12 @@ func switchToTargetBranch(rc requestContext) error {
 	logger := rc.logger.WithField("targetBranch", rc.request.TargetBranch)
 
 	// Check if the target branch exists on the remote
-	targetBranchExists, err := rc.repo.RemoteBranchExists(rc.request.TargetBranch)
+	remoteTargetBranchExists, err := rc.repo.RemoteBranchExists(rc.request.TargetBranch)
 	if err != nil {
-		return fmt.Errorf("error checking for existence of target branch: %w", err)
+		return fmt.Errorf("error checking for existence of remote target branch: %w", err)
 	}
 
-	if targetBranchExists {
+	if remoteTargetBranchExists {
 		logger.Debug("target branch exists on remote")
 		if err = rc.repo.Fetch(); err != nil {
 			return fmt.Errorf("error fetching from remote: %w", err)
@@ -103,10 +103,31 @@ func switchToTargetBranch(rc requestContext) error {
 	}
 
 	logger.Debug("target branch does not exist on remote")
-	if err = rc.repo.CreateOrphanedBranch(rc.request.TargetBranch); err != nil {
-		return fmt.Errorf("error creating new target branch: %w", err)
+
+	// Check if the target branch exists locally
+	localTargetBranchExists, err := rc.repo.LocalBranchExists(rc.request.TargetBranch)
+	if err != nil {
+		return fmt.Errorf("error checking for existence of local target branch: %w", err)
 	}
-	logger.Debug("created target branch")
+
+	if localTargetBranchExists {
+		logger.Debug("target branch exists locally")
+		if err = rc.repo.Checkout(rc.request.TargetBranch); err != nil {
+			return fmt.Errorf("error checking out target branch: %w", err)
+		}
+		logger.Debug("checked out target branch")
+	} else {
+		logger.Debug("target branch does not exist locally")
+		if err = rc.repo.CreateOrphanedBranch(rc.request.TargetBranch); err != nil {
+			return fmt.Errorf("error creating new target branch: %w", err)
+		}
+		logger.Debug("created target branch locally")
+	}
+
+	if rc.request.LocalOutPath != "" {
+		return nil // There's no need to push the new branch to the remote
+	}
+
 	if err = rc.repo.Commit(
 		"Initial commit",
 		&git.CommitOptions{
