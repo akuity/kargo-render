@@ -59,7 +59,7 @@ require (
 require k8s.io/apiserver v0.24.17 // indirect
 
 require (
-	github.com/argoproj/argo-cd/v2 v2.9.9
+	github.com/argoproj/argo-cd/v2 v2.9.10
 	github.com/google/go-github/v47 v47.1.0
 	github.com/sosedoff/gitkit v0.4.0
 	github.com/xeipuuv/gojsonschema v1.2.0
