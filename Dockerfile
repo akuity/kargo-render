@@ -40,7 +40,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
 FROM alpine:3.19.1 as final
 
 RUN apk update \
-    && apk add git openssh-client \
+    && apk add git gpg gpg-agent openssh-client \
     && addgroup -S -g 65532 nonroot \
     && adduser -S -D -H -u 65532 -g nonroot -G nonroot nonroot
 
