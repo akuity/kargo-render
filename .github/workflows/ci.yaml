@@ -50,7 +50,7 @@ jobs:
       env:
         GOFLAGS: -buildvcs=false
       with:
-        version: v1.56.2
+        version: v1.57.2
 
   build-image:
     needs: [test-unit, lint]
