@@ -2,7 +2,7 @@ FROM golang:1.22.1-bookworm
 
 ARG TARGETARCH
 
-ARG GOLANGCI_LINT_VERSION=1.56.2
+ARG GOLANGCI_LINT_VERSION=1.57.2
 
 RUN cd /usr/local/bin \
     && curl -sSfL https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-${TARGETARCH}.tar.gz \
