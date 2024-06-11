@@ -37,7 +37,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
       ./cmd \
     && bin/kargo-render version
 
-FROM alpine:3.19.1 as final
+FROM alpine:3.20.0 as final
 
 RUN apk update \
     && apk add git openssh-client \
