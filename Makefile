@@ -26,6 +26,26 @@ test-unit:
 		./...
 
 ################################################################################
+# Build: Targets to help build                                                 #
+################################################################################
+
+.PHONY: clean
+clean:
+	rm -rf build
+
+.PHONY: build-base-image
+build-base-image:
+	mkdir -p build
+	cp kargo-render-base.apko.yaml build
+	docker run \
+		--rm \
+		-v $(dir $(realpath $(firstword $(MAKEFILE_LIST))))build:/build \
+		-w /build \
+		cgr.dev/chainguard/apko \
+		build kargo-render-base.apko.yaml kargo-render-base kargo-render-base.tar.gz
+	docker image load -i build/kargo-render-base.tar.gz
+
+################################################################################
 # Hack: Targets to help you hack                                               #
 #                                                                              #
 # These targets minimize required developer setup by executing in a container  #
@@ -53,8 +73,9 @@ hack-test-unit: hack-build-dev-tools
 	$(DOCKER_CMD) make test-unit
 
 .PHONY: hack-build
-hack-build:
+hack-build: build-base-image
 	docker build \
+		--build-arg BASE_IMAGE=kargo-render-base \
 		--build-arg GIT_COMMIT=$(shell git rev-parse HEAD) \
 		--build-arg GIT_TREE_STATE=$(shell if [ -z "`git status --porcelain`" ]; then echo "clean" ; else echo "dirty"; fi) \
 		--tag kargo-render:dev \

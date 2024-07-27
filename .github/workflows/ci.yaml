@@ -13,11 +13,11 @@ jobs:
   test-unit:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.22.1-bookworm
+      image: golang:1.22.5-bookworm
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
-    - uses: actions/cache@v3
+      uses: actions/checkout@v4
+    - uses: actions/cache@v4
       with:
         path: /go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -28,25 +28,25 @@ jobs:
         TEST_GIT_CLIENT_WITH_AUTH: true
       run: make test-unit
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
 
   lint:
     runs-on: ubuntu-latest
     container:
-      image: golang:1.22.1-bookworm
+      image: golang:1.22.5-bookworm
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
-    - uses: actions/cache@v3
+      uses: actions/checkout@v4
+    - uses: actions/cache@v4
       with:
         path: /go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v3
+      uses: golangci/golangci-lint-action@v6
       env:
         GOFLAGS: -buildvcs=false
       with:
@@ -55,14 +55,32 @@ jobs:
   build-image:
     needs: [test-unit, lint]
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+        - 5000:5000
     steps:
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v2
+      uses: docker/setup-qemu-action@v3
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    - name: Build image
-      uses: docker/build-push-action@v5
+      uses: docker/setup-buildx-action@v3
       with:
+        driver-opts: network=host
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Build base image
+      run: |
+        make build-base-image
+        docker tag kargo-render-base:latest-arm64 localhost:5000/kargo-render-base:latest-arm64
+        docker push localhost:5000/kargo-render-base:latest-arm64
+        docker tag kargo-render-base:latest-amd64 localhost:5000/kargo-render-base:latest-amd64
+        docker push localhost:5000/kargo-render-base:latest-amd64
+    - name: Build final image
+      uses: docker/build-push-action@v6
+      with:
+        build-args: |
+          BASE_IMAGE=localhost:5000/kargo-render-base
         platforms: linux/amd64,linux/arm64
         push: false
         cache-from: type=gha
