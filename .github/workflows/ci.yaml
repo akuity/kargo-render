@@ -24,8 +24,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Run unit tests
-      env:
-        TEST_GIT_CLIENT_WITH_AUTH: true
       run: make test-unit
     - name: Upload coverage reports
       uses: codecov/codecov-action@v4

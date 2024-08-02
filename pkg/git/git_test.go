@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"testing"
 
@@ -48,7 +49,11 @@ func TestRepo(t *testing.T) {
 	require.True(t, ok)
 
 	t.Run("can clone", func(t *testing.T) {
-		require.Equal(t, testRepoURL, r.url)
+		var repoURL *url.URL
+		repoURL, err = url.Parse(r.url)
+		require.NoError(t, err)
+		repoURL.User = nil
+		require.Equal(t, testRepoURL, repoURL.String())
 		require.NotEmpty(t, r.homeDir)
 		var fi os.FileInfo
 		fi, err = os.Stat(r.homeDir)
