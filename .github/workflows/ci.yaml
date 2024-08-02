@@ -69,10 +69,8 @@ jobs:
       uses: actions/checkout@v4
     - name: Build base image
       run: |
-        make build-base-image
-        docker tag kargo-render-base:latest-arm64 localhost:5000/kargo-render-base:latest-arm64
+        BASE_IMAGE=localhost:5000/kargo-render-base:latest make build-base-image
         docker push localhost:5000/kargo-render-base:latest-arm64
-        docker tag kargo-render-base:latest-amd64 localhost:5000/kargo-render-base:latest-amd64
         docker push localhost:5000/kargo-render-base:latest-amd64
     - name: Build final image
       uses: docker/build-push-action@v6
