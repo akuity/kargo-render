@@ -108,6 +108,7 @@ type repo struct {
 	homeDir       string
 	dir           string
 	currentBranch string
+	creds         RepoCredentials
 }
 
 // Clone produces a local clone of the remote git repository at the specified
@@ -131,6 +132,7 @@ func Clone(
 		url:     cloneURL,
 		homeDir: homeDir,
 		dir:     filepath.Join(homeDir, "repo"),
+		creds:   repoCreds,
 	}
 	if err = r.setupAuth(repoCreds); err != nil {
 		return nil, err
@@ -552,46 +554,20 @@ func (r *repo) setupAuth(repoCreds RepoCredentials) error {
 		return nil // We're done
 	}
 
-	// If no password is specified, we don't need to authenticate at all.
+	// If no password is specified, we're done'.
 	if repoCreds.Password == "" {
 		return nil
 	}
 
-	// Set up the credential helper
-	cmd = r.buildCommand("config", "--global", "credential.helper", "store")
-	cmd.Dir = r.homeDir // Override the cmd.Dir that's set by r.buildCommand()
-	if _, err := libExec.Exec(cmd); err != nil {
-		return fmt.Errorf("error configuring git credential helper: %w", err)
-	}
+	lowerURL := strings.ToLower(r.url)
+	if strings.HasPrefix(lowerURL, "http://") || strings.HasPrefix(lowerURL, "https://") {
+		u, err := url.Parse(r.url)
+		if err != nil {
+			return fmt.Errorf("error parsing URL %q: %w", r.url, err)
+		}
+		u.User = url.User(repoCreds.Username)
+		r.url = u.String()
 
-	credentialURL, err := url.Parse(r.url)
-	if err != nil {
-		return fmt.Errorf("error parsing URL %q: %w", r.url, err)
-	}
-	// Remove path and query string components from the URL
-	credentialURL.Path = ""
-	credentialURL.RawQuery = ""
-	// If the username is the empty string, we assume we're working with a git
-	// provider like GitHub that only requires the username to be non-empty. We
-	// arbitrarily set it to "git".
-	if repoCreds.Username == "" {
-		repoCreds.Username = "git"
-	}
-	// Augment the URL with user/pass information.
-	credentialURL.User = url.UserPassword(repoCreds.Username, repoCreds.Password)
-	// Write the augmented URL to the location used by the "stored" credential
-	// helper.
-	credentialsPath := filepath.Join(r.homeDir, ".git-credentials")
-	if err := os.WriteFile(
-		credentialsPath,
-		[]byte(credentialURL.String()),
-		0600,
-	); err != nil {
-		return fmt.Errorf(
-			"error writing credentials to %q: %w",
-			credentialsPath,
-			err,
-		)
 	}
 	return nil
 }
@@ -603,6 +579,13 @@ func (r *repo) buildCommand(arg ...string) *exec.Cmd {
 		cmd.Env = []string{homeEnvVar}
 	} else {
 		cmd.Env = append(cmd.Env, homeEnvVar)
+	}
+	if r.creds.Password != "" {
+		cmd.Env = append(
+			cmd.Env,
+			"GIT_ASKPASS=/usr/local/bin/credential-helper",
+			fmt.Sprintf("GIT_PASSWORD=%s", r.creds.Password),
+		)
 	}
 	cmd.Dir = r.dir
 	return cmd
