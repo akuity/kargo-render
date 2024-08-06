@@ -6,7 +6,6 @@ on:
     - created
 
 jobs:
-
   build-and-push-image:
     permissions:
       packages: write # Used to push images to ghcr.io
