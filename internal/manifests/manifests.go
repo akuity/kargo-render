@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -27,9 +28,11 @@ func CombineYAML(manifests [][]byte) []byte {
 }
 
 func SplitYAML(manifest []byte) (map[string][]byte, error) {
-	manifests := bytes.Split(manifest, []byte("---\n"))
+	separator := regexp.MustCompile(`(?m)^---\n`)
+	manifests := separator.Split(string(manifest), -1)
 	manifestsByResourceTypeAndName := map[string][]byte{}
-	for _, manifest = range manifests {
+	for _, manifestStr := range manifests {
+		manifest := []byte(manifestStr)
 		resource := struct {
 			Kind     string `json:"kind"`
 			Metadata struct {
