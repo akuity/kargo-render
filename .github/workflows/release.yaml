@@ -53,7 +53,7 @@ jobs:
         docker push localhost:5000/kargo-render-base:latest-amd64
     - name: Build and push final image
       id: image
-      uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+      uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85 # v6.7.0
       with:
         platforms: linux/amd64,linux/arm64
         build-args: |
