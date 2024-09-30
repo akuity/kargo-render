@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/xeipuuv/gojsonschema"
+	"sigs.k8s.io/yaml"
 
 	"github.com/akuity/kargo-render/internal/argocd"
 	"github.com/akuity/kargo-render/internal/file"

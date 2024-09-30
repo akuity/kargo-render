@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func JSONStringsToYAMLBytes(jsonManifests []string) ([][]byte, error) {
 	yamlManifests := make([][]byte, len(jsonManifests))
+
 	for i, jsonManifest := range jsonManifests {
 		var err error
 		if yamlManifests[i], err =

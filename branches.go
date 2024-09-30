@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 
 	libExec "github.com/akuity/kargo-render/internal/exec"
 	"github.com/akuity/kargo-render/internal/file"

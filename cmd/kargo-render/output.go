@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/ghodss/yaml"
+	"sigs.k8s.io/yaml"
 )
 
 func output(obj any, out io.Writer, format string) error {
