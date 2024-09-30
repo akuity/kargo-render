@@ -1,12 +1,15 @@
 package manifests
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
-	"sigs.k8s.io/yaml"
+	"k8s.io/apimachinery/pkg/util/yaml"
+	libyaml "sigs.k8s.io/yaml"
 )
 
 func JSONStringsToYAMLBytes(jsonManifests []string) ([][]byte, error) {
@@ -15,7 +18,7 @@ func JSONStringsToYAMLBytes(jsonManifests []string) ([][]byte, error) {
 	for i, jsonManifest := range jsonManifests {
 		var err error
 		if yamlManifests[i], err =
-			yaml.JSONToYAML([]byte(jsonManifest)); err != nil {
+			libyaml.JSONToYAML([]byte(jsonManifest)); err != nil {
 			return nil,
 				fmt.Errorf("error converting JSON manifest to YAML: %w", err)
 		}
@@ -28,16 +31,24 @@ func CombineYAML(manifests [][]byte) []byte {
 }
 
 func SplitYAML(manifest []byte) (map[string][]byte, error) {
-	manifests := bytes.Split(manifest, []byte("---\n"))
+	dec := yaml.NewYAMLReader(bufio.NewReader(bytes.NewReader(manifest)))
 	manifestsByResourceTypeAndName := map[string][]byte{}
-	for _, manifest = range manifests {
+	for {
+		manifest, err := dec.Read()
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return nil, fmt.Errorf("error reading YAML document: %w", err)
+		}
+
 		resource := struct {
 			Kind     string `json:"kind"`
 			Metadata struct {
 				Name string `json:"name"`
 			} `json:"metadata"`
 		}{}
-		if err := yaml.Unmarshal(manifest, &resource); err != nil {
+		if err := libyaml.Unmarshal(manifest, &resource); err != nil {
 			return nil, fmt.Errorf("error unmarshaling resource: %w", err)
 		}
 		if resource.Kind == "" {
