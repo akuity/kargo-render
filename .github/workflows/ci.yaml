@@ -18,7 +18,7 @@ jobs:
       image: golang:1.22.5-bookworm
     steps:
     - name: Checkout code
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
     - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
       with:
         path: /go/pkg/mod
@@ -40,7 +40,7 @@ jobs:
       image: golang:1.22.5-bookworm
     steps:
     - name: Checkout code
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
     - uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
       with:
         path: /go/pkg/mod
@@ -70,7 +70,7 @@ jobs:
       with:
         driver-opts: network=host
     - name: Checkout code
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
     - name: Build base image
       run: |
         BASE_IMAGE=localhost:5000/kargo-render-base:latest make build-base-image
