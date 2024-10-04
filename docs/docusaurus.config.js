@@ -64,7 +64,7 @@ const config = {
         title: 'Kargo Render Docs',
         logo: {
           alt: 'Kargo Render Documentation',
-          src: 'img/akuity.png',
+          src: 'img/kargo.png',
           href: '/',
           target: '_self',
         },
@@ -77,6 +77,11 @@ const config = {
           {
             href: 'https://github.com/akuity/kargo-render',
             label: 'GitHub',
+            position: 'right',
+          },
+          {
+            href: 'http://akuity.community',
+            label: 'Discord Community',
             position: 'right',
           },
         ],
